@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { articleFromPath, categoryPath, liveArticles } from "@/lib/data";
+import { articleFromPath, articleImage, categoryPath, liveArticles } from "@/lib/data";
 import { articleJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo";
 
 export function generateStaticParams() {
@@ -34,7 +34,7 @@ export async function generateMetadata({
       description: article.description || undefined,
       url: `${SITE_URL}${article.filename}`,
       publishedTime: article.published,
-      modifiedTime: article.updated || article.published,
+      modifiedTime: article.updated || article.published,\n      images: articleImage(article) ? [articleImage(article)!] : undefined,
     },
   };
 }
