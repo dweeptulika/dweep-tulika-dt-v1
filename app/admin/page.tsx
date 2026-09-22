@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -32,7 +32,7 @@ export default function AdminPage() {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  useMemo(() => {
+  useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) router.replace("/admin/login");
       else setSessionReady(true);
