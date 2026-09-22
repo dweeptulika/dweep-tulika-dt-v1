@@ -57,7 +57,7 @@ export default function AdminPage() {
     setAuthor(article.author); setExcerpt(article.excerpt); setBody(article.body_html); setFeaturedImage(article.featured_image || "");
     setSeoTitle(article.seo_title || ""); setMetaDescription(article.meta_description || "");
     setSocialImage(article.social_image || ""); setScheduledFor(article.scheduled_for ? article.scheduled_for.slice(0, 16) : "");
-    setStatus(article.status); setMessage("Editing saved newsroom article.");
+    setStatus(article.scheduled_for && new Date(article.scheduled_for).getTime() > Date.now() ? "scheduled" : article.status); setMessage("Editing saved newsroom article.");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -104,7 +104,7 @@ export default function AdminPage() {
       title: title.trim(), slug: finalSlug, category, author: author.trim() || "Dweep Tulika", excerpt: excerpt.trim(),
       body_html: body, featured_image: featuredImage || null, seo_title: seoTitle.trim() || null,
       meta_description: metaDescription.trim() || excerpt.trim() || null, social_image: socialImage || null,
-      status: requestedStatus, scheduled_for: requestedStatus === "scheduled" ? new Date(scheduledFor).toISOString() : null,
+      status: requestedStatus === "scheduled" ? "published" : requestedStatus, scheduled_for: requestedStatus === "scheduled" ? new Date(scheduledFor).toISOString() : null,
       published_at: requestedStatus === "published" ? new Date().toISOString() : (requestedStatus === "scheduled" ? new Date(scheduledFor).toISOString() : null),
       updated_by: user.id,
     };
