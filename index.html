@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Dweep Tulika — A Truthful & Unbiased Perspective</title>
+
+<meta name="description"
+content="Dweep Tulika News — regional journalism, island voices, civic issues, culture, history and public-interest reporting from the Andaman & Nicobar Islands.">
+
+<meta name="robots"
+content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+
+<link rel="canonical" href="https://www.dweeptulika.in/">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Dweep Tulika">
+<meta property="og:title" content="Dweep Tulika — A Truthful & Unbiased Perspective">
+<meta property="og:description" content="Regional journalism from the Andaman & Nicobar Islands.">
+<meta property="og:url" content="https://www.dweeptulika.in/">
+
+<style>
+:root{
+  --black:#111111;
+  --paper:#f4f1e9;
+  --white:#ffffff;
+  --red:#e5483f;
+  --grey:#77736c;
+  --line:#d7d2c8;
+  --max:1240px;
+}
+
+*{box-sizing:border-box}
+
+html{scroll-behavior:smooth}
+
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--black);
+  font-family:Arial,Helvetica,sans-serif;
+}
+
+a{
+  color:inherit;
+  text-decoration:none;
+}
+
+.container{
+  width:min(1240px,calc(100% - 32px));
+  margin:auto;
+}
+
+/* HEADER */
+
+header{
+  background:var(--black);
+  color:white;
+  border-bottom:4px solid var(--red);
+}
+
+.masthead{
+  padding:25px 0 20px;
+  text-align:center;
+}
+
+.logo-word{
+  font-size:clamp(58px,10vw,120px);
+  line-height:.75;
+  font-weight:300;
+  letter-spacing:-8px;
+}
+
+.logo-word span{
+  color:var(--red);
+}
+
+.tagline{
+  margin-top:18px;
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:.08em;
+}
+
+.tagline span{
+  color:var(--red);
+}
+
+.nav{
+  border-top:1px solid #333;
+  background:#151515;
+}
+
+.nav-inner{
+  display:flex;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+
+.nav-inner::-webkit-scrollbar{
+  display:none;
+}
+
+.nav a{
+  flex:none;
+  padding:15px 14px;
+  color:#eee;
+  font-size:12px;
+  font-weight:bold;
+  text-transform:uppercase;
+}
+
+.nav a:hover,
+.nav a.active{
+  background:var(--red);
+}
+
+/* DATE BAR */
+
+.datebar{
+  border-bottom:1px solid var(--line);
+  padding:11px 0;
+  display:flex;
+  justify-content:space-between;
+  color:var(--grey);
+  font-size:12px;
+}
+
+/* LEAD */
+
+.lead-grid{
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:24px;
+  padding:26px 0;
+  border-bottom:1px solid var(--line);
+}
+
+.lead{
+  background:var(--black);
+  color:white;
+  min-height:470px;
+  padding:42px;
+  display:flex;
+  align-items:flex-end;
+  position:relative;
+  overflow:hidden;
+}
+
+.lead:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 75% 25%,rgba(229,72,63,.3),transparent 25%),
+    linear-gradient(135deg,#111,#292929);
+}
+
+.lead-content{
+  position:relative;
+  z-index:1;
+}
+
+.kicker{
+  color:var(--red);
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.13em;
+}
+
+.lead h1{
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:clamp(32px,4vw,58px);
+  line-height:1.08;
+  margin:12px 0;
+}
+
+.lead p{
+  max-width:720px;
+  color:#ddd;
+  line-height:1.6;
+}
+
+/* SIDE STORIES */
+
+.side{
+  display:flex;
+  flex-direction:column;
+  gap:0;
+}
+
+.story{
+  padding:0 0 18px;
+  margin-bottom:18px;
+  border-bottom:1px solid var(--line);
+}
+
+.story h2{
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:24px;
+  line-height:1.2;
+  margin:7px 0;
+}
+
+.meta{
+  color:var(--grey);
+  font-size:11px;
+  text-transform:uppercase;
+}
+
+/* SECTION */
+
+.section{
+  margin-top:34px;
+}
+
+.section-head{
+  border-top:5px solid var(--black);
+  padding:11px 0;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.section-head h2{
+  margin:0;
+  font-size:22px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+
+.section-head a{
+  color:var(--red);
+  font-size:12px;
+  font-weight:bold;
+}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:20px;
+}
+
+.card{
+  background:white;
+  border:1px solid var(--line);
+}
+
+.card-image{
+  aspect-ratio:16/9;
+  background:#222;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-size:42px;
+  font-weight:300;
+}
+
+.card-body{
+  padding:17px;
+}
+
+.card h3{
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:22px;
+  line-height:1.25;
+  margin:8px 0;
+}
+
+.card p{
+  color:#555;
+  font-size:14px;
+  line-height:1.6;
+}
+
+/* FOOTER */
+
+footer{
+  margin-top:55px;
+  background:var(--black);
+  color:white;
+  padding:45px 0 25px;
+}
+
+.footer-grid{
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr;
+  gap:35px;
+}
+
+footer h3{
+  margin-top:0;
+}
+
+footer p,
+footer a{
+  color:#bbb;
+  font-size:13px;
+  line-height:1.8;
+}
+
+.copyright{
+  margin-top:30px;
+  padding-top:16px;
+  border-top:1px solid #333;
+  color:#888;
+  font-size:11px;
+}
+
+/* MOBILE */
+
+@media(max-width:800px){
+
+  .container{
+    width:calc(100% - 20px);
+  }
+
+  .logo-word{
+    font-size:64px;
+    letter-spacing:-5px;
+  }
+
+  .tagline{
+    font-size:10px;
+  }
+
+  .datebar{
+    flex-direction:column;
+    gap:5px;
+  }
+
+  .lead-grid{
+    grid-template-columns:1fr;
+  }
+
+  .lead{
+    min-height:380px;
+    padding:25px;
+  }
+
+  .cards{
+    grid-template-columns:1fr;
+  }
+
+  .footer-grid{
+    grid-template-columns:1fr;
+  }
+
+}
+
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+
+<div class="masthead">
+  <div class="logo-word">
+    Tulik<span>•</span>a
+  </div>
+
+  <div class="tagline">
+    A Truthful &amp; Unbiased Perspective
+    <span> · </span>
+    ESTD. 2018
+  </div>
+</div>
+
+<nav class="nav">
+<div class="container nav-inner">
+
+<a class="active" href="/">Home</a>
+<a href="#">Latest</a>
+<a href="#">Andaman &amp; Nicobar</a>
+<a href="#">India</a>
+<a href="#">Politics</a>
+<a href="#">Business</a>
+<a href="#">Culture</a>
+<a href="#">Environment</a>
+<a href="#">Opinion</a>
+<a href="#">Special Reports</a>
+
+</div>
+</nav>
+
+</header>
+
+
+<main class="container">
+
+<div class="datebar">
+<strong>DWEEP TULIKA</strong>
+<span>Tuesday, 22 September 2026</span>
+</div>
+
+
+<section class="lead-grid">
+
+<article class="lead">
+
+<div class="lead-content">
+
+<div class="kicker">
+Dweep Tulika · Digital Edition
+</div>
+
+<h1>
+A Truthful &amp; Unbiased Perspective — now built for the digital reader.
+</h1>
+
+<p>
+Dweep Tulika's new digital platform is being built around
+island journalism, clear reporting, public-interest stories
+and a fast, accessible reading experience.
+</p>
+
+</div>
+
+</article>
+
+
+<div class="side">
+
+<article class="story">
+
+<div class="kicker">Island Voices</div>
+
+<h2>
+The voice of the islands deserves a digital home of its own.
+</h2>
+
+<div class="meta">
+Dweep Tulika · 22 September 2026
+</div>
+
+</article>
+
+
+<article class="story">
+
+<div class="kicker">Special Report</div>
+
+<h2>
+From the printed newspaper to a modern digital newsroom.
+</h2>
+
+<div class="meta">
+Dweep Tulika · 22 September 2026
+</div>
+
+</article>
+
+
+<article class="story">
+
+<div class="kicker">Editorial</div>
+
+<h2>
+Truth. Responsibility. People First.
+</h2>
+
+<div class="meta">
+Dweep Tulika
+</div>
+
+</article>
+
+</div>
+
+</section>
+
+
+<section class="section">
+
+<div class="section-head">
+
+<h2>Latest News</h2>
+
+<a href="#">View all →</a>
+
+</div>
+
+
+<div class="cards">
+
+<article class="card">
+
+<div class="card-image">T</div>
+
+<div class="card-body">
+
+<div class="kicker">Andaman &amp; Nicobar</div>
+
+<h3>
+Local reporting and island voices at the centre of DT V1.
+</h3>
+
+<div class="meta">
+22 September 2026
+</div>
+
+<p>
+News, civic issues, culture, history and public-interest
+reporting from the islands.
+</p>
+
+</div>
+</article>
+
+
+<article class="card">
+
+<div class="card-image">DT</div>
+
+<div class="card-body">
+
+<div class="kicker">Culture</div>
+
+<h3>
+Preserving the identity of Dweep Tulika in the digital age.
+</h3>
+
+<div class="meta">
+22 September 2026
+</div>
+
+<p>
+A modern digital experience carrying forward the publication's
+newspaper identity.
+</p>
+
+</div>
+</article>
+
+
+<article class="card">
+
+<div class="card-image">TL</div>
+
+<div class="card-body">
+
+<div class="kicker">Opinion</div>
+
+<h3>
+A publication built around information, accountability and people.
+</h3>
+
+<div class="meta">
+22 September 2026
+</div>
+
+<p>
+The new platform will bring reporting and public-interest
+journalism together.
+</p>
+
+</div>
+</article>
+
+</div>
+
+</section>
+
+
+<section class="section">
+
+<div class="section-head">
+
+<h2>Island Voices</h2>
+
+<a href="#">View section →</a>
+
+</div>
+
+<div class="cards">
+
+<article class="card">
+<div class="card-body">
+<div class="kicker">Ground Reports</div>
+<h3>Stories from the people and places of the islands.</h3>
+</div>
+</article>
+
+<article class="card">
+<div class="card-body">
+<div class="kicker">Civic Awareness</div>
+<h3>Public issues explained clearly and responsibly.</h3>
+</div>
+</article>
+
+<article class="card">
+<div class="card-body">
+<div class="kicker">History &amp; Culture</div>
+<h3>Island heritage, culture and community voices.</h3>
+</div>
+</article>
+
+</div>
+
+</section>
+
+</main>
+
+
+<footer>
+
+<div class="container">
+
+<div class="footer-grid">
+
+<div>
+<h3>Dweep Tulika</h3>
+
+<p>
+A Truthful &amp; Unbiased Perspective.
+A dedicated regional news platform from the
+Andaman &amp; Nicobar Islands.
+</p>
+</div>
+
+<div>
+<h3>Sections</h3>
+
+<p>
+<a href="#">Latest News</a><br>
+<a href="#">Andaman &amp; Nicobar</a><br>
+<a href="#">India</a><br>
+<a href="#">Culture</a><br>
+<a href="#">Opinion</a>
+</p>
+
+</div>
+
+<div>
+<h3>Publication</h3>
+
+<p>
+<a href="#">About</a><br>
+<a href="#">Publication Policies</a><br>
+<a href="#">Privacy Policy</a><br>
+<a href="#">Terms of Service</a><br>
+<a href="#">Contact</a>
+</p>
+
+</div>
+
+</div>
+
+<div class="copyright">
+© 2018–2026 Dweep Tulika. All rights reserved.
+</div>
+
+</div>
+
+</footer>
+
+</body>
+</html>
