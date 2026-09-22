@@ -9,7 +9,7 @@ export function generateStaticParams() {
     .map((a) => {
       const match = a.filename.match(/^\/(\d{4})\/(\d{2})\/(.+)\.html$/);
       return match
-        ? { year: match[1], month: match[2], slug: `${match[3]}.html` }
+        ? { year: match[1], month: match[2], slug: match[3] }
         : null;
     })
     .filter(Boolean) as { year: string; month: string; slug: string }[];
@@ -24,6 +24,8 @@ export async function generateMetadata({
   const article = articleFromPath(p.year, p.month, p.slug);
   if (!article) return {};
 
+  const image = articleImage(article);
+
   return {
     title: article.title,
     description: article.description || undefined,
@@ -34,7 +36,8 @@ export async function generateMetadata({
       description: article.description || undefined,
       url: `${SITE_URL}${article.filename}`,
       publishedTime: article.published,
-      modifiedTime: article.updated || article.published,\n      images: articleImage(article) ? [articleImage(article)!] : undefined,
+      modifiedTime: article.updated || article.published,
+      images: image ? [image] : undefined,
     },
   };
 }
@@ -50,13 +53,12 @@ export default async function Article({
 
   const url = SITE_URL + article.filename;
   const label = article.labels.find(Boolean) || "News";
-  const categorySlug = categoryPath(label);
 
   return (
     <div className="container">
       <div className="breadcrumbs">
         <Link href="/">Home</Link> /{" "}
-        <Link href={`/category/${categorySlug}`}>{label}</Link>
+        <Link href={`/category/${categoryPath(label)}`}>{label}</Link>
       </div>
       <article className="article">
         <div className="kicker">
