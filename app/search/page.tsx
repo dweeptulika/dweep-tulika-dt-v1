@@ -99,7 +99,7 @@ export default async function Search({
             return hasNews ? (
               <Link
                 className={selectedDate === dayDate ? "calendarDay active" : "calendarDay hasNews"}
-                href={`/search?date=${dayDate}`}
+                href={`/search?date=${dayDate}&month=${selectedMonth}`}
                 key={dayDate}
               >
                 <strong>{day}</strong>
