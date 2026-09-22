@@ -105,7 +105,7 @@ export default function AdminPage() {
       body_html: body, featured_image: featuredImage || null, seo_title: seoTitle.trim() || null,
       meta_description: metaDescription.trim() || excerpt.trim() || null, social_image: socialImage || null,
       status: requestedStatus, scheduled_for: requestedStatus === "scheduled" ? new Date(scheduledFor).toISOString() : null,
-      published_at: requestedStatus === "published" ? new Date().toISOString() : (requestedStatus === "scheduled" ? null : null),
+      published_at: requestedStatus === "published" ? new Date().toISOString() : (requestedStatus === "scheduled" ? new Date(scheduledFor).toISOString() : null),
       updated_by: user.id,
     };
     const query = editingId
