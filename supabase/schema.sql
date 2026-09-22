@@ -115,3 +115,63 @@ drop trigger if exists articles_touch_updated_at on public.articles;
 create trigger articles_touch_updated_at
 before update on public.articles
 for each row execute function public.touch_updated_at();
+
+
+-- Storage: only authenticated editorial users may upload, replace, or delete
+-- objects in the public news-media bucket. Public reads are provided by the
+-- bucket's public setting.
+drop policy if exists "editors can upload news media"
+on storage.objects;
+
+create policy "editors can upload news media"
+on storage.objects
+for insert
+to authenticated
+with check (
+  bucket_id = 'news-media'
+  and exists (
+    select 1
+    from public.editorial_profiles p
+    where p.id = auth.uid()
+  )
+);
+
+drop policy if exists "editors can update news media"
+on storage.objects;
+
+create policy "editors can update news media"
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id = 'news-media'
+  and exists (
+    select 1
+    from public.editorial_profiles p
+    where p.id = auth.uid()
+  )
+)
+with check (
+  bucket_id = 'news-media'
+  and exists (
+    select 1
+    from public.editorial_profiles p
+    where p.id = auth.uid()
+  )
+);
+
+drop policy if exists "editors can delete news media"
+on storage.objects;
+
+create policy "editors can delete news media"
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id = 'news-media'
+  and exists (
+    select 1
+    from public.editorial_profiles p
+    where p.id = auth.uid()
+  )
+);
