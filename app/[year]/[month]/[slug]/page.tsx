@@ -15,7 +15,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{year:string;month:string;slug:string}> }): Promise<Metadata> {
   const p=await params; const article=await findArticleByPath(p.year,p.month,p.slug);
   if(!article) return {};
-  return { title: article.title, description: article.excerpt || undefined, alternates:{canonical:article.url}, openGraph:{type:"article",title:article.title,description:article.excerpt||undefined,url:SITE_URL+article.url,publishedTime:article.publishedAt,modifiedTime:article.updatedAt,images:article.featuredImage?[article.featuredImage]:undefined}};
+  return { title: article.seoTitle || article.title, description: article.metaDescription || article.excerpt || undefined, alternates:{canonical:article.url}, openGraph:{type:"article",title:article.title,description:article.metaDescription||article.excerpt||undefined,url:SITE_URL+article.url,publishedTime:article.publishedAt,modifiedTime:article.updatedAt,images:article.socialImage?[article.socialImage]:article.featuredImage?[article.featuredImage]:undefined}};
 }
 
 export default async function Article({params}:{params:Promise<{year:string;month:string;slug:string}>}) {
