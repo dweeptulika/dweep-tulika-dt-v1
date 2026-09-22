@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { articleFromPath, liveArticles } from "@/lib/data";
-import { articleJsonLd, SITE_URL } from "@/lib/seo";
+import { articleJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo";
 
 export function generateStaticParams() {
   return liveArticles
@@ -33,7 +34,7 @@ export async function generateMetadata({
       description: article.description || undefined,
       url: `${SITE_URL}${article.filename}`,
       publishedTime: article.published,
-      modifiedTime: article.updated,
+      modifiedTime: article.updated || article.published,
     },
   };
 }
@@ -48,18 +49,21 @@ export default async function Article({
   if (!article) notFound();
 
   const url = SITE_URL + article.filename;
+  const label = article.labels.find(Boolean) || "News";
+  const categorySlug = label.toLowerCase().replace(/\s+/g, "-");
 
   return (
     <div className="container">
       <div className="breadcrumbs">
-        <a href="/">Home</a> / {article.labels[0] || "News"}
+        <Link href="/">Home</Link> /{" "}
+        <Link href={`/category/${categorySlug}`}>{label}</Link>
       </div>
       <article className="article">
         <div className="kicker">
-          {article.labels.slice(0, 4).join(" · ") || "News"}
+          {article.labels.filter(Boolean).slice(0, 4).join(" · ") || "News"}
         </div>
         <h1>{article.title}</h1>
-        <p className="dek">{article.description}</p>
+        {article.description && <p className="dek">{article.description}</p>}
         <div className="meta">
           By {article.author || "Dweep Tulika"} ·{" "}
           {new Date(article.published).toLocaleDateString("en-IN", {
@@ -74,6 +78,12 @@ export default async function Article({
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(articleJsonLd(article, url)),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(breadcrumbJsonLd(article, url)),
           }}
         />
       </article>
