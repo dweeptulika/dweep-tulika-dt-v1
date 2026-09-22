@@ -116,7 +116,7 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
   const { data, error } = await supabase
     .from("articles")
     .select("id,title,slug,category,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
-    .eq("status", "published")
+    .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
     .order("published_at", { ascending: false });
@@ -144,7 +144,7 @@ export async function getPublishedNewsroomArticleByPath(
     .from("articles")
     .select("id,title,slug,category,author,excerpt,body_html,featured_image,published_at,updated_at")
     .eq("slug", normalizedSlug)
-    .eq("status", "published")
+    .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
     .maybeSingle();
