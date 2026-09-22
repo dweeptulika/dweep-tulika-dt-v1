@@ -1,17 +1,27 @@
+import Image from "next/image";
 import Link from "next/link";
 import { articleImage, liveArticles } from "@/lib/data";
 
-function StoryImage({ article, large = false }: { article: (typeof liveArticles)[number]; large?: boolean }) {
+function StoryImage({
+  article,
+  large = false,
+}: {
+  article: (typeof liveArticles)[number];
+  large?: boolean;
+}) {
   const src = articleImage(article);
   if (!src) return null;
+
   return (
-    <img
-      className={large ? "storyImage storyImageLarge" : "storyImage"}
-      src={src}
-      alt=""
-      loading={large ? "eager" : "lazy"}
-      decoding="async"
-    />
+    <div className={large ? "storyImage storyImageLarge" : "storyImage"}>
+      <Image
+        src={src}
+        alt=""
+        fill
+        sizes={large ? "(max-width: 800px) 100vw, 820px" : "(max-width: 800px) 100vw, 400px"}
+        priority={large}
+      />
+    </div>
   );
 }
 
