@@ -1,3 +1,5 @@
+import { categoryPath } from "@/lib/data";
+
 export const SITE_URL = "https://www.dweeptulika.in";
 export const SITE_NAME = "Dweep Tulika";
 
@@ -55,7 +57,7 @@ export function breadcrumbJsonLd(
         "@type": "ListItem",
         position: 2,
         name: label,
-        item: SITE_URL + "/category/" + label.toLowerCase().replace(/\\s+/g, "-"),
+        item: SITE_URL + "/category/" + categoryPath(label),
       },
       { "@type": "ListItem", position: 3, name: article.title, item: url },
     ],
