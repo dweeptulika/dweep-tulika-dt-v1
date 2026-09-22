@@ -53,6 +53,15 @@ alter table public.editorial_profiles enable row level security;
 alter table public.articles enable row level security;
 alter table public.media enable row level security;
 
+-- Explicit Data API grants.
+-- The current Supabase project setup can keep automatic table exposure OFF;
+-- these grants provide only the privileges required by the newsroom.
+
+grant select on public.articles to anon;
+grant select, insert, update, delete on public.articles to authenticated;
+grant select on public.editorial_profiles to authenticated;
+grant select, insert, update, delete on public.media to authenticated;
+
 -- Public readers may only see published stories.
 drop policy if exists "public can read published articles" on public.articles;
 create policy "public can read published articles"
