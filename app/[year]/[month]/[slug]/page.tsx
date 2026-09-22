@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { articleFromPath, liveArticles } from "@/lib/data";
+import { articleFromPath, categoryPath, liveArticles } from "@/lib/data";
 import { articleJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo";
 
 export function generateStaticParams() {
@@ -50,7 +50,7 @@ export default async function Article({
 
   const url = SITE_URL + article.filename;
   const label = article.labels.find(Boolean) || "News";
-  const categorySlug = label.toLowerCase().replace(/\s+/g, "-");
+  const categorySlug = categoryPath(label);
 
   return (
     <div className="container">
