@@ -30,6 +30,9 @@ export type PublishedStory = {
   updatedAt: string;
   url: string;
   labels: string[];
+  seoTitle?: string | null;
+  metaDescription?: string | null;
+  socialImage?: string | null;
 };
 
 type DbArticle = {
@@ -43,6 +46,9 @@ type DbArticle = {
   featured_image: string | null;
   published_at: string;
   updated_at: string;
+  seo_title: string | null;
+  meta_description: string | null;
+  social_image: string | null;
 };
 
 function publicSupabase() {
@@ -81,6 +87,9 @@ function mapDbArticle(article: DbArticle): PublishedStory {
     updatedAt: article.updated_at,
     url: newsroomUrl(article),
     labels: [article.category],
+    seoTitle: article.seo_title,
+    metaDescription: article.meta_description,
+    socialImage: article.social_image,
   };
 }
 
@@ -106,7 +115,7 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
   const supabase = publicSupabase();
   const { data, error } = await supabase
     .from("articles")
-    .select("id,title,slug,category,author,excerpt,body_html,featured_image,published_at,updated_at")
+    .select("id,title,slug,category,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
     .eq("status", "published")
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
