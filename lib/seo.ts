@@ -1,64 +1,33 @@
-import { categoryPath } from "@/lib/data";
+import { categoryPath, type PublishedStory } from "@/lib/data";
 
 export const SITE_URL = "https://www.dweeptulika.in";
 export const SITE_NAME = "Dweep Tulika";
 
-function firstArticleImage(html: string): string | undefined {
-  const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
-  if (!match?.[1]) return undefined;
-  try {
-    return new URL(match[1], SITE_URL).toString();
-  } catch {
-    return undefined;
-  }
-}
-
-export function articleJsonLd(a: any, url: string) {
-  const image = firstArticleImage(a.html || "");
-
+export function articleJsonLd(a: PublishedStory, url: string) {
+  const image = a.featuredImage || undefined;
   return {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
     headline: a.title,
-    description: a.description || undefined,
+    description: a.excerpt || undefined,
     ...(image ? { image: [image] } : {}),
-    datePublished: a.published,
-    dateModified: a.updated || a.published,
-    author: [
-      {
-        "@type": "Person",
-        name: a.author || "Dweep Tulika",
-      },
-    ],
-    publisher: {
-      "@type": "Organization",
-      name: SITE_NAME,
-      url: SITE_URL,
-    },
-    mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": url,
-    },
+    datePublished: a.publishedAt,
+    dateModified: a.updatedAt || a.publishedAt,
+    author: [{ "@type": "Person", name: a.author || "Dweep Tulika" }],
+    publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
     url,
   };
 }
 
-export function breadcrumbJsonLd(
-  article: { title: string; labels?: string[] },
-  url: string,
-) {
-  const label = article.labels?.find(Boolean) || "News";
+export function breadcrumbJsonLd(article: Pick<PublishedStory, "title" | "labels" | "category">, url: string) {
+  const label = article.labels?.find(Boolean) || article.category || "News";
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL + "/" },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: label,
-        item: SITE_URL + "/category/" + categoryPath(label),
-      },
+      { "@type": "ListItem", position: 2, name: label, item: SITE_URL + "/category/" + categoryPath(label) },
       { "@type": "ListItem", position: 3, name: article.title, item: url },
     ],
   };
