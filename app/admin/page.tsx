@@ -35,13 +35,13 @@ export default function AdminPage() {
     if (title && !slug) setSlug(makeSlug(title));
   }, [title,slug]);
 
-  async function saveArticle(e: FormEvent) {
+  async function saveArticle(e: FormEvent, requestedStatus: "draft"|"published") {
     e.preventDefault();
     setBusy(true); setMessage("");
     const {data:{user}} = await supabase.auth.getUser();
     if (!user) { router.replace("/admin/login"); return; }
 
-    const published = status === "published";
+    const published = requestedStatus === "published";
     const { error } = await supabase.from("articles").insert({
       title, slug: slug || makeSlug(title), category, author, excerpt,
       body_html: body, status,
@@ -67,7 +67,7 @@ export default function AdminPage() {
 
     <section className="adminEditor">
       <div className="adminEditorHead"><div><div className="adminLabel">New Article</div><h2>Write and publish</h2></div><span className="adminStatus">{status}</span></div>
-      <form onSubmit={saveArticle}>
+      <form onSubmit={(e)=>saveArticle(e, "draft")}>
         <label>Headline<input required value={title} onChange={e=>{setTitle(e.target.value);setSlug("");}} placeholder="Enter the news headline" /></label>
         <label>Slug<input required value={slug} onChange={e=>setSlug(makeSlug(e.target.value))} placeholder="article-url-slug" /></label>
         <div className="adminFormGrid">
