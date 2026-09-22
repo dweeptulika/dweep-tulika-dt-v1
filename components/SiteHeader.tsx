@@ -13,14 +13,7 @@ export function SiteHeader() {
       </div>
       <div className="masthead">
         <Link href="/" className="mastlink" aria-label="Dweep Tulika home">
-          <Image
-            src={LOGO_URL}
-            alt="Dweep Tulika — A Truthful & Unbiased Perspective"
-            width={676}
-            height={270}
-            priority
-            className="officialLogo"
-          />
+          <Image src={LOGO_URL} alt="Dweep Tulika — A Truthful &amp; Unbiased Perspective" width={676} height={270} priority className="officialLogo" />
         </Link>
       </div>
       <nav aria-label="Primary navigation">
@@ -32,6 +25,7 @@ export function SiteHeader() {
           <Link href="/category/culture">Culture</Link>
           <Link href="/category/business">Business</Link>
           <Link href="/category/sports">Sports</Link>
+          <Link href="/archive">Archive</Link>
           <Link href="/search">Search</Link>
         </div>
       </nav>
