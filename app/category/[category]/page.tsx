@@ -1,0 +1,4 @@
+import Link from "next/link"; import {liveArticles} from "@/lib/data";
+const aliases:Record<string,string>={"andaman-nicobar":"Andaman News","national":"National","politics":"Politics","culture":"Culture","business":"Business","sports":"Sports"};
+export function generateStaticParams(){return Object.keys(aliases).map(category=>({category}))}
+export default async function Category({params}:{params:Promise<{category:string}>}){const {category}=await params;const label=aliases[category]||category.replaceAll("-"," ");const items=liveArticles.filter(a=>a.labels.some(x=>x.toLowerCase()===label.toLowerCase()));return <div className="container"><h1 className="pageTitle">{label}</h1><div className="grid">{items.map(a=><article className="card" key={a.id}><div className="kicker">{a.labels[0]}</div><h2><Link href={a.filename}>{a.title}</Link></h2><p>{a.description}</p></article>)}</div></div>}

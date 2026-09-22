@@ -1,0 +1,3 @@
+import {notFound} from "next/navigation"; import {pageFromSlug} from "@/lib/data";
+export function generateStaticParams(){return ["terms-of-service","publication-policies","privacy-policy"].map(slug=>({slug}))}
+export default async function Page({params}:{params:Promise<{slug:string}>}){const {slug}=await params;const p=pageFromSlug(slug);if(!p)notFound();return <div className="container"><article className="article"><h1>{p.title}</h1><div className="articlebody" dangerouslySetInnerHTML={{__html:p.html}}/></article></div>}

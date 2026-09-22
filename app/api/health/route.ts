@@ -1,0 +1,1 @@
+import {NextResponse} from "next/server"; export function GET(){return NextResponse.json({ok:true,site:"dweep-tulika-dt-v1",articles:160})}
