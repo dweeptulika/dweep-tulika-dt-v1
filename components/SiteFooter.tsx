@@ -11,6 +11,8 @@ export function SiteFooter() {
         <div>
           <h3>Publication</h3>
           <p><a href="/about">About &amp; Editorial Team</a></p>
+          <p><a href="/archive">News Archive</a></p>
+          <p><a href="/search">Search News</a></p>
           <p><a href="/p/publication-policies.html">Publication Policies</a></p>
           <p><a href="/p/privacy-policy.html">Privacy Policy</a></p>
           <p><a href="/p/terms-of-service.html">Terms of Service</a></p>
