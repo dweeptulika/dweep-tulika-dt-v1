@@ -30,6 +30,7 @@ export default function AdminPage() {
   const [featuredImage, setFeaturedImage] = useState(""); const [seoTitle, setSeoTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState(""); const [socialImage, setSocialImage] = useState("");
   const [scheduledFor, setScheduledFor] = useState(""); const [status, setStatus] = useState<ArticleStatus>("draft");
+  const [originalPublishedAt, setOriginalPublishedAt] = useState<string | null>(null);
   const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false); const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -49,7 +50,7 @@ export default function AdminPage() {
   function resetEditor() {
     setEditingId(null); setTitle(""); setSlug(""); setCategory(categories[0]); setAuthor("Dweep Tulika");
     setExcerpt(""); setBody(""); setFeaturedImage(""); setSeoTitle(""); setMetaDescription("");
-    setSocialImage(""); setScheduledFor(""); setStatus("draft"); setMessage("");
+    setSocialImage(""); setScheduledFor(""); setStatus("draft"); setOriginalPublishedAt(null); setMessage("");
   }
 
   function editArticle(article: ArticleRow) {
@@ -57,6 +58,7 @@ export default function AdminPage() {
     setAuthor(article.author); setExcerpt(article.excerpt); setBody(article.body_html); setFeaturedImage(article.featured_image || "");
     setSeoTitle(article.seo_title || ""); setMetaDescription(article.meta_description || "");
     setSocialImage(article.social_image || ""); setScheduledFor(article.scheduled_for ? article.scheduled_for.slice(0, 16) : "");
+    setOriginalPublishedAt(article.published_at);
     setStatus(article.scheduled_for && new Date(article.scheduled_for).getTime() > Date.now() ? "scheduled" : article.status); setMessage("Editing saved newsroom article.");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -100,12 +102,23 @@ export default function AdminPage() {
     const finalSlug = slug || makeSlug(title);
     if (!title.trim() || !finalSlug || !body.trim()) { setMessage("Headline, slug and article body are required."); setBusy(false); return; }
     if (requestedStatus === "scheduled" && !scheduledFor) { setMessage("Choose a date and time for scheduled publication."); setBusy(false); return; }
+    const normalizedSlug = finalSlug.toLowerCase();
+    const { data: slugMatch } = await supabase.from("articles").select("id").eq("slug", normalizedSlug).maybeSingle();
+    if (slugMatch && slugMatch.id !== editingId) { setMessage("That URL slug is already in use. Choose a different slug."); setBusy(false); return; }
+
+    const scheduledAt = requestedStatus === "scheduled" ? new Date(scheduledFor).toISOString() : null;
+    const publishedAt = requestedStatus === "scheduled"
+      ? scheduledAt
+      : requestedStatus === "published"
+        ? (originalPublishedAt || new Date().toISOString())
+        : originalPublishedAt;
+
     const payload = {
-      title: title.trim(), slug: finalSlug, category, author: author.trim() || "Dweep Tulika", excerpt: excerpt.trim(),
+      title: title.trim(), slug: normalizedSlug, category, author: author.trim() || "Dweep Tulika", excerpt: excerpt.trim(),
       body_html: body, featured_image: featuredImage || null, seo_title: seoTitle.trim() || null,
       meta_description: metaDescription.trim() || excerpt.trim() || null, social_image: socialImage || null,
-      status: requestedStatus === "scheduled" ? "published" : requestedStatus, scheduled_for: requestedStatus === "scheduled" ? new Date(scheduledFor).toISOString() : null,
-      published_at: requestedStatus === "published" ? new Date().toISOString() : (requestedStatus === "scheduled" ? new Date(scheduledFor).toISOString() : null),
+      status: requestedStatus === "scheduled" ? "published" : requestedStatus, scheduled_for: scheduledAt,
+      published_at: publishedAt,
       updated_by: user.id,
     };
     const query = editingId
