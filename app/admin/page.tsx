@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { RichTextEditor } from "@/components/RichTextEditor";
 
@@ -130,7 +131,7 @@ export default function AdminPage() {
     <main className="adminShell">
       <div className="adminTop">
         <div><div className="kicker">Dweep Tulika Newsroom</div><h1>Editorial Dashboard</h1><p>Authenticated publishing workspace for the digital edition.</p></div>
-        <div className="adminHeaderActions"><a className="adminBack" href="/">View Website</a><a className="adminBack" href="/admin/logout">Sign Out</a></div>
+        <div className="adminHeaderActions"><Link className="adminBack" href="/">View Website</Link><Link className="adminBack" href="/admin/logout">Sign Out</Link></div>
       </div>
 
       <section className="adminEditor">
