@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getAllPublishedArticles } from "@/lib/data";
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 function monthLabel(value: string) {
   return new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(new Date(value));

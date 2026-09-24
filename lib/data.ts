@@ -52,9 +52,12 @@ type DbArticle = {
 };
 
 function publicSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) return null;
   return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    url,
+    key,
     {
       auth: {
         persistSession: false,
@@ -113,6 +116,7 @@ function mapLegacyArticle(article: Article): PublishedStory {
 
 export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> {
   const supabase = publicSupabase();
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from("articles")
     .select("id,title,slug,category,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
@@ -140,6 +144,7 @@ export async function getPublishedNewsroomArticleByPath(
 ): Promise<PublishedStory | null> {
   const normalizedSlug = slug.replace(/\.html$/, "");
   const supabase = publicSupabase();
+  if (!supabase) return null;
   const { data, error } = await supabase
     .from("articles")
     .select("id,title,slug,category,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")

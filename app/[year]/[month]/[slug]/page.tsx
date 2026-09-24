@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { articleJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo";
 import { findArticleByPath, getAllPublishedArticles, categoryPath } from "@/lib/data";
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 export async function generateStaticParams() {
   const articles = await getAllPublishedArticles();
