@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { getAllPublishedArticles, type PublishedStory } from "@/lib/data";
 
+export const revalidate = 0;
+
 function StoryImage({ article, large = false }: { article: PublishedStory; large?: boolean }) {
   if (!article.featuredImage) return null;
   return <div className={large ? "storyImage storyImageLarge" : "storyImage"}>
