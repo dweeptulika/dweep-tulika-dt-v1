@@ -6,6 +6,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { RichTextEditor } from "@/components/RichTextEditor";
 
+export const dynamic = "force-dynamic";
+
 const categories = ["Andaman News", "National", "Politics", "Culture", "Business", "Sports"];
 type ArticleStatus = "draft" | "published" | "scheduled";
 type ArticleRow = {
