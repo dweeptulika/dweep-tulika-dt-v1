@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function SiteFooter() {
   return (
     <footer>
@@ -10,13 +12,13 @@ export function SiteFooter() {
         </div>
         <div>
           <h3>Publication</h3>
-          <p><a href="/about">About &amp; Editorial Team</a></p>
-          <p><a href="/archive">News Archive</a></p>
-          <p><a href="/search">Search News</a></p>
-          <p><a href="/advertise">Advertise With Us</a></p>
-          <p><a href="/p/publication-policies.html">Publication Policies</a></p>
-          <p><a href="/p/privacy-policy.html">Privacy Policy</a></p>
-          <p><a href="/p/terms-of-service.html">Terms of Service</a></p>
+          <p><Link href="/about">About &amp; Editorial Team</Link></p>
+          <p><Link href="/archive">News Archive</Link></p>
+          <p><Link href="/search">Search News</Link></p>
+          <p><Link href="/advertise">Advertise With Us</Link></p>
+          <p><Link href="/p/publication-policies.html">Publication Policies</Link></p>
+          <p><Link href="/p/privacy-policy.html">Privacy Policy</Link></p>
+          <p><Link href="/p/terms-of-service.html">Terms of Service</Link></p>
         </div>
         <div>
           <h3>Follow Dweep Tulika</h3>
