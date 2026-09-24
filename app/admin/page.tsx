@@ -3,6 +3,7 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 const categories = ["Andaman News", "National", "Politics", "Culture", "Business", "Sports"];
 type ArticleStatus = "draft" | "published" | "scheduled";
@@ -20,7 +21,6 @@ function makeSlug(value: string) {
 export default function AdminPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
   const [sessionReady, setSessionReady] = useState(false);
   const [articles, setArticles] = useState<ArticleRow[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -85,14 +85,6 @@ export default function AdminPage() {
       setMessage("Image uploaded successfully.");
     }
     setUploading(false); event.target.value = "";
-  }
-
-  function formatBody(before: string, after: string) {
-    const el = bodyRef.current; if (!el) return;
-    const start = el.selectionStart, end = el.selectionEnd, selected = body.slice(start, end);
-    const next = body.slice(0, start) + before + (selected || "text") + after + body.slice(end);
-    setBody(next);
-    requestAnimationFrame(() => { el.focus(); el.setSelectionRange(start + before.length, start + before.length + (selected || "text").length); });
   }
 
   async function saveArticle(requestedStatus: ArticleStatus) {
@@ -161,14 +153,7 @@ export default function AdminPage() {
           </div>
           {featuredImage && <div className="adminImagePreview"><img src={featuredImage} alt="Selected featured image" /><button type="button" onClick={() => setFeaturedImage("")}>Remove featured image</button></div>}
           <label>Article body
-            <div className="adminToolbar">
-              <button type="button" onClick={() => formatBody("<h2>","</h2>")}>H2</button>
-              <button type="button" onClick={() => formatBody("<strong>","</strong>")}>Bold</button>
-              <button type="button" onClick={() => formatBody("<em>","</em>")}>Italic</button>
-              <button type="button" onClick={() => formatBody("<p>","</p>")}>Paragraph</button>
-              <button type="button" onClick={() => formatBody("<blockquote>","</blockquote>")}>Quote</button>
-            </div>
-            <textarea ref={bodyRef} rows={20} required value={body} onChange={e => setBody(e.target.value)} placeholder="Write the article here. Use the toolbar for basic formatting." />
+            <RichTextEditor value={body} onChange={setBody} />
           </label>
           <div className="adminFormGrid">
             <label>Schedule date &amp; time<input type="datetime-local" value={scheduledFor} onChange={e => setScheduledFor(e.target.value)} /></label>
