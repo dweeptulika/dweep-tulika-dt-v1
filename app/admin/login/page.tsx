@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
@@ -32,7 +33,7 @@ export default function AdminLoginPage() {
         {error && <p className="adminError">{error}</p>}
         <button disabled={busy}>{busy ? "Signing in…" : "Sign In"}</button>
       </form>
-      <a href="/">Return to website</a>
+      <Link href="/">Return to website</Link>
     </div>
   </main>;
 }
