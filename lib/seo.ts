@@ -1,6 +1,6 @@
 import { categoryPath, type PublishedStory } from "@/lib/data";
 
-export const SITE_URL = "https://www.dweeptulika.in";
+export const SITE_URL = "https://dweep-tulika-dt-v1.vercel.app";
 export const SITE_NAME = "Dweep Tulika";
 
 export function articleJsonLd(a: PublishedStory, url: string) {
