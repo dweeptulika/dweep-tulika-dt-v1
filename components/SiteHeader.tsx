@@ -22,6 +22,7 @@ export function SiteHeader() {
           <Link href="/category/andaman-nicobar">Andaman &amp; Nicobar</Link>
           <Link href="/category/national">National</Link>
           <Link href="/category/politics">Politics</Link>
+          <Link href="/category/editorial">Editorial</Link>
           <Link href="/category/culture">Culture</Link>
           <Link href="/category/business">Business</Link>
           <Link href="/category/sports">Sports</Link>
