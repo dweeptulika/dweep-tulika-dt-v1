@@ -6,7 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { RichTextEditor } from "@/components/RichTextEditor";
 
-const categories = ["Andaman News", "National", "Politics", "Culture", "Business", "Sports"];
+const categories = ["Andaman News", "National", "Politics", "Editorial", "Culture", "Business", "Sports"];
 type ArticleStatus = "draft" | "published" | "scheduled";
 type ArticleRow = {
   id: string; title: string; slug: string; category: string; author: string; excerpt: string;
