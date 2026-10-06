@@ -30,7 +30,7 @@ export default function AdminPage() {
   const [excerpt, setExcerpt] = useState(""); const [body, setBody] = useState("");
   const [featuredImage, setFeaturedImage] = useState(""); const [seoTitle, setSeoTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState(""); const [socialImage, setSocialImage] = useState("");
-  const [scheduledFor, setScheduledFor] = useState(""); const [status, setStatus] = useState<ArticleStatus>("draft");
+  const [scheduledFor, setScheduledFor] = useState(""); const [publicationDate, setPublicationDate] = useState(""); const [status, setStatus] = useState<ArticleStatus>("draft");
   const [originalPublishedAt, setOriginalPublishedAt] = useState<string | null>(null);
   const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false); const [uploading, setUploading] = useState(false);
 
@@ -51,7 +51,7 @@ export default function AdminPage() {
   function resetEditor() {
     setEditingId(null); setTitle(""); setSlug(""); setCategory(categories[0]); setAuthor("Dweep Tulika");
     setExcerpt(""); setBody(""); setFeaturedImage(""); setSeoTitle(""); setMetaDescription("");
-    setSocialImage(""); setScheduledFor(""); setStatus("draft"); setOriginalPublishedAt(null); setMessage("");
+    setSocialImage(""); setScheduledFor(""); setPublicationDate(""); setStatus("draft"); setOriginalPublishedAt(null); setMessage("");
   }
 
   function editArticle(article: ArticleRow) {
@@ -59,6 +59,7 @@ export default function AdminPage() {
     setAuthor(article.author); setExcerpt(article.excerpt); setBody(article.body_html); setFeaturedImage(article.featured_image || "");
     setSeoTitle(article.seo_title || ""); setMetaDescription(article.meta_description || "");
     setSocialImage(article.social_image || ""); setScheduledFor(article.scheduled_for ? article.scheduled_for.slice(0, 16) : "");
+    setPublicationDate(article.published_at ? article.published_at.slice(0, 16) : "");
     setOriginalPublishedAt(article.published_at);
     setStatus(article.scheduled_for && new Date(article.scheduled_for).getTime() > Date.now() ? "scheduled" : article.status); setMessage("Editing saved newsroom article.");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -103,7 +104,7 @@ export default function AdminPage() {
     const publishedAt = requestedStatus === "scheduled"
       ? scheduledAt
       : requestedStatus === "published"
-        ? (originalPublishedAt || new Date().toISOString())
+        ? (publicationDate ? new Date(publicationDate).toISOString() : (originalPublishedAt || new Date().toISOString()))
         : originalPublishedAt;
 
     const payload = {
@@ -158,7 +159,10 @@ export default function AdminPage() {
             <RichTextEditor value={body} onChange={setBody} />
           </label>
           <div className="adminFormGrid">
+            <label>Publication date &amp; time<input type="datetime-local" value={publicationDate} onChange={e => setPublicationDate(e.target.value)} /><small>Use this to preserve or set the original publication date for backdated stories.</small></label>
             <label>Schedule date &amp; time<input type="datetime-local" value={scheduledFor} onChange={e => setScheduledFor(e.target.value)} /></label>
+          </div>
+          <div className="adminFormGrid">
             <label>Publishing status<select value={status} onChange={e => setStatus(e.target.value as ArticleStatus)}><option value="draft">Draft</option><option value="scheduled">Scheduled</option><option value="published">Published</option></select></label>
           </div>
           {message && <p className="adminMessage">{message}</p>}
@@ -176,7 +180,7 @@ export default function AdminPage() {
         <div className="adminStoryList">
           {articles.map(article => (
             <article className="adminStoryRow" key={article.id}>
-              <div><span className="adminStatus">{article.status}</span><h3>{article.title}</h3><p>{article.category} · {new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(article.updated_at))}</p></div>
+              <div><span className="adminStatus">{article.status}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(article.published_at || article.updated_at))}</p></div>
               <button type="button" onClick={() => editArticle(article)}>Edit</button>
             </article>
           ))}
