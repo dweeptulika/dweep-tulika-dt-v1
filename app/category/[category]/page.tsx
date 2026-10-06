@@ -5,23 +5,20 @@ const aliases: Record<string, string> = {
   "andaman-nicobar": "Andaman News",
   national: "National",
   politics: "Politics",
+  editorial: "Editorial",
   culture: "Culture",
   business: "Business",
   sports: "Sports",
 };
 
-export const revalidate = 60;
+export const revalidate = 0;
 export function generateStaticParams() { return Object.keys(aliases).map((category) => ({ category })); }
 
 export default async function Category({ params }: { params: Promise<{ category: string }> }) {
   const { category } = await params;
   const label = aliases[category] || category.replaceAll("-", " ");
-  const normalized = label.toLowerCase();
   const articles = await getAllPublishedArticles();
-  const items = articles.filter((article) =>
-    article.labels.some((x) => x.toLowerCase() === normalized) ||
-    article.category.toLowerCase() === normalized
-  );
+  const items = articles.filter((article) => article.category.toLowerCase() === label.toLowerCase());
 
   return (
     <main className="container">
