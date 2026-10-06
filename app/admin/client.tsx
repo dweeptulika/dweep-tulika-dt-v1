@@ -124,7 +124,7 @@ export default function AdminPage() {
     setBusy(false);
   }
 
-  async function submit(event: FormEvent) { event.preventDefault(); await saveArticle("draft"); }
+  async function submit(event: FormEvent) { event.preventDefault(); await saveArticle(editingId ? status : "draft"); }
 
   if (!sessionReady) return <main className="adminLogin"><p>Checking newsroom access…</p></main>;
 
@@ -167,7 +167,7 @@ export default function AdminPage() {
           </div>
           {message && <p className="adminMessage">{message}</p>}
           <div className="adminActions">
-            <button type="submit" disabled={busy || uploading}>{busy && status === "draft" ? "Saving…" : "Save Draft"}</button>
+            <button type="submit" disabled={busy || uploading}>{busy ? "Saving…" : editingId ? "Save Changes" : "Save Draft"}</button>
             <button type="button" disabled={busy || uploading} onClick={() => void saveArticle(status === "draft" ? "published" : status)}>{busy ? "Working…" : status === "scheduled" ? "Schedule Article" : "Publish"}</button>
             {editingId && <button type="button" disabled={busy || uploading} onClick={resetEditor}>Cancel Edit</button>}
           </div>
