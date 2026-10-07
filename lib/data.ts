@@ -70,6 +70,7 @@ type DbArticle = {
   seo_title: string | null;
   meta_description: string | null;
   social_image: string | null;
+  article_categories?: Array<{ categories?: { name?: string | null } | null }>;
 };
 
 function publicSupabase() {
@@ -106,7 +107,14 @@ export function canonicalCategory(labels: string[], title = "") {
 }
 
 function mapDbArticle(article: DbArticle): PublishedStory {
-  const categories = article.categories?.length ? article.categories : [canonicalCategory([article.category], article.title)];
+  const relationCategories = (article.article_categories || [])
+    .map((item) => item.categories?.name || "")
+    .map((name) => name.trim())
+    .filter(Boolean);
+  const categories = Array.from(new Set([
+    article.category?.trim() || canonicalCategory([], article.title),
+    ...relationCategories,
+  ]));
   const category = categories[0];
   return {
     source: "newsroom",
@@ -178,7 +186,7 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("articles")
-    .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
+    .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,article_categories(categories(name))")
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
