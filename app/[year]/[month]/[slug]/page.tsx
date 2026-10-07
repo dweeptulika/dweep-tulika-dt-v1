@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { articleJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo";
+import { AdSlot } from "@/components/AdSlot";
 import { findArticleByPath, getAllPublishedArticles, categoryPath } from "@/lib/data";
 
 export const revalidate = 0;
@@ -21,5 +22,5 @@ export async function generateMetadata({ params }: { params: Promise<{year:strin
 export default async function Article({params}:{params:Promise<{year:string;month:string;slug:string}>}) {
   const p=await params; const article=await findArticleByPath(p.year,p.month,p.slug); if(!article) notFound();
   const url=SITE_URL+article.url;
-  return <div className="container"><div className="breadcrumbs"><Link href="/">Home</Link> / <Link href={"/category/"+categoryPath(article.category)}>{article.category}</Link></div><article className="article"><div className="kicker">{article.labels.slice(0,4).join(" · ") || "News"}</div><h1>{article.title}</h1>{article.excerpt && <p className="dek">{article.excerpt}</p>}<div className="meta">By {article.author || "Dweep Tulika"} · {new Date(article.publishedAt).toLocaleDateString("en-IN",{dateStyle:"long"})}{article.source === "blogger" ? null : null}</div>{article.source === "newsroom" && article.featuredImage && <div className="articleFeaturedImage"><Image src={article.featuredImage} alt="" fill sizes="(max-width: 900px) 100vw, 900px" /></div>}<div className="articlebody" dangerouslySetInnerHTML={{__html:article.bodyHtml}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(articleJsonLd(article,url))}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbJsonLd(article,url))}} /></article></div>;
+  return <div className="container"><div className="breadcrumbs"><Link href="/">Home</Link> / <Link href={"/category/"+categoryPath(article.category)}>{article.category}</Link></div><article className="article"><div className="kicker">{article.labels.slice(0,4).join(" · ") || "News"}</div><h1>{article.title}</h1>{article.excerpt && <p className="dek">{article.excerpt}</p>}<div className="meta">By {article.author || "Dweep Tulika"} · {new Date(article.publishedAt).toLocaleDateString("en-IN",{dateStyle:"long"})}{article.source === "blogger" ? null : null}</div><AdSlot placement="article" />{article.source === "newsroom" && article.featuredImage && <div className="articleFeaturedImage"><Image src={article.featuredImage} alt="" fill sizes="(max-width: 900px) 100vw, 900px" /></div>}<div className="articlebody" dangerouslySetInnerHTML={{__html:article.bodyHtml}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(articleJsonLd(article,url))}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbJsonLd(article,url))}} /></article></div>;
 }
