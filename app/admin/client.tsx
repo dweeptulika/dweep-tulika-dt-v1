@@ -53,6 +53,11 @@ export default function AdminPage() {
   const [newCategory, setNewCategory] = useState("");
   const [categoryBusy, setCategoryBusy] = useState(false);
   const libraryPageSize = 25;
+  const todayIndia = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+  const publishedTodayCount = articles.filter(article => article.status === "published" && (article.published_at || "").slice(0, 10) === todayIndia).length;
+  const draftCount = articles.filter(article => article.status === "draft").length;
+  const scheduledCount = articles.filter(article => article.status === "scheduled").length;
+  const recentEditedArticles = [...articles].sort((a, b) => Date.parse(b.updated_at || "") - Date.parse(a.updated_at || "")).slice(0, 5);
   const categoryNames = categoryRows.length ? categoryRows.map(row => row.name) : categories;
   const sortedArticles = useMemo(() => [...articles].sort((a, b) => Date.parse(b.updated_at || b.published_at || "") - Date.parse(a.updated_at || a.published_at || "")), [articles]);
   const availableLegacyArticles = useMemo(() => legacyArticles.filter((legacy: any) => !articles.some(a => a.public_path === legacy.publicPath)).sort((a: any, b: any) => Date.parse(b.updatedAt || b.publishedAt || "") - Date.parse(a.updatedAt || a.publishedAt || "")), [legacyArticles, articles]);
@@ -254,6 +259,27 @@ export default function AdminPage() {
         <div><div className="kicker">Dweep Tulika Newsroom</div><h1>Editorial Dashboard</h1><p>Authenticated publishing workspace for the digital edition.</p></div>
         <div className="adminHeaderActions"><Link className="adminBack" href="/">View Website</Link><Link className="adminBack" href="/admin/logout">Sign Out</Link></div>
       </div>
+
+      <section className="adminSection">
+        <div className="adminSectionHeader"><div><div className="adminLabel">Newsroom overview</div><h2>Today at a glance</h2><p>Editorial workload and the latest newsroom activity.</p></div></div>
+        <div className="adminFormGrid">
+          <div className="adminStoryRow"><div><span className="adminStatus">Published today</span><h3>{publishedTodayCount}</h3><p>Stories published today</p></div></div>
+          <div className="adminStoryRow"><div><span className="adminStatus">Drafts</span><h3>{draftCount}</h3><p>Stories awaiting completion</p></div></div>
+          <div className="adminStoryRow"><div><span className="adminStatus">Scheduled</span><h3>{scheduledCount}</h3><p>Stories queued for publication</p></div></div>
+        </div>
+        <div className="adminFormGrid">
+          <div>
+            <h3>Recently edited</h3>
+            {recentEditedArticles.length ? recentEditedArticles.map(article => <div className="adminStoryRow" key={"recent-" + article.id}><div><span className="adminStatus">{article.status}</span><h3>{article.title}</h3><p>{article.category}</p></div><button type="button" onClick={() => void editArticle(article)}>Edit</button></div>) : <p className="adminNote">No newsroom stories yet.</p>}
+          </div>
+          <div>
+            <h3>Editorial alerts</h3>
+            {draftCount > 0 && <p className="adminNote">{draftCount} draft{draftCount === 1 ? "" : "s"} need editorial attention.</p>}
+            {scheduledCount > 0 && <p className="adminNote">{scheduledCount} scheduled stor{scheduledCount === 1 ? "y" : "ies"} are in the publishing queue.</p>}
+            {draftCount === 0 && scheduledCount === 0 && <p className="adminNote">No outstanding publishing alerts.</p>}
+          </div>
+        </div>
+      </section>
 
       <section className="adminEditor">
         <div className="adminEditorHead"><div><div className="adminLabel">{editingId ? "Edit Article" : "New Article"}</div><h2>{editingId ? "Update newsroom story" : "Write and publish"}</h2></div><span className="adminStatus">{status}</span></div>
