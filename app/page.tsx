@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getAllPublishedArticles, type PublishedStory } from "@/lib/data";
+import { AdSlot } from "@/components/AdSlot";
 
 export const revalidate = 0;
 
@@ -30,6 +31,7 @@ export default async function Home() {
         <small>{new Date(a.publishedAt).toLocaleDateString("en-IN")}</small>
       </article>)}</div>
     </section>
+    <AdSlot placement="homepage" />
     <section className="latest"><h2>Latest News</h2><div className="grid">{items.slice(0, 18).map(a => <article className="card" key={a.id}>
       <StoryImage article={a} />
       <div className="kicker">{a.labels[0] || "News"}</div>
