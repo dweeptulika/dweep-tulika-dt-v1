@@ -187,11 +187,39 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
   return (data as DbArticle[]).map(mapDbArticle);
 }
 
+function normalizePublicPath(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = new URL(trimmed, "https://dweeptulika.in");
+    return parsed.pathname.replace(/\\/+$/, "") || "/";
+  } catch {
+    return (trimmed.startsWith("/") ? trimmed : "/" + trimmed).replace(/\\/+$/, "") || "/";
+  }
+}
+
 export async function getAllPublishedArticles(): Promise<PublishedStory[]> {
   const newsroom = await getPublishedNewsroomArticles();
-  const adoptedPaths = new Set(newsroom.map((a) => a.url));
-  const blogger = liveArticles.map(mapLegacyArticle).filter((a) => !adoptedPaths.has(a.url));
-  return [...newsroom, ...blogger].sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
+  const newsroomByPath = new Map<string, PublishedStory>();
+  for (const article of newsroom) {
+    const path = normalizePublicPath(article.url);
+    const existing = newsroomByPath.get(path);
+    if (!existing || Date.parse(article.updatedAt) > Date.parse(existing.updatedAt)) {
+      newsroomByPath.set(path, article);
+    }
+  }
+
+  const adoptedPaths = new Set<string>();
+  for (const article of newsroomByPath.values()) {
+    adoptedPaths.add(normalizePublicPath(article.url));
+  }
+
+  const blogger = liveArticles
+    .map(mapLegacyArticle)
+    .filter((article) => !adoptedPaths.has(normalizePublicPath(article.url)));
+
+  return [...newsroomByPath.values(), ...blogger]
+    .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
 }
 
 export async function getPublishedNewsroomArticleByPath(year: string, month: string, slug: string): Promise<PublishedStory | null> {
