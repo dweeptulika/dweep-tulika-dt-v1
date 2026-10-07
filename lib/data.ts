@@ -37,6 +37,7 @@ export type PublishedStory = {
   title: string;
   slug: string;
   category: string;
+  categories?: string[];
   author: string;
   excerpt: string;
   bodyHtml: string;
@@ -55,6 +56,11 @@ type DbArticle = {
   title: string;
   slug: string;
   category: string;
+  categories?: string[];
+  source?: "blogger" | "newsroom";
+  legacy_id?: string | null;
+  legacy_url?: string | null;
+  public_path?: string | null;
   author: string;
   excerpt: string;
   body_html: string;
@@ -75,7 +81,8 @@ function publicSupabase() {
   });
 }
 
-function newsroomUrl(article: Pick<DbArticle, "slug" | "published_at">) {
+function newsroomUrl(article: Pick<DbArticle, "slug" | "published_at"> & { public_path?: string | null }) {
+  if (article.public_path) return article.public_path;
   const date = new Date(article.published_at);
   const year = String(date.getUTCFullYear());
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -99,13 +106,15 @@ export function canonicalCategory(labels: string[], title = "") {
 }
 
 function mapDbArticle(article: DbArticle): PublishedStory {
-  const category = canonicalCategory([article.category], article.title);
+  const categories = article.categories?.length ? article.categories : [canonicalCategory([article.category], article.title)];
+  const category = categories[0];
   return {
     source: "newsroom",
     id: `newsroom-${article.id}`,
     title: article.title,
     slug: article.slug,
     category,
+    categories,
     author: article.author,
     excerpt: article.excerpt || "",
     bodyHtml: article.body_html || "",
@@ -113,7 +122,7 @@ function mapDbArticle(article: DbArticle): PublishedStory {
     publishedAt: article.published_at,
     updatedAt: article.updated_at,
     url: newsroomUrl(article),
-    labels: [category],
+    labels: categories,
     seoTitle: article.seo_title,
     metaDescription: article.meta_description,
     socialImage: article.social_image,
@@ -169,7 +178,7 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("articles")
-    .select("id,title,slug,category,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
+    .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
@@ -180,7 +189,8 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
 
 export async function getAllPublishedArticles(): Promise<PublishedStory[]> {
   const newsroom = await getPublishedNewsroomArticles();
-  const blogger = liveArticles.map(mapLegacyArticle);
+  const adoptedPaths = new Set(newsroom.map((a) => a.url));
+  const blogger = liveArticles.map(mapLegacyArticle).filter((a) => !adoptedPaths.has(a.url));
   return [...newsroom, ...blogger].sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
 }
 
