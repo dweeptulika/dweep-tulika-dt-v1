@@ -43,6 +43,8 @@ export default function AdminPage() {
   const [scheduledFor, setScheduledFor] = useState(""); const [publicationDate, setPublicationDate] = useState(""); const [status, setStatus] = useState<ArticleStatus>("draft");
   const [originalPublishedAt, setOriginalPublishedAt] = useState<string | null>(null);
   const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false); const [uploading, setUploading] = useState(false); const [legacyLoadError, setLegacyLoadError] = useState(false);
+  const sortedArticles = useMemo(() => [...articles].sort((a, b) => Date.parse(b.updated_at || b.published_at || "") - Date.parse(a.updated_at || a.published_at || "")), [articles]);
+  const availableLegacyArticles = useMemo(() => legacyArticles.filter((legacy: any) => !articles.some(a => a.public_path === legacy.publicPath)).sort((a: any, b: any) => Date.parse(b.updatedAt || b.publishedAt || "") - Date.parse(a.updatedAt || a.publishedAt || "")), [legacyArticles, articles]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -230,20 +232,21 @@ export default function AdminPage() {
       <section className="adminEditor">
         <div className="adminEditorHead"><div><div className="adminLabel">Newsroom Library</div><h2>Drafts &amp; published stories</h2></div></div>
         <div className="adminStoryList">
-          {articles.map(article => (
+          {sortedArticles.map(article => (
             <article className="adminStoryRow" key={article.id}>
               <div><span className="adminStatus">{article.status}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(article.published_at || article.updated_at))}</p></div>
               <button type="button" onClick={() => editArticle(article)}>Edit</button>
             </article>
           ))}
-          {legacyArticles.filter((legacy: any) => !articles.some(a => a.public_path === legacy.publicPath)).slice(0,100).map((legacy: any) => (
+          {availableLegacyArticles.slice(0,100).map((legacy: any) => (
             <article className="adminStoryRow" key={"legacy-" + legacy.id}>
               <div><span className="adminStatus">blogger</span><h3>{legacy.title}</h3><p>{legacy.category} · {legacy.publicPath}</p></div>
               <button type="button" disabled={busy} onClick={() => void adoptLegacyArticle(legacy)}>Adopt &amp; Edit</button>
             </article>
           ))}
           {legacyLoadError && <p className="adminNote">Older Blogger stories could not be loaded. Refresh the page once to retry.</p>}
-          {articles.length === 0 && legacyArticles.length === 0 && !legacyLoadError && <p className="adminNote">No newsroom articles yet.</p>}
+          {sortedArticles.length === 0 && availableLegacyArticles.length === 0 && !legacyLoadError && <p className="adminNote">No newsroom articles yet.</p>}
+          {(sortedArticles.length > 0 || availableLegacyArticles.length > 0) && <p className="adminNote">Sorted by last edited, newest first. Blogger stories are shown below the newsroom stories and can be adopted without changing their original public URL.</p>}
         </div>
       </section>
     </main>
