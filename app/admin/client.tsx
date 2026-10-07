@@ -172,8 +172,10 @@ export default function AdminPage() {
     setFeaturedImage(article.featuredImage || ""); setSeoTitle(article.title); setMetaDescription(article.excerpt || "");
     setSocialImage(""); setScheduledFor(""); setPublicationDate(toLocalDateTimeInput(article.publishedAt));
     setOriginalPublishedAt(new Date(article.publishedAt).toISOString()); setStatus("published");
-    setMessage("Legacy Blogger article adopted. Its original public URL is preserved and it is ready to edit.");
-    await loadArticles(); setBusy(false);
+    setMessage("Legacy Blogger article adopted. Its original public URL is preserved. The article is now open in the editor above.");
+    await loadArticles();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setBusy(false);
   }
 
   async function submit(event: FormEvent) { event.preventDefault(); await saveArticle(editingId ? status : "draft"); }
