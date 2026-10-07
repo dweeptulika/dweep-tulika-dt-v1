@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { AdvertisementPanel } from "@/components/AdvertisementPanel";
 
 const categories = ["Andaman News", "National", "Politics", "Editorial", "Culture", "Business", "Sports"];
 type ArticleStatus = "draft" | "published" | "scheduled";
@@ -174,6 +175,8 @@ export default function AdminPage() {
           <p className="adminNote">Published URLs retain the newsroom date/slug format. Media is stored in the Dweep Tulika newsroom library.</p>
         </form>
       </section>
+
+      <AdvertisementPanel />
 
       <section className="adminEditor">
         <div className="adminEditorHead"><div><div className="adminLabel">Newsroom Library</div><h2>Drafts &amp; published stories</h2></div></div>
