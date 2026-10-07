@@ -28,3 +28,6 @@ html{overflow-x:hidden}body{overflow-x:hidden}.masthead{background:#111;padding:
 .articlebody img{display:block;width:auto;max-width:100%;max-height:560px;height:auto;object-fit:contain;margin:24px auto}
 .articleFeaturedImage{position:relative;width:100%;aspect-ratio:16/9;max-height:540px;margin:22px 0 28px;overflow:hidden;background:#e7e0d4}
 .articleFeaturedImage img{object-fit:contain}
+
+
+.adSlot{margin:24px 0}.adLabel{display:inline-block;margin-bottom:6px;padding:4px 8px;background:#111;color:#fff;font:800 9px Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase}.adSlot>a{display:block}.adSlot img{display:block;width:100%;height:auto}.adSlot small{display:block;margin-top:6px;font:11px Arial;color:#6b665e}
