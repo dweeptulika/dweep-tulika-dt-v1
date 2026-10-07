@@ -32,10 +32,16 @@ export default async function Search({ searchParams }: { searchParams: Promise<{
   const selectedMonth = /^\d{4}-\d{2}$/.test(month || "") ? month! : monthKey(newest);
   const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : "";
 
-  const matching = articles.filter((article) => {
-    const text = [article.title, article.excerpt, article.author, article.category, ...article.labels].join(" ").toLowerCase();
-    return (!query || text.includes(query)) && (!selectedDate || isoDate(article.publishedAt) === selectedDate);
-  });
+  const matching = Array.from(
+    new Map(
+      articles
+        .filter((article) => {
+          const text = [article.title, article.excerpt, article.author, article.category, ...article.labels].join(" ").toLowerCase();
+          return (!query || text.includes(query)) && (!selectedDate || isoDate(article.publishedAt) === selectedDate);
+        })
+        .map((article) => [new URL(article.url, "https://dweeptulika.in").pathname.replace(/\\/+$/, "") || "/", article])
+    ).values()
+  );
   const datesWithNews = new Set(articles.filter((a) => monthKey(a.publishedAt) === selectedMonth).map((a) => isoDate(a.publishedAt)));
   const cells = buildCalendar(selectedMonth);
   const previousMonth = shiftMonth(selectedMonth, -1);
