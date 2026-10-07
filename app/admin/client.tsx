@@ -53,6 +53,7 @@ export default function AdminPage() {
   const [newCategory, setNewCategory] = useState("");
   const [categoryBusy, setCategoryBusy] = useState(false);
   const libraryPageSize = 25;
+  const categoryNames = categoryRows.length ? categoryRows.map(row => row.name) : categories;
   const sortedArticles = useMemo(() => [...articles].sort((a, b) => Date.parse(b.updated_at || b.published_at || "") - Date.parse(a.updated_at || a.published_at || "")), [articles]);
   const availableLegacyArticles = useMemo(() => legacyArticles.filter((legacy: any) => !articles.some(a => a.public_path === legacy.publicPath)).sort((a: any, b: any) => Date.parse(b.updatedAt || b.publishedAt || "") - Date.parse(a.updatedAt || a.publishedAt || "")), [legacyArticles, articles]);
   const filteredArticles = useMemo(() => {
@@ -260,7 +261,7 @@ export default function AdminPage() {
           <label>Headline<input required value={title} onChange={e => { setTitle(e.target.value); if (!slug) setSlug(makeSlug(e.target.value)); }} placeholder="Enter the news headline" /></label>
           <label>Slug<input required value={slug} onChange={e => setSlug(makeSlug(e.target.value))} placeholder="article-url-slug" /></label>
           <div className="adminFormGrid">
-            <fieldset className="adminCategoryField"><legend>Categories</legend><div className="adminCategoryChecks">{categories.map(item => <label key={item}><input type="checkbox" checked={selectedCategories.includes(item)} onChange={e => { const next = e.target.checked ? [...selectedCategories, item] : selectedCategories.filter(v => v !== item); const safe = next.length ? next : [item]; setSelectedCategories(safe); setCategory(safe[0]); }} /> {item}</label>)}</div></fieldset>
+            <fieldset className="adminCategoryField"><legend>Categories</legend><div className="adminCategoryChecks">{categoryNames.map(item => <label key={item}><input type="checkbox" checked={selectedCategories.includes(item)} onChange={e => { const next = e.target.checked ? [...selectedCategories, item] : selectedCategories.filter(v => v !== item); const safe = next.length ? next : [item]; setSelectedCategories(safe); setCategory(safe[0]); }} /> {item}</label>)}</div></fieldset>
             <label>Author<input value={author} onChange={e => setAuthor(e.target.value)} /></label>
           </div>
           <label>Excerpt / summary<textarea rows={3} value={excerpt} onChange={e => setExcerpt(e.target.value)} placeholder="Short summary for cards and search engines" /></label>
@@ -312,7 +313,7 @@ export default function AdminPage() {
         <div className="adminStoryList">
           <div className="adminFormGrid">
             <label>Search library<input value={libraryQuery} onChange={e => setLibraryQuery(e.target.value)} placeholder="Headline, slug, author or keyword" /></label>
-            <label>Category<select value={libraryCategory} onChange={e => setLibraryCategory(e.target.value)}><option>All categories</option>{categories.map(item => <option key={item}>{item}</option>)}</select></label>
+            <label>Category<select value={libraryCategory} onChange={e => setLibraryCategory(e.target.value)}><option>All categories</option>{categoryNames.map(item => <option key={item}>{item}</option>)}</select></label>
           </div>
           <div className="adminFormGrid">
             <label>Source<select value={librarySource} onChange={e => setLibrarySource(e.target.value)}><option>All sources</option><option value="newsroom">Newsroom</option><option value="blogger">Blogger</option></select></label>
