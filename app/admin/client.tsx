@@ -42,7 +42,7 @@ export default function AdminPage() {
   const [metaDescription, setMetaDescription] = useState(""); const [socialImage, setSocialImage] = useState("");
   const [scheduledFor, setScheduledFor] = useState(""); const [publicationDate, setPublicationDate] = useState(""); const [status, setStatus] = useState<ArticleStatus>("draft");
   const [originalPublishedAt, setOriginalPublishedAt] = useState<string | null>(null);
-  const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false); const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false); const [uploading, setUploading] = useState(false); const [legacyLoadError, setLegacyLoadError] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -57,7 +57,8 @@ export default function AdminPage() {
       .order("updated_at", { ascending: false });
     if (data) setArticles(data as ArticleRow[]);
     const legacyResponse = await fetch("/api/admin/legacy-articles", { cache: "no-store" });
-    if (legacyResponse.ok) setLegacyArticles(await legacyResponse.json());
+    if (legacyResponse.ok) { setLegacyArticles(await legacyResponse.json()); setLegacyLoadError(false); }
+    else { setLegacyArticles([]); setLegacyLoadError(true); }
   }
 
   function resetEditor() {
@@ -235,16 +236,14 @@ export default function AdminPage() {
               <button type="button" onClick={() => editArticle(article)}>Edit</button>
             </article>
           ))}
-          {articles.length === 0 && <p className="adminNote">No newsroom articles yet.</p>}
-        </div>
-        <div className="adminStoryList" style={{marginTop:24}}>
-          <div className="adminLabel">Legacy Blogger Library</div>
           {legacyArticles.filter((legacy: any) => !articles.some(a => a.public_path === legacy.publicPath)).slice(0,100).map((legacy: any) => (
-            <article className="adminStoryRow" key={legacy.id}>
+            <article className="adminStoryRow" key={"legacy-" + legacy.id}>
               <div><span className="adminStatus">blogger</span><h3>{legacy.title}</h3><p>{legacy.category} · {legacy.publicPath}</p></div>
               <button type="button" disabled={busy} onClick={() => void adoptLegacyArticle(legacy)}>Adopt &amp; Edit</button>
             </article>
           ))}
+          {legacyLoadError && <p className="adminNote">Older Blogger stories could not be loaded. Refresh the page once to retry.</p>}
+          {articles.length === 0 && legacyArticles.length === 0 && !legacyLoadError && <p className="adminNote">No newsroom articles yet.</p>}
         </div>
       </section>
     </main>
