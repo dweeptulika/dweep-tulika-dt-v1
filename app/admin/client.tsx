@@ -20,6 +20,13 @@ function makeSlug(value: string) {
   return value.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
 }
 
+function toLocalDateTimeInput(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -59,8 +66,8 @@ export default function AdminPage() {
     setEditingId(article.id); setTitle(article.title); setSlug(article.slug); setCategory(article.category);
     setAuthor(article.author); setExcerpt(article.excerpt); setBody(article.body_html); setFeaturedImage(article.featured_image || "");
     setSeoTitle(article.seo_title || ""); setMetaDescription(article.meta_description || "");
-    setSocialImage(article.social_image || ""); setScheduledFor(article.scheduled_for ? article.scheduled_for.slice(0, 16) : "");
-    setPublicationDate(article.published_at ? article.published_at.slice(0, 16) : "");
+    setSocialImage(article.social_image || ""); setScheduledFor(toLocalDateTimeInput(article.scheduled_for));
+    setPublicationDate(toLocalDateTimeInput(article.published_at));
     setOriginalPublishedAt(article.published_at);
     setStatus(article.scheduled_for && new Date(article.scheduled_for).getTime() > Date.now() ? "scheduled" : article.status); setMessage("Editing saved newsroom article.");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -183,7 +190,7 @@ export default function AdminPage() {
         <div className="adminStoryList">
           {articles.map(article => (
             <article className="adminStoryRow" key={article.id}>
-              <div><span className="adminStatus">{article.status}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(article.published_at || article.updated_at))}</p></div>
+              <div><span className="adminStatus">{article.status}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(article.published_at || article.updated_at))}</p></div>
               <button type="button" onClick={() => editArticle(article)}>Edit</button>
             </article>
           ))}
