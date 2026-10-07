@@ -48,6 +48,8 @@ export default function AdminPage() {
   const [libraryStatus, setLibraryStatus] = useState("All statuses");
   const [librarySource, setLibrarySource] = useState("All sources");
   const [libraryDate, setLibraryDate] = useState("");
+  const [libraryPage, setLibraryPage] = useState(1);
+  const libraryPageSize = 25;
   const sortedArticles = useMemo(() => [...articles].sort((a, b) => Date.parse(b.updated_at || b.published_at || "") - Date.parse(a.updated_at || a.published_at || "")), [articles]);
   const availableLegacyArticles = useMemo(() => legacyArticles.filter((legacy: any) => !articles.some(a => a.public_path === legacy.publicPath)).sort((a: any, b: any) => Date.parse(b.updatedAt || b.publishedAt || "") - Date.parse(a.updatedAt || a.publishedAt || "")), [legacyArticles, articles]);
   const filteredArticles = useMemo(() => {
@@ -72,6 +74,13 @@ export default function AdminPage() {
       return matchesQuery && matchesCategory && matchesSource && matchesDate;
     });
   }, [availableLegacyArticles, libraryQuery, libraryCategory, libraryStatus, librarySource, libraryDate]);
+
+  const pagedArticles = filteredArticles.slice((libraryPage - 1) * libraryPageSize, libraryPage * libraryPageSize);
+  const libraryPageCount = Math.max(1, Math.ceil(filteredArticles.length / libraryPageSize));
+
+  useEffect(() => {
+    setLibraryPage(1);
+  }, [libraryQuery, libraryCategory, libraryStatus, librarySource, libraryDate]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -272,7 +281,7 @@ export default function AdminPage() {
           <div className="adminFormGrid">
             <label>Status<select value={libraryStatus} onChange={e => setLibraryStatus(e.target.value)}><option>All statuses</option><option value="draft">Draft</option><option value="published">Published</option><option value="scheduled">Scheduled</option></select></label>
           </div>
-          {filteredArticles.map(article => (
+          {pagedArticles.map(article => (
             <article className="adminStoryRow" key={article.id}>
               <div><span className="adminStatus">{article.status}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(article.published_at || article.updated_at))}</p></div>
               <button type="button" onClick={() => editArticle(article)}>Edit</button>
@@ -286,6 +295,11 @@ export default function AdminPage() {
           ))}
           {legacyLoadError && <p className="adminNote">Older Blogger stories could not be loaded. Refresh the page once to retry.</p>}
           {filteredArticles.length === 0 && filteredLegacyArticles.length === 0 && !legacyLoadError && <p className="adminNote">No stories match the current library filters.</p>}
+          {filteredArticles.length > 0 && <div className="adminPagination">
+            <button type="button" disabled={libraryPage <= 1} onClick={() => setLibraryPage(page => Math.max(1, page - 1))}>Previous</button>
+            <span>Page {libraryPage} of {libraryPageCount} · {filteredArticles.length} newsroom stories</span>
+            <button type="button" disabled={libraryPage >= libraryPageCount} onClick={() => setLibraryPage(page => Math.min(libraryPageCount, page + 1))}>Next</button>
+          </div>}
           {(sortedArticles.length > 0 || availableLegacyArticles.length > 0) && <p className="adminNote">Sorted by last edited, newest first. Blogger stories are shown below the newsroom stories and can be adopted without changing their original public URL.</p>}
         </div>
       </section>
