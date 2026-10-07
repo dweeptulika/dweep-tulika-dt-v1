@@ -139,6 +139,31 @@ function mapLegacyArticle(article: Article): PublishedStory {
   };
 }
 
+
+export type Advertisement = {
+  id: string;
+  name: string;
+  advertiser: string;
+  imageUrl: string;
+  targetUrl: string | null;
+  placement: "homepage" | "article" | "sidebar";
+};
+
+export async function getActiveAdvertisements(placement: Advertisement["placement"]): Promise<Advertisement[]> {
+  const supabase = publicSupabase();
+  if (!supabase) return [];
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("advertisements")
+    .select("id,name,advertiser,image_url,target_url,placement")
+    .eq("placement", placement)
+    .eq("active", true)
+    .or("starts_at.is.null,starts_at.lte." + now)
+    .or("ends_at.is.null,ends_at.gte." + now)
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return data.map((ad) => ({ id: ad.id, name: ad.name, advertiser: ad.advertiser, imageUrl: ad.image_url, targetUrl: ad.target_url, placement: ad.placement }));
+}
 export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> {
   const supabase = publicSupabase();
   if (!supabase) return [];
