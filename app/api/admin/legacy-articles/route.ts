@@ -4,9 +4,10 @@ import { liveArticles, articleImage, articleSlug, canonicalCategory } from "@/li
 
 export async function GET() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { data: profile } = await supabase.from("editorial_profiles").select("role").eq("id", user.id).maybeSingle();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const user = claimsData?.claims;
+  if (!user?.sub) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { data: profile } = await supabase.from("editorial_profiles").select("role").eq("id", user.sub).maybeSingle();
   if (!profile || !["editor", "admin"].includes(profile.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const stories = liveArticles.map((article) => ({
