@@ -66,7 +66,7 @@ export default function AdminPage() {
     setSocialImage(""); setScheduledFor(""); setPublicationDate(""); setStatus("draft"); setOriginalPublishedAt(null); setMessage("");
   }
 
-  function editArticle(article: ArticleRow) {
+  async function editArticle(article: ArticleRow) {
     setEditingId(article.id); setTitle(article.title); setSlug(article.slug); setCategory(article.category); setSelectedCategories([article.category]);
     setAuthor(article.author); setExcerpt(article.excerpt); setBody(article.body_html); setFeaturedImage(article.featured_image || "");
     setSeoTitle(article.seo_title || ""); setMetaDescription(article.meta_description || "");
@@ -75,7 +75,8 @@ export default function AdminPage() {
     setOriginalPublishedAt(article.published_at);
     setStatus(article.scheduled_for && new Date(article.scheduled_for).getTime() > Date.now() ? "scheduled" : article.status);
     const { data: categoryRows } = await supabase.from("article_categories").select("categories(name),is_primary").eq("article_id", article.id);
-    if (categoryRows?.length) setSelectedCategories(categoryRows.map((row: any) => row.categories?.name).filter(Boolean)); setMessage("Editing saved newsroom article.");
+    if (categoryRows?.length) setSelectedCategories(categoryRows.map((row: any) => row.categories?.name).filter(Boolean));
+    setMessage("Editing saved newsroom article.");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -135,8 +136,6 @@ export default function AdminPage() {
       status: requestedStatus === "scheduled" ? "published" : requestedStatus, scheduled_for: scheduledAt,
       published_at: publishedAt,
       updated_by: user.id,
-      source: "newsroom",
-    public_path: editingId ? undefined : undefined,
     };
     const query = editingId
       ? supabase.from("articles").update(payload).eq("id", editingId)
@@ -164,7 +163,13 @@ export default function AdminPage() {
     }).select("id").single();
     if (error) { setMessage(error.message); setBusy(false); return; }
     if (inserted?.id) await syncArticleCategories(inserted.id, [article.category]);
-    setMessage("Legacy Blogger article adopted into the newsroom. Its public URL is preserved.");
+    setEditingId(inserted.id);
+    setTitle(article.title); setSlug(article.slug); setCategory(article.category); setSelectedCategories([article.category]);
+    setAuthor(article.author); setExcerpt(article.excerpt); setBody(article.bodyHtml);
+    setFeaturedImage(article.featuredImage || ""); setSeoTitle(article.title); setMetaDescription(article.excerpt || "");
+    setSocialImage(""); setScheduledFor(""); setPublicationDate(toLocalDateTimeInput(article.publishedAt));
+    setOriginalPublishedAt(new Date(article.publishedAt).toISOString()); setStatus("published");
+    setMessage("Legacy Blogger article adopted. Its original public URL is preserved and it is ready to edit.");
     await loadArticles(); setBusy(false);
   }
 
