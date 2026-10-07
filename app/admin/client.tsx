@@ -57,6 +57,7 @@ export default function AdminPage() {
   const publishedTodayCount = articles.filter(article => article.status === "published" && (article.published_at || "").slice(0, 10) === todayIndia).length;
   const draftCount = articles.filter(article => article.status === "draft").length;
   const scheduledCount = articles.filter(article => article.status === "scheduled").length;
+  const publishedTotalCount = articles.filter(article => article.status === "published").length;
   const recentEditedArticles = [...articles].sort((a, b) => Date.parse(b.updated_at || "") - Date.parse(a.updated_at || "")).slice(0, 5);
   const categoryNames = categoryRows.length ? categoryRows.map(row => row.name) : categories;
   const sortedArticles = useMemo(() => [...articles].sort((a, b) => Date.parse(b.updated_at || b.published_at || "") - Date.parse(a.updated_at || a.published_at || "")), [articles]);
@@ -263,6 +264,8 @@ export default function AdminPage() {
       <section className="adminSection">
         <div className="adminSectionHeader"><div><div className="adminLabel">Newsroom overview</div><h2>Today at a glance</h2><p>Editorial workload and the latest newsroom activity.</p></div></div>
         <div className="adminFormGrid">
+          <div className="adminStoryRow"><div><span className="adminStatus">Total newsroom</span><h3>{articles.length}</h3><p>Stories in the newsroom database</p></div></div>
+          <div className="adminStoryRow"><div><span className="adminStatus">Published total</span><h3>{publishedTotalCount}</h3><p>Currently published newsroom stories</p></div></div>
           <div className="adminStoryRow"><div><span className="adminStatus">Published today</span><h3>{publishedTodayCount}</h3><p>Stories published today</p></div></div>
           <div className="adminStoryRow"><div><span className="adminStatus">Drafts</span><h3>{draftCount}</h3><p>Stories awaiting completion</p></div></div>
           <div className="adminStoryRow"><div><span className="adminStatus">Scheduled</span><h3>{scheduledCount}</h3><p>Stories queued for publication</p></div></div>
