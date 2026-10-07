@@ -16,28 +16,28 @@ export default async function Home() {
   const items = await getAllPublishedArticles();
   const lead = items[0];
   return <div className="container">
+    <AdSlot placement="homepage" />
     <section className="lead">
       {lead && <article className="hero">
         <StoryImage article={lead} large />
         <div className="kicker">{lead.labels[0] || "News"}</div>
         <h2><Link href={lead.url}>{lead.title}</Link></h2>
         <p>{lead.excerpt || "Read the latest report from Dweep Tulika."}</p>
-        <small>{lead.author || "Dweep Tulika"} · {new Date(lead.publishedAt).toLocaleDateString("en-IN")}</small>
+        <small>{lead.author || "Dweep Tulika"} · {new Date(lead.publishedAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}</small>
       </article>}
       <div className="side">{items.slice(1, 4).map(a => <article className="card" key={a.id}>
         <StoryImage article={a} />
         <div className="kicker">{a.labels[0] || "News"}</div>
         <h3><Link href={a.url}>{a.title}</Link></h3>
-        <small>{new Date(a.publishedAt).toLocaleDateString("en-IN")}</small>
+        <small>{new Date(a.publishedAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}</small>
       </article>)}</div>
     </section>
-    <AdSlot placement="homepage" />
     <section className="latest"><h2>Latest News</h2><div className="grid">{items.slice(0, 18).map(a => <article className="card" key={a.id}>
       <StoryImage article={a} />
       <div className="kicker">{a.labels[0] || "News"}</div>
       <h3><Link href={a.url}>{a.title}</Link></h3>
       <p>{a.excerpt}</p>
-      <small>{new Date(a.publishedAt).toLocaleDateString("en-IN")}</small>
+      <small>{new Date(a.publishedAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}</small>
     </article>)}</div></section>
   </div>;
 }
