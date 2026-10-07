@@ -32,6 +32,8 @@ export default function AdminPage() {
   const supabase = useMemo(() => createClient(), []);
   const [sessionReady, setSessionReady] = useState(false);
   const [articles, setArticles] = useState<ArticleRow[]>([]);
+  const [legacyArticles, setLegacyArticles] = useState<any[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([categories[0]]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState(""); const [slug, setSlug] = useState("");
   const [category, setCategory] = useState(categories[0]); const [author, setAuthor] = useState("Dweep Tulika");
@@ -54,22 +56,26 @@ export default function AdminPage() {
       .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
       .order("updated_at", { ascending: false });
     if (data) setArticles(data as ArticleRow[]);
+    const legacyResponse = await fetch("/api/admin/legacy-articles", { cache: "no-store" });
+    if (legacyResponse.ok) setLegacyArticles(await legacyResponse.json());
   }
 
   function resetEditor() {
-    setEditingId(null); setTitle(""); setSlug(""); setCategory(categories[0]); setAuthor("Dweep Tulika");
+    setEditingId(null); setTitle(""); setSlug(""); setCategory(categories[0]); setSelectedCategories([categories[0]]); setAuthor("Dweep Tulika");
     setExcerpt(""); setBody(""); setFeaturedImage(""); setSeoTitle(""); setMetaDescription("");
     setSocialImage(""); setScheduledFor(""); setPublicationDate(""); setStatus("draft"); setOriginalPublishedAt(null); setMessage("");
   }
 
   function editArticle(article: ArticleRow) {
-    setEditingId(article.id); setTitle(article.title); setSlug(article.slug); setCategory(article.category);
+    setEditingId(article.id); setTitle(article.title); setSlug(article.slug); setCategory(article.category); setSelectedCategories([article.category]);
     setAuthor(article.author); setExcerpt(article.excerpt); setBody(article.body_html); setFeaturedImage(article.featured_image || "");
     setSeoTitle(article.seo_title || ""); setMetaDescription(article.meta_description || "");
     setSocialImage(article.social_image || ""); setScheduledFor(toLocalDateTimeInput(article.scheduled_for));
     setPublicationDate(toLocalDateTimeInput(article.published_at));
     setOriginalPublishedAt(article.published_at);
-    setStatus(article.scheduled_for && new Date(article.scheduled_for).getTime() > Date.now() ? "scheduled" : article.status); setMessage("Editing saved newsroom article.");
+    setStatus(article.scheduled_for && new Date(article.scheduled_for).getTime() > Date.now() ? "scheduled" : article.status);
+    const { data: categoryRows } = await supabase.from("article_categories").select("categories(name),is_primary").eq("article_id", article.id);
+    if (categoryRows?.length) setSelectedCategories(categoryRows.map((row: any) => row.categories?.name).filter(Boolean)); setMessage("Editing saved newsroom article.");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -97,6 +103,13 @@ export default function AdminPage() {
     setUploading(false); event.target.value = "";
   }
 
+  async function syncArticleCategories(articleId: string, names: string[]) {
+    const clean = [...new Set(names.length ? names : [category])];
+    await supabase.from("article_categories").delete().eq("article_id", articleId);
+    const { data: rows } = await supabase.from("categories").select("id,name").in("name", clean);
+    if (rows?.length) await supabase.from("article_categories").insert(rows.map((row: any, index: number) => ({ article_id: articleId, category_id: row.id, is_primary: row.name === category || index === 0 })));
+  }
+
   async function saveArticle(requestedStatus: ArticleStatus) {
     setBusy(true); setMessage("");
     const { data: userData } = await supabase.auth.getUser(); const user = userData.user;
@@ -122,14 +135,37 @@ export default function AdminPage() {
       status: requestedStatus === "scheduled" ? "published" : requestedStatus, scheduled_for: scheduledAt,
       published_at: publishedAt,
       updated_by: user.id,
+      source: "newsroom",
+    public_path: editingId ? undefined : undefined,
     };
     const query = editingId
       ? supabase.from("articles").update(payload).eq("id", editingId)
       : supabase.from("articles").insert({ ...payload, created_by: user.id });
     const { error } = await query;
     if (error) setMessage(error.message);
-    else { setMessage(requestedStatus === "published" ? "Article published successfully." : requestedStatus === "scheduled" ? "Article scheduled successfully." : "Draft saved successfully."); resetEditor(); await loadArticles(); }
+    else {
+      const { data: saved } = await supabase.from("articles").select("id").eq("slug", normalizedSlug).maybeSingle();
+      if (saved?.id) await syncArticleCategories(saved.id, selectedCategories);
+      setMessage(requestedStatus === "published" ? "Article published successfully." : requestedStatus === "scheduled" ? "Article scheduled successfully." : "Draft saved successfully."); resetEditor(); await loadArticles(); }
     setBusy(false);
+  }
+
+  async function adoptLegacyArticle(article: any) {
+    setBusy(true); setMessage("");
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) { router.replace("/admin/login"); return; }
+    const { data: existing } = await supabase.from("articles").select("id").eq("public_path", article.publicPath).maybeSingle();
+    if (existing) { setMessage("This Blogger article has already been adopted."); setBusy(false); return; }
+    const { data: inserted, error } = await supabase.from("articles").insert({
+      title: article.title, slug: article.slug, category: article.category, source: "blogger", legacy_id: article.id,
+      legacy_url: article.publicPath, public_path: article.publicPath, author: article.author, excerpt: article.excerpt,
+      body_html: article.bodyHtml, featured_image: article.featuredImage, seo_title: article.title, meta_description: article.excerpt || null,
+      status: "published", published_at: new Date(article.publishedAt).toISOString(), updated_by: userData.user.id, created_by: userData.user.id
+    }).select("id").single();
+    if (error) { setMessage(error.message); setBusy(false); return; }
+    if (inserted?.id) await syncArticleCategories(inserted.id, [article.category]);
+    setMessage("Legacy Blogger article adopted into the newsroom. Its public URL is preserved.");
+    await loadArticles(); setBusy(false);
   }
 
   async function submit(event: FormEvent) { event.preventDefault(); await saveArticle(editingId ? status : "draft"); }
@@ -149,7 +185,7 @@ export default function AdminPage() {
           <label>Headline<input required value={title} onChange={e => { setTitle(e.target.value); if (!slug) setSlug(makeSlug(e.target.value)); }} placeholder="Enter the news headline" /></label>
           <label>Slug<input required value={slug} onChange={e => setSlug(makeSlug(e.target.value))} placeholder="article-url-slug" /></label>
           <div className="adminFormGrid">
-            <label>Category<select value={category} onChange={e => setCategory(e.target.value)}>{categories.map(item => <option key={item}>{item}</option>)}</select></label>
+            <fieldset className="adminCategoryField"><legend>Categories</legend><div className="adminCategoryChecks">{categories.map(item => <label key={item}><input type="checkbox" checked={selectedCategories.includes(item)} onChange={e => { const next = e.target.checked ? [...selectedCategories, item] : selectedCategories.filter(v => v !== item); const safe = next.length ? next : [item]; setSelectedCategories(safe); setCategory(safe[0]); }} /> {item}</label>)}</div></fieldset>
             <label>Author<input value={author} onChange={e => setAuthor(e.target.value)} /></label>
           </div>
           <label>Excerpt / summary<textarea rows={3} value={excerpt} onChange={e => setExcerpt(e.target.value)} placeholder="Short summary for cards and search engines" /></label>
@@ -195,6 +231,15 @@ export default function AdminPage() {
             </article>
           ))}
           {articles.length === 0 && <p className="adminNote">No newsroom articles yet.</p>}
+        </div>
+        <div className="adminStoryList" style={{marginTop:24}}>
+          <div className="adminLabel">Legacy Blogger Library</div>
+          {legacyArticles.filter((legacy: any) => !articles.some(a => a.public_path === legacy.publicPath)).slice(0,100).map((legacy: any) => (
+            <article className="adminStoryRow" key={legacy.id}>
+              <div><span className="adminStatus">blogger</span><h3>{legacy.title}</h3><p>{legacy.category} · {legacy.publicPath}</p></div>
+              <button type="button" disabled={busy} onClick={() => void adoptLegacyArticle(legacy)}>Adopt &amp; Edit</button>
+            </article>
+          ))}
         </div>
       </section>
     </main>
