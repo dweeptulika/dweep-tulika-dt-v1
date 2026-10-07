@@ -39,11 +39,26 @@ export async function proxy(request: NextRequest) {
   const isPublicAdminRoute =
     pathname === "/admin/login" || pathname === "/admin/logout";
 
-  if (isAdmin && !isPublicAdminRoute && !user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/admin/login";
-    url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+  if (isAdmin && !isPublicAdminRoute) {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
+      url.searchParams.set("next", pathname);
+      return NextResponse.redirect(url);
+    }
+
+    const { data: profile } = await supabase
+      .from("editorial_profiles")
+      .select("id,role")
+      .eq("id", user.sub)
+      .maybeSingle();
+
+    if (!profile || !["editor", "admin"].includes(profile.role)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
+      url.searchParams.set("error", "not_authorized");
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;
