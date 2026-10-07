@@ -17,7 +17,7 @@ export function sanitizeArticleHtml(html: string): string {
     },
     allowedSchemes: ["http", "https", "mailto"],
     allowedSchemesByTag: {
-      img: ["http", "https]
+      img: ["http", "https"]
     },
     allowProtocolRelative: false,
     disallowedTagsMode: "discard"
