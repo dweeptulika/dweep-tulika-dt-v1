@@ -200,7 +200,7 @@ export async function getPublishedNewsroomArticleByPath(year: string, month: str
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("articles")
-    .select("id,title,slug,category,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
+    .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
     .eq("slug", normalizedSlug)
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
@@ -213,9 +213,10 @@ export async function getPublishedNewsroomArticleByPath(year: string, month: str
 }
 
 export async function findArticleByPath(year: string, month: string, slug: string): Promise<PublishedStory | null> {
+  const newsroom = await getPublishedNewsroomArticleByPath(year, month, slug);
+  if (newsroom) return newsroom;
   const legacy = articleFromPath(year, month, slug);
-  if (legacy) return mapLegacyArticle(legacy);
-  return getPublishedNewsroomArticleByPath(year, month, slug);
+  return legacy ? mapLegacyArticle(legacy) : null;
 }
 
 export async function allPublishedLabels(): Promise<string[]> {
