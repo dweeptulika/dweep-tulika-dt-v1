@@ -192,9 +192,9 @@ function normalizePublicPath(value: string) {
   if (!trimmed) return "";
   try {
     const parsed = new URL(trimmed, "https://dweeptulika.in");
-    return parsed.pathname.replace(/\\/+$/, "") || "/";
+    return parsed.pathname.replace(/\/+$/, "") || "/";
   } catch {
-    return (trimmed.startsWith("/") ? trimmed : "/" + trimmed).replace(/\\/+$/, "") || "/";
+    return (trimmed.startsWith("/") ? trimmed : "/" + trimmed).replace(/\/+$/, "") || "/";
   }
 }
 
