@@ -49,6 +49,9 @@ export default function AdminPage() {
   const [librarySource, setLibrarySource] = useState("All sources");
   const [libraryDate, setLibraryDate] = useState("");
   const [libraryPage, setLibraryPage] = useState(1);
+  const [categoryRows, setCategoryRows] = useState<{ id: string; name: string; description: string | null }[]>([]);
+  const [newCategory, setNewCategory] = useState("");
+  const [categoryBusy, setCategoryBusy] = useState(false);
   const libraryPageSize = 25;
   const sortedArticles = useMemo(() => [...articles].sort((a, b) => Date.parse(b.updated_at || b.published_at || "") - Date.parse(a.updated_at || a.published_at || "")), [articles]);
   const availableLegacyArticles = useMemo(() => legacyArticles.filter((legacy: any) => !articles.some(a => a.public_path === legacy.publicPath)).sort((a: any, b: any) => Date.parse(b.updatedAt || b.publishedAt || "") - Date.parse(a.updatedAt || a.publishedAt || "")), [legacyArticles, articles]);
@@ -94,9 +97,35 @@ export default function AdminPage() {
       .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
       .order("updated_at", { ascending: false });
     if (data) setArticles(data as ArticleRow[]);
+    const { data: categoryData } = await supabase.from("categories").select("id,name,description").order("name");
+    if (categoryData) setCategoryRows(categoryData);
     const legacyResponse = await fetch("/api/admin/legacy-articles", { cache: "no-store" });
     if (legacyResponse.ok) { setLegacyArticles(await legacyResponse.json()); setLegacyLoadError(false); }
     else { setLegacyArticles([]); setLegacyLoadError(true); }
+  }
+
+  async function addCategory() {
+    const name = newCategory.trim();
+    if (!name) return;
+    setCategoryBusy(true);
+    const { data, error } = await supabase.from("categories").insert({ name, slug: makeSlug(name) }).select("id,name,description").single();
+    if (error) setMessage(error.message.includes("duplicate") ? "That category already exists." : error.message);
+    else if (data) { setCategoryRows(rows => [...rows, data].sort((a, b) => a.name.localeCompare(b.name))); setNewCategory(""); setMessage("Category added."); }
+    setCategoryBusy(false);
+  }
+
+  async function deleteCategory(id: string, name: string) {
+    if (categoryRows.length <= 1) return;
+    setCategoryBusy(true);
+    const { count } = await supabase.from("article_categories").select("article_id", { count: "exact", head: true }).eq("category_id", id);
+    if ((count || 0) > 0) {
+      setMessage("This category is in use and cannot be deleted.");
+    } else {
+      const { error } = await supabase.from("categories").delete().eq("id", id);
+      if (error) setMessage(error.message);
+      else { setCategoryRows(rows => rows.filter(row => row.id !== id)); setMessage("Category deleted."); }
+    }
+    setCategoryBusy(false);
   }
 
   function resetEditor() {
@@ -269,6 +298,17 @@ export default function AdminPage() {
 
       <section className="adminEditor">
         <div className="adminEditorHead"><div><div className="adminLabel">Newsroom Library</div><h2>Drafts &amp; published stories</h2></div></div>
+        <section className="adminSection">
+          <div className="adminSectionHeader"><div><h2>Category Management</h2><p>Manage newsroom categories. Categories currently used by articles cannot be deleted.</p></div></div>
+          <div className="adminFormGrid">
+            <label>New category<input value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="Category name" /></label>
+            <div><button type="button" disabled={categoryBusy || !newCategory.trim()} onClick={() => void addCategory()}>Add category</button></div>
+          </div>
+          <div className="adminCategoryChecks">
+            {categoryRows.map(row => <div key={row.id} className="adminCategoryItem"><span>{row.name}</span><button type="button" disabled={categoryBusy} onClick={() => void deleteCategory(row.id, row.name)}>Delete</button></div>)}
+          </div>
+        </section>
+
         <div className="adminStoryList">
           <div className="adminFormGrid">
             <label>Search library<input value={libraryQuery} onChange={e => setLibraryQuery(e.target.value)} placeholder="Headline, slug, author or keyword" /></label>
