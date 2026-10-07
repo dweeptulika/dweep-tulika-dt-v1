@@ -10,7 +10,7 @@ import { AdvertisementPanel } from "@/components/AdvertisementPanel";
 const categories = ["Andaman News", "National", "Politics", "Editorial", "Culture", "Business", "Sports"];
 type ArticleStatus = "draft" | "published" | "scheduled";
 type ArticleRow = {
-  id: string; title: string; slug: string; category: string; author: string; excerpt: string;
+  id: string; title: string; slug: string; category: string; source?: "blogger" | "newsroom"; public_path?: string | null; author: string; excerpt: string;
   body_html: string; featured_image: string | null; seo_title: string | null;
   meta_description: string | null; social_image: string | null; status: ArticleStatus;
   scheduled_for: string | null; published_at: string | null; updated_at: string;
@@ -51,7 +51,7 @@ export default function AdminPage() {
 
   async function loadArticles() {
     const { data } = await supabase.from("articles")
-      .select("id,title,slug,category,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
+      .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
       .order("updated_at", { ascending: false });
     if (data) setArticles(data as ArticleRow[]);
   }
