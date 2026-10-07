@@ -133,7 +133,7 @@ export function AdvertisementPanel() {
       <label>Start date &amp; time<input type="datetime-local" value={startsAt} onChange={e => setStartsAt(e.target.value)} /><small>Leave blank to start immediately when active.</small></label>
       <label>End date &amp; time<input type="datetime-local" value={endsAt} onChange={e => setEndsAt(e.target.value)} /><small>Leave blank for no automatic end date.</small></label>
     </div>
-    <label><input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} /> Active</label>
+    <label><input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} /> Active <small>Uncheck to keep this advertisement hidden without deleting it.</small></label>
     {message && <p className="adminMessage">{message}</p>}
     <div className="adminActions">
       <button type="button" disabled={busy || uploading} onClick={() => void saveAd()}>{busy ? "Saving…" : editingId ? "Save Advertisement" : "Add Advertisement"}</button>
@@ -144,7 +144,7 @@ export function AdvertisementPanel() {
         <div>
           <span className="adminStatus">{ad.active ? "active" : "inactive"} · {ad.placement}</span>
           <h3>{ad.name}</h3>
-          <p>{ad.advertiser || "No advertiser name"} · {ad.target_url ? "Link: Yes" : "Link: No"} · {ad.ends_at ? "Ends " + new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(ad.ends_at)) : "No end date"}</p>
+          <p>{ad.advertiser || "No advertiser name"}</p><p className="adminAdMeta"><strong>Link:</strong> {ad.target_url ? "Yes" : "No"} · {ad.ends_at ? "Ends " + new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(ad.ends_at)) : "No end date"}</p>
         </div>
         <div className="adminActions">
           <button type="button" onClick={() => editAd(ad)}>Edit</button>
