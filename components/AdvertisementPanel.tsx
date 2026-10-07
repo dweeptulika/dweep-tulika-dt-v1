@@ -45,7 +45,7 @@ export function AdvertisementPanel() {
     else setAds((data || []) as AdRow[]);
   }
 
-  useEffect(() => { void loadAds(); }, []);
+  // The initial data load intentionally happens after mount; keep this effect isolated from the form state updates.\n  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps\n  useEffect(() => { void loadAds(); }, []);
 
   function reset() {
     setEditingId(null); setName(""); setAdvertiser(""); setImageUrl(""); setTargetUrl("");
