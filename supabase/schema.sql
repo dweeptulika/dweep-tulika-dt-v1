@@ -175,3 +175,48 @@ using (
     where p.id = auth.uid()
   )
 );
+
+
+-- Advertisement control panel
+create table if not exists public.advertisements (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  advertiser text not null default '',
+  image_url text not null,
+  target_url text,
+  placement text not null default 'homepage' check (placement in ('homepage','article','sidebar')),
+  active boolean not null default true,
+  starts_at timestamptz,
+  ends_at timestamptz,
+  created_by uuid references auth.users(id) on delete set null,
+  updated_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists advertisements_active_idx on public.advertisements(active, starts_at, ends_at);
+create index if not exists advertisements_placement_idx on public.advertisements(placement);
+
+alter table public.advertisements enable row level security;
+grant select on public.advertisements to anon;
+grant select, insert, update, delete on public.advertisements to authenticated;
+
+drop policy if exists "public can read active advertisements" on public.advertisements;
+create policy "public can read active advertisements"
+  on public.advertisements for select to anon, authenticated
+  using (
+    active = true
+    and (starts_at is null or starts_at <= now())
+    and (ends_at is null or ends_at >= now())
+  );
+
+drop policy if exists "editors can manage advertisements" on public.advertisements;
+create policy "editors can manage advertisements"
+  on public.advertisements for all to authenticated
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()))
+  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+
+drop trigger if exists advertisements_touch_updated_at on public.advertisements;
+create trigger advertisements_touch_updated_at
+before update on public.advertisements
+for each row execute function public.touch_updated_at();
