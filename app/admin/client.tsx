@@ -45,6 +45,24 @@ export default function AdminPage() {
   const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false); const [uploading, setUploading] = useState(false); const [legacyLoadError, setLegacyLoadError] = useState(false);
   const sortedArticles = useMemo(() => [...articles].sort((a, b) => Date.parse(b.updated_at || b.published_at || "") - Date.parse(a.updated_at || a.published_at || "")), [articles]);
   const availableLegacyArticles = useMemo(() => legacyArticles.filter((legacy: any) => !articles.some(a => a.public_path === legacy.publicPath)).sort((a: any, b: any) => Date.parse(b.updatedAt || b.publishedAt || "") - Date.parse(a.updatedAt || a.publishedAt || "")), [legacyArticles, articles]);
+  const filteredArticles = useMemo(() => {
+    const query = libraryQuery.trim().toLowerCase();
+    return sortedArticles.filter((article) => {
+      const matchesQuery = !query || [article.title, article.slug, article.author, article.category, article.excerpt].join(" ").toLowerCase().includes(query);
+      const matchesCategory = libraryCategory === "All categories" || article.category === libraryCategory;
+      const matchesStatus = libraryStatus === "All statuses" || article.status === libraryStatus;
+      return matchesQuery && matchesCategory && matchesStatus;
+    });
+  }, [sortedArticles, libraryQuery, libraryCategory, libraryStatus]);
+  const filteredLegacyArticles = useMemo(() => {
+    const query = libraryQuery.trim().toLowerCase();
+    if (libraryStatus !== "All statuses" && libraryStatus !== "published") return [];
+    return availableLegacyArticles.filter((legacy: any) => {
+      const matchesQuery = !query || [legacy.title, legacy.slug, legacy.author, legacy.category, legacy.excerpt, legacy.publicPath].join(" ").toLowerCase().includes(query);
+      const matchesCategory = libraryCategory === "All categories" || legacy.category === libraryCategory;
+      return matchesQuery && matchesCategory;
+    });
+  }, [availableLegacyArticles, libraryQuery, libraryCategory, libraryStatus]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -234,20 +252,27 @@ export default function AdminPage() {
       <section className="adminEditor">
         <div className="adminEditorHead"><div><div className="adminLabel">Newsroom Library</div><h2>Drafts &amp; published stories</h2></div></div>
         <div className="adminStoryList">
-          {sortedArticles.map(article => (
+          <div className="adminFormGrid">
+            <label>Search library<input value={libraryQuery} onChange={e => setLibraryQuery(e.target.value)} placeholder="Headline, slug, author or keyword" /></label>
+            <label>Category<select value={libraryCategory} onChange={e => setLibraryCategory(e.target.value)}><option>All categories</option>{categories.map(item => <option key={item}>{item}</option>)}</select></label>
+          </div>
+          <div className="adminFormGrid">
+            <label>Status<select value={libraryStatus} onChange={e => setLibraryStatus(e.target.value)}><option>All statuses</option><option value="draft">Draft</option><option value="published">Published</option><option value="scheduled">Scheduled</option></select></label>
+          </div>
+          {filteredArticles.map(article => (
             <article className="adminStoryRow" key={article.id}>
               <div><span className="adminStatus">{article.status}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(article.published_at || article.updated_at))}</p></div>
               <button type="button" onClick={() => editArticle(article)}>Edit</button>
             </article>
           ))}
-          {availableLegacyArticles.slice(0,100).map((legacy: any) => (
+          {filteredLegacyArticles.slice(0,100).map((legacy: any) => (
             <article className="adminStoryRow" key={"legacy-" + legacy.id}>
               <div><span className="adminStatus">blogger</span><h3>{legacy.title}</h3><p>{legacy.category} · {legacy.publicPath}</p></div>
               <button type="button" disabled={busy} onClick={() => void adoptLegacyArticle(legacy)}>Adopt &amp; Edit</button>
             </article>
           ))}
           {legacyLoadError && <p className="adminNote">Older Blogger stories could not be loaded. Refresh the page once to retry.</p>}
-          {sortedArticles.length === 0 && availableLegacyArticles.length === 0 && !legacyLoadError && <p className="adminNote">No newsroom articles yet.</p>}
+          {filteredArticles.length === 0 && filteredLegacyArticles.length === 0 && !legacyLoadError && <p className="adminNote">No stories match the current library filters.</p>}
           {(sortedArticles.length > 0 || availableLegacyArticles.length > 0) && <p className="adminNote">Sorted by last edited, newest first. Blogger stories are shown below the newsroom stories and can be adopted without changing their original public URL.</p>}
         </div>
       </section>
