@@ -39,7 +39,7 @@ export default async function Search({ searchParams }: { searchParams: Promise<{
           const text = [article.title, article.excerpt, article.author, article.category, ...article.labels].join(" ").toLowerCase();
           return (!query || text.includes(query)) && (!selectedDate || isoDate(article.publishedAt) === selectedDate);
         })
-        .map((article) => [new URL(article.url, "https://dweeptulika.in").pathname.replace(/\\/+$/, "") || "/", article])
+        .map((article) => [new URL(article.url, "https://dweeptulika.in").pathname.replace(/\/+$/, "") || "/", article])
     ).values()
   );
   const datesWithNews = new Set(articles.filter((a) => monthKey(a.publishedAt) === selectedMonth).map((a) => isoDate(a.publishedAt)));
