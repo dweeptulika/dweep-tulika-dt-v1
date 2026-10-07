@@ -46,6 +46,8 @@ export default function AdminPage() {
   const [libraryQuery, setLibraryQuery] = useState("");
   const [libraryCategory, setLibraryCategory] = useState("All categories");
   const [libraryStatus, setLibraryStatus] = useState("All statuses");
+  const [librarySource, setLibrarySource] = useState("All sources");
+  const [libraryDate, setLibraryDate] = useState("");
   const sortedArticles = useMemo(() => [...articles].sort((a, b) => Date.parse(b.updated_at || b.published_at || "") - Date.parse(a.updated_at || a.published_at || "")), [articles]);
   const availableLegacyArticles = useMemo(() => legacyArticles.filter((legacy: any) => !articles.some(a => a.public_path === legacy.publicPath)).sort((a: any, b: any) => Date.parse(b.updatedAt || b.publishedAt || "") - Date.parse(a.updatedAt || a.publishedAt || "")), [legacyArticles, articles]);
   const filteredArticles = useMemo(() => {
@@ -54,18 +56,22 @@ export default function AdminPage() {
       const matchesQuery = !query || [article.title, article.slug, article.author, article.category, article.excerpt].join(" ").toLowerCase().includes(query);
       const matchesCategory = libraryCategory === "All categories" || article.category === libraryCategory;
       const matchesStatus = libraryStatus === "All statuses" || article.status === libraryStatus;
-      return matchesQuery && matchesCategory && matchesStatus;
+      const matchesSource = librarySource === "All sources" || (librarySource === "blogger" ? article.source === "blogger" : article.source !== "blogger");
+      const matchesDate = !libraryDate || (article.published_at || article.updated_at || "").slice(0, 10) === libraryDate;
+      return matchesQuery && matchesCategory && matchesStatus && matchesSource && matchesDate;
     });
-  }, [sortedArticles, libraryQuery, libraryCategory, libraryStatus]);
+  }, [sortedArticles, libraryQuery, libraryCategory, libraryStatus, librarySource, libraryDate]);
   const filteredLegacyArticles = useMemo(() => {
     const query = libraryQuery.trim().toLowerCase();
     if (libraryStatus !== "All statuses" && libraryStatus !== "published") return [];
     return availableLegacyArticles.filter((legacy: any) => {
       const matchesQuery = !query || [legacy.title, legacy.slug, legacy.author, legacy.category, legacy.excerpt, legacy.publicPath].join(" ").toLowerCase().includes(query);
       const matchesCategory = libraryCategory === "All categories" || legacy.category === libraryCategory;
-      return matchesQuery && matchesCategory;
+      const matchesSource = librarySource === "All sources" || librarySource === "blogger";
+      const matchesDate = !libraryDate || (legacy.publishedAt || legacy.updatedAt || "").slice(0, 10) === libraryDate;
+      return matchesQuery && matchesCategory && matchesSource && matchesDate;
     });
-  }, [availableLegacyArticles, libraryQuery, libraryCategory, libraryStatus]);
+  }, [availableLegacyArticles, libraryQuery, libraryCategory, libraryStatus, librarySource, libraryDate]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -258,6 +264,10 @@ export default function AdminPage() {
           <div className="adminFormGrid">
             <label>Search library<input value={libraryQuery} onChange={e => setLibraryQuery(e.target.value)} placeholder="Headline, slug, author or keyword" /></label>
             <label>Category<select value={libraryCategory} onChange={e => setLibraryCategory(e.target.value)}><option>All categories</option>{categories.map(item => <option key={item}>{item}</option>)}</select></label>
+          </div>
+          <div className="adminFormGrid">
+            <label>Source<select value={librarySource} onChange={e => setLibrarySource(e.target.value)}><option>All sources</option><option value="newsroom">Newsroom</option><option value="blogger">Blogger</option></select></label>
+            <label>Published/updated date<input type="date" value={libraryDate} onChange={e => setLibraryDate(e.target.value)} /></label>
           </div>
           <div className="adminFormGrid">
             <label>Status<select value={libraryStatus} onChange={e => setLibraryStatus(e.target.value)}><option>All statuses</option><option value="draft">Draft</option><option value="published">Published</option><option value="scheduled">Scheduled</option></select></label>
