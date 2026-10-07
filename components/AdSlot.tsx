@@ -8,7 +8,14 @@ export async function AdSlot({ placement }: { placement: Advertisement["placemen
   const image = <Image src={ad.imageUrl} alt={ad.advertiser || ad.name} width={1200} height={300} sizes="(max-width: 900px) 100vw, 1200px" style={{ width: "100%", height: "auto" }} />;
   return (
     <section aria-label="Advertisement" className="adSlot">
-      {ad.targetUrl ? <a href={ad.targetUrl} target="_blank" rel="sponsored noopener noreferrer">{image}</a> : image}
+      <div className="adLabel">ADVERTISEMENT</div>
+      {ad.targetUrl ? (
+        <a href={ad.targetUrl} target="_blank" rel="sponsored noopener noreferrer" aria-label={`${ad.name} advertisement — sponsored link`}>
+          {image}
+        </a>
+      ) : (
+        image
+      )}
     </section>
   );
 }

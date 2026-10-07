@@ -45,7 +45,7 @@ export function AdvertisementPanel() {
     else setAds((data || []) as AdRow[]);
   }
 
-  useEffect(() => { void loadAds(); }, []);
+  // The initial data load intentionally happens after mount; keep this effect isolated from the form state updates.\n  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps\n  useEffect(() => { void loadAds(); }, []);
 
   function reset() {
     setEditingId(null); setName(""); setAdvertiser(""); setImageUrl(""); setTargetUrl("");
@@ -125,7 +125,7 @@ export function AdvertisementPanel() {
     </div>
     <div className="adminFormGrid">
       <label>Placement<select value={placement} onChange={e => setPlacement(e.target.value as AdRow["placement"])}>{placements.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-      <label>Click destination URL<input value={targetUrl} onChange={e => setTargetUrl(e.target.value)} placeholder="https://example.com" /></label>
+      <label>Click destination URL (optional)<input value={targetUrl} onChange={e => setTargetUrl(e.target.value)} placeholder="https://example.com" /><small>Leave blank if the advertisement should not be clickable.</small></label>
     </div>
     <label>Advertisement image<input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadAd} disabled={uploading || busy} /></label>
     {imageUrl && <div className="adminImagePreview"><img src={imageUrl} alt="Advertisement preview" /><button type="button" onClick={() => setImageUrl("")}>Remove image</button></div>}
@@ -144,7 +144,7 @@ export function AdvertisementPanel() {
         <div>
           <span className="adminStatus">{ad.active ? "active" : "inactive"} · {ad.placement}</span>
           <h3>{ad.name}</h3>
-          <p>{ad.advertiser || "No advertiser name"} · {ad.ends_at ? "Ends " + new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(ad.ends_at)) : "No end date"}</p>
+          <p>{ad.advertiser || "No advertiser name"} · {ad.target_url ? "Link: Yes" : "Link: No"} · {ad.ends_at ? "Ends " + new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(ad.ends_at)) : "No end date"}</p>
         </div>
         <div className="adminActions">
           <button type="button" onClick={() => editAd(ad)}>Edit</button>
