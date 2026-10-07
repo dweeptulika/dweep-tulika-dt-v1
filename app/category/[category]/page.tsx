@@ -18,7 +18,7 @@ export default async function Category({ params }: { params: Promise<{ category:
   const { category } = await params;
   const label = aliases[category] || category.replaceAll("-", " ");
   const articles = await getAllPublishedArticles();
-  const items = articles.filter((article) => article.category.toLowerCase() === label.toLowerCase());
+  const items = articles.filter((article) => (article.categories || [article.category]).some((item) => item.toLowerCase() === label.toLowerCase()));
 
   return (
     <main className="container">
