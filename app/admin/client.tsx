@@ -43,6 +43,9 @@ export default function AdminPage() {
   const [scheduledFor, setScheduledFor] = useState(""); const [publicationDate, setPublicationDate] = useState(""); const [status, setStatus] = useState<ArticleStatus>("draft");
   const [originalPublishedAt, setOriginalPublishedAt] = useState<string | null>(null);
   const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false); const [uploading, setUploading] = useState(false); const [legacyLoadError, setLegacyLoadError] = useState(false);
+  const [libraryQuery, setLibraryQuery] = useState("");
+  const [libraryCategory, setLibraryCategory] = useState("All categories");
+  const [libraryStatus, setLibraryStatus] = useState("All statuses");
   const sortedArticles = useMemo(() => [...articles].sort((a, b) => Date.parse(b.updated_at || b.published_at || "") - Date.parse(a.updated_at || a.published_at || "")), [articles]);
   const availableLegacyArticles = useMemo(() => legacyArticles.filter((legacy: any) => !articles.some(a => a.public_path === legacy.publicPath)).sort((a: any, b: any) => Date.parse(b.updatedAt || b.publishedAt || "") - Date.parse(a.updatedAt || a.publishedAt || "")), [legacyArticles, articles]);
   const filteredArticles = useMemo(() => {
