@@ -288,3 +288,4 @@ export function pageFromSlug(slug: string) {
 export function allLabels() {
   return [...new Set(liveArticles.flatMap((a) => a.labels))].filter(Boolean).sort((a, b) => a.localeCompare(b));
 }
+

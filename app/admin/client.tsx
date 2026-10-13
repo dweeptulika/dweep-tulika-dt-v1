@@ -197,6 +197,24 @@ export default function AdminPage() {
     const { data: slugMatch } = await supabase.from("articles").select("id").eq("slug", normalizedSlug).maybeSingle();
     if (slugMatch && slugMatch.id !== editingId) { setMessage("That URL slug is already in use. Choose a different slug."); setBusy(false); return; }
 
+    let existingArticle: { id: string; slug: string; public_path: string | null; status: ArticleStatus; published_at: string | null } | null = null;
+    if (editingId) {
+      const { data } = await supabase
+        .from("articles")
+        .select("id,slug,public_path,status,published_at")
+        .eq("id", editingId)
+        .maybeSingle();
+      if (data) {
+        existingArticle = {
+          id: data.id,
+          slug: data.slug,
+          public_path: data.public_path,
+          status: data.status as ArticleStatus,
+          published_at: data.published_at,
+        };
+      }
+    }
+
     const scheduledAt = requestedStatus === "scheduled" ? new Date(scheduledFor).toISOString() : null;
     const publishedAt = requestedStatus === "scheduled"
       ? scheduledAt
@@ -204,12 +222,19 @@ export default function AdminPage() {
         ? (publicationDate ? new Date(publicationDate).toISOString() : (originalPublishedAt || new Date().toISOString()))
         : originalPublishedAt;
 
+    const targetStatus = requestedStatus === "scheduled" ? "published" : requestedStatus;
+    const targetPublicPath = targetStatus === "published" && publishedAt
+      ? `/\${new Date(publishedAt).getUTCFullYear()}/\${String(new Date(publishedAt).getUTCMonth() + 1).padStart(2, "0")}/\${normalizedSlug}.html`
+      : (existingArticle?.public_path || null);
+    const oldPublicPath = existingArticle?.public_path || null;
+    const publicPathChanged = Boolean(editingId && oldPublicPath && targetPublicPath && oldPublicPath !== targetPublicPath);
+
     const payload = {
       title: title.trim(), slug: normalizedSlug, category, author: author.trim() || "Dweep Tulika", excerpt: excerpt.trim(),
       body_html: body, featured_image: featuredImage || null, seo_title: seoTitle.trim() || null,
       meta_description: metaDescription.trim() || excerpt.trim() || null, social_image: socialImage || null,
-      status: requestedStatus === "scheduled" ? "published" : requestedStatus, scheduled_for: scheduledAt,
-      published_at: publishedAt,
+      status: targetStatus, scheduled_for: scheduledAt,
+      published_at: publishedAt, public_path: targetPublicPath,
       updated_by: user.id,
     };
     const query = editingId
@@ -219,8 +244,28 @@ export default function AdminPage() {
     if (error) setMessage(error.message);
     else {
       const { data: saved } = await supabase.from("articles").select("id").eq("slug", normalizedSlug).maybeSingle();
-      if (saved?.id) await syncArticleCategories(saved.id, selectedCategories);
-      setMessage(requestedStatus === "published" ? "Article published successfully." : requestedStatus === "scheduled" ? "Article scheduled successfully." : "Draft saved successfully."); resetEditor(); await loadArticles(); }
+      if (saved?.id) {
+        await syncArticleCategories(saved.id, selectedCategories);
+        if (publicPathChanged && oldPublicPath && targetPublicPath) {
+          await supabase
+            .from("article_redirects")
+            .update({ new_path: targetPublicPath, updated_at: new Date().toISOString() })
+            .eq("new_path", oldPublicPath);
+          const { error: redirectError } = await supabase
+            .from("article_redirects")
+            .upsert({ old_path: oldPublicPath, article_id: saved.id, new_path: targetPublicPath, status_code: 301, updated_at: new Date().toISOString() }, { onConflict: "old_path" });
+          if (redirectError) {
+            setMessage("Article saved, but the old URL redirect could not be recorded: " + redirectError.message);
+            setBusy(false);
+            await loadArticles();
+            return;
+          }
+        }
+      }
+      const redirectNote = publicPathChanged ? " Old URL now permanently redirects to the new URL." : "";
+      setMessage((requestedStatus === "published" ? "Article published successfully." : requestedStatus === "scheduled" ? "Article scheduled successfully." : "Draft saved successfully.") + redirectNote);
+      resetEditor(); await loadArticles();
+    }
     setBusy(false);
   }
 

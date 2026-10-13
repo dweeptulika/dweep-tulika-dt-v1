@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { createClient as createPublicSupabaseClient } from "@supabase/supabase-js";
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -35,6 +36,26 @@ export async function proxy(request: NextRequest) {
   const user = claimsData?.claims;
 
   const pathname = request.nextUrl.pathname;
+
+  // Public article URL redirects are resolved before the article page.
+  // This intentionally returns HTTP 301, not Next.js permanentRedirect (308).
+  const articlePathMatch = pathname.match(/^\/\d{4}\/\d{2}\/[^/]+\.html$/);
+  if (articlePathMatch) {
+    const redirectSupabase = createPublicSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
+    );
+    const { data: redirect } = await redirectSupabase
+      .from("article_redirects")
+      .select("new_path,status_code")
+      .eq("old_path", pathname.replace(/\/+$/, ""))
+      .maybeSingle();
+    if (redirect?.status_code === 301 && redirect.new_path && redirect.new_path !== pathname) {
+      const target = new URL(redirect.new_path, request.url);
+      return NextResponse.redirect(target, 301);
+    }
+  }
   const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
   const isPublicAdminRoute =
     pathname === "/admin/login" || pathname === "/admin/logout";
@@ -65,5 +86,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/:year/:month/:slug.html"],
 };
