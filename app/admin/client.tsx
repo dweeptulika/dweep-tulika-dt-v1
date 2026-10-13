@@ -224,7 +224,7 @@ export default function AdminPage() {
 
     const targetStatus = requestedStatus === "scheduled" ? "published" : requestedStatus;
     const targetPublicPath = targetStatus === "published" && publishedAt
-      ? `/${new Date(publishedAt).getUTCFullYear()}/${String(new Date(publishedAt).getUTCMonth() + 1).padStart(2, "0")}/\${normalizedSlug}.html`
+      ? `/${new Date(publishedAt).getUTCFullYear()}/${String(new Date(publishedAt).getUTCMonth() + 1).padStart(2, "0")}/${normalizedSlug}.html`
       : (existingArticle?.public_path || null);
     const oldPublicPath = existingArticle?.public_path || null;
     const publicPathChanged = Boolean(editingId && oldPublicPath && targetPublicPath && oldPublicPath !== targetPublicPath);
