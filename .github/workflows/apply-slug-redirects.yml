@@ -1,0 +1,36 @@
+name: Apply slug redirects integration
+
+on:
+  push:
+    branches:
+      - feature/slug-redirects-2026-10-08
+
+permissions:
+  contents: write
+
+jobs:
+  apply-slug-redirects:
+    if: github.ref == 'refs/heads/feature/slug-redirects-2026-10-08'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/slug-redirects-2026-10-08
+          persist-credentials: true
+
+      - name: Apply the reviewed patch and commit only the intended files
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's/\\`/`/g' scripts/slug-redirects.patch
+          git apply --check scripts/slug-redirects.patch
+          git apply scripts/slug-redirects.patch
+          rm scripts/slug-redirects.patch
+          rm .github/workflows/apply-slug-redirects.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add proxy.ts lib/data.ts app/admin/client.tsx supabase/schema.sql supabase/migrations/20261008_slug_redirects.sql
+          git add -u .github/workflows/apply-slug-redirects.yml scripts/slug-redirects.patch
+          git commit -m "Add published article slug redirects"
+          git push origin HEAD:feature/slug-redirects-2026-10-08
