@@ -106,11 +106,50 @@ create index if not exists article_redirects_new_path_idx
 
 alter table public.article_redirects enable row level security;
 grant select on public.article_redirects to anon, authenticated;
-grant insert, update, delete on public.article_redirects to authenticated;
+revoke insert, update, delete on public.article_redirects from anon, authenticated, public;
 drop policy if exists "public can read article redirects" on public.article_redirects;
 create policy "public can read article redirects" on public.article_redirects for select to anon, authenticated using (true);
 drop policy if exists "editors can manage article redirects" on public.article_redirects;
-create policy "editors can manage article redirects" on public.article_redirects for all to authenticated using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor','admin'))) with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor','admin')));
+
+create or replace function public.maintain_article_redirects()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, public, pg_temp
+as $function$
+begin
+  if old.public_path is distinct from new.public_path
+     and old.public_path is not null
+     and new.public_path is not null then
+    delete from public.article_redirects
+    where old_path = new.public_path;
+
+    update public.article_redirects
+    set new_path = new.public_path,
+        updated_at = now()
+    where new_path = old.public_path
+      and old_path <> new.public_path;
+
+    insert into public.article_redirects
+      (old_path, article_id, new_path, status_code, updated_at)
+    values
+      (old.public_path, new.id, new.public_path, 301, now())
+    on conflict (old_path) do update
+      set article_id = excluded.article_id,
+          new_path = excluded.new_path,
+          status_code = 301,
+          updated_at = now();
+  end if;
+  return new;
+end;
+$function$;
+
+drop trigger if exists articles_record_public_path_redirect on public.articles;
+create trigger articles_record_public_path_redirect
+after update of public_path on public.articles
+for each row
+when (old.public_path is distinct from new.public_path)
+execute function public.maintain_article_redirects();
 
 create table if not exists public.media (
   id uuid primary key default gen_random_uuid(),
