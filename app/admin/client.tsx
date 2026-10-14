@@ -223,8 +223,25 @@ export default function AdminPage() {
         : originalPublishedAt;
 
     const targetStatus = requestedStatus === "scheduled" ? "published" : requestedStatus;
-    const targetPublicPath = targetStatus === "published" && publishedAt
+    const computedPublicPath = targetStatus === "published" && publishedAt
       ? `/${new Date(publishedAt).getUTCFullYear()}/${String(new Date(publishedAt).getUTCMonth() + 1).padStart(2, "0")}/${normalizedSlug}.html`
+      : null;
+    const existingPathDate = existingArticle?.published_at ? new Date(existingArticle.published_at) : null;
+    const targetPathDate = publishedAt ? new Date(publishedAt) : null;
+    const publicPathIdentityChanged = Boolean(
+      existingArticle && (
+        existingArticle.slug !== normalizedSlug ||
+        (existingPathDate && targetPathDate &&
+          (existingPathDate.getUTCFullYear() !== targetPathDate.getUTCFullYear() ||
+            existingPathDate.getUTCMonth() !== targetPathDate.getUTCMonth()))
+      )
+    );
+    // Preserve custom and legacy public paths on ordinary edits. Recompute only
+    // when a new article is published or the slug / URL month changes.
+    const targetPublicPath = computedPublicPath
+      ? (existingArticle?.public_path && !publicPathIdentityChanged
+          ? existingArticle.public_path
+          : computedPublicPath)
       : (existingArticle?.public_path || null);
     const oldPublicPath = existingArticle?.public_path || null;
     const publicPathChanged = Boolean(editingId && oldPublicPath && targetPublicPath && oldPublicPath !== targetPublicPath);
