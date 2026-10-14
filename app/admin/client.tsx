@@ -263,21 +263,6 @@ export default function AdminPage() {
       const { data: saved } = await supabase.from("articles").select("id").eq("slug", normalizedSlug).maybeSingle();
       if (saved?.id) {
         await syncArticleCategories(saved.id, selectedCategories);
-        if (publicPathChanged && oldPublicPath && targetPublicPath) {
-          await supabase
-            .from("article_redirects")
-            .update({ new_path: targetPublicPath, updated_at: new Date().toISOString() })
-            .eq("new_path", oldPublicPath);
-          const { error: redirectError } = await supabase
-            .from("article_redirects")
-            .upsert({ old_path: oldPublicPath, article_id: saved.id, new_path: targetPublicPath, status_code: 301, updated_at: new Date().toISOString() }, { onConflict: "old_path" });
-          if (redirectError) {
-            setMessage("Article saved, but the old URL redirect could not be recorded: " + redirectError.message);
-            setBusy(false);
-            await loadArticles();
-            return;
-          }
-        }
       }
       const redirectNote = publicPathChanged ? " Old URL now permanently redirects to the new URL." : "";
       setMessage((requestedStatus === "published" ? "Article published successfully." : requestedStatus === "scheduled" ? "Article scheduled successfully." : "Draft saved successfully.") + redirectNote);
