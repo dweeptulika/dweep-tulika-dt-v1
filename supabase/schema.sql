@@ -332,3 +332,7 @@ drop trigger if exists advertisements_touch_updated_at on public.advertisements;
 create trigger advertisements_touch_updated_at
 before update on public.advertisements
 for each row execute function public.touch_updated_at();
+
+
+-- Trigger-only function: prevent direct invocation by API roles.
+revoke execute on function public.maintain_article_redirects() from PUBLIC, anon, authenticated;
