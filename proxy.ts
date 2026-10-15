@@ -20,9 +20,23 @@ export async function proxy(request: NextRequest) {
       .eq("old_path", pathname.replace(/\/+$/, ""))
       .maybeSingle();
 
-    if (redirect?.status_code === 301 && redirect.new_path && redirect.new_path !== pathname) {
-      const target = new URL(redirect.new_path, request.url);
-      return NextResponse.redirect(target, 301);
+    // Only redirect to a local, canonical article path. Do not allow absolute
+    // URLs, protocol-relative URLs, encoded paths, or arbitrary destinations.
+    const isSafeArticlePath =
+      typeof redirect?.new_path === "string" &&
+      redirect.new_path.startsWith("/") &&
+      !redirect.new_path.startsWith("//") &&
+      /^\/[0-9]{4}\/[0-9]{2}\/[A-Za-z0-9._~-]+\.html$/.test(redirect.new_path);
+
+    if (
+      redirect?.status_code === 301 &&
+      isSafeArticlePath &&
+      redirect.new_path !== pathname
+    ) {
+      const target = new URL(redirect.new_path, request.nextUrl.origin);
+      if (target.origin === request.nextUrl.origin) {
+        return NextResponse.redirect(target, 301);
+      }
     }
 
     // Public article requests need no Admin auth lookup.
