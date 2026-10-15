@@ -86,6 +86,71 @@ update public.articles set source = 'newsroom' where source is null;
 update public.articles set public_path = '/' || to_char(published_at at time zone 'UTC','YYYY') || '/' || to_char(published_at at time zone 'UTC','MM') || '/' || slug || '.html'
 where public_path is null and published_at is not null;
 
+
+
+create table if not exists public.article_redirects (
+  old_path text primary key,
+  article_id uuid not null references public.articles(id) on delete cascade,
+  new_path text not null,
+  status_code integer not null default 301 check (status_code = 301),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (old_path <> new_path)
+);
+
+create index if not exists article_redirects_article_idx
+  on public.article_redirects(article_id);
+
+create index if not exists article_redirects_new_path_idx
+  on public.article_redirects(new_path);
+
+alter table public.article_redirects enable row level security;
+grant select on public.article_redirects to anon, authenticated;
+revoke insert, update, delete on public.article_redirects from anon, authenticated, public;
+drop policy if exists "public can read article redirects" on public.article_redirects;
+create policy "public can read article redirects" on public.article_redirects for select to anon, authenticated using (true);
+drop policy if exists "editors can manage article redirects" on public.article_redirects;
+
+create or replace function public.maintain_article_redirects()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, public, pg_temp
+as $function$
+begin
+  if old.public_path is distinct from new.public_path
+     and old.public_path is not null
+     and new.public_path is not null then
+    delete from public.article_redirects
+    where old_path = new.public_path;
+
+    update public.article_redirects
+    set new_path = new.public_path,
+        updated_at = now()
+    where new_path = old.public_path
+      and old_path <> new.public_path;
+
+    insert into public.article_redirects
+      (old_path, article_id, new_path, status_code, updated_at)
+    values
+      (old.public_path, new.id, new.public_path, 301, now())
+    on conflict (old_path) do update
+      set article_id = excluded.article_id,
+          new_path = excluded.new_path,
+          status_code = 301,
+          updated_at = now();
+  end if;
+  return new;
+end;
+$function$;
+
+drop trigger if exists articles_record_public_path_redirect on public.articles;
+create trigger articles_record_public_path_redirect
+after update of public_path on public.articles
+for each row
+when (old.public_path is distinct from new.public_path)
+execute function public.maintain_article_redirects();
+
 create table if not exists public.media (
   id uuid primary key default gen_random_uuid(),
   file_path text not null unique,
@@ -267,3 +332,7 @@ drop trigger if exists advertisements_touch_updated_at on public.advertisements;
 create trigger advertisements_touch_updated_at
 before update on public.advertisements
 for each row execute function public.touch_updated_at();
+
+
+-- Trigger-only function: prevent direct invocation by API roles.
+revoke execute on function public.maintain_article_redirects() from PUBLIC, anon, authenticated;
