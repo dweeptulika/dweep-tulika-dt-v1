@@ -19,8 +19,10 @@ create index if not exists article_redirects_new_path_idx
 
 alter table public.article_redirects enable row level security;
 
+-- Public clients only need to look up redirects. The SECURITY DEFINER trigger
+-- maintains redirect rows; API roles must not write to this table directly.
 grant select on public.article_redirects to anon, authenticated;
-grant insert, update, delete on public.article_redirects to authenticated;
+revoke insert, update, delete on public.article_redirects from anon, authenticated, public;
 
 drop policy if exists "public can read article redirects"
   on public.article_redirects;
@@ -28,9 +30,3 @@ create policy "public can read article redirects"
   on public.article_redirects for select
   to anon, authenticated
   using (true);
-
-drop policy if exists "editors can manage article redirects"
-  on public.article_redirects;
-create policy "editors can manage article redirects"
-  on public.article_redirects for all
-  to authenticated
