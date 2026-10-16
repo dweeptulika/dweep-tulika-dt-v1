@@ -9,7 +9,7 @@ const OFFICIAL_LOGO_URL =
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  icons: { icon: [{ url: OFFICIAL_LOGO_URL }] },
+  icons: { icon: [{ url: "/favicon-white.png", type: "image/png" }] },
   title: {
     default: "Dweep Tulika — A Truthful & Unbiased Perspective",
     template: "%s | Dweep Tulika",
