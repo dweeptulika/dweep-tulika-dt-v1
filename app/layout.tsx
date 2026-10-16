@@ -6,6 +6,7 @@ import { SITE_URL, websiteJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  icons: { icon: [{ url: "/favicon.svg", type: "image/svg+xml" }] },
   title: {
     default: "Dweep Tulika — A Truthful & Unbiased Perspective",
     template: "%s | Dweep Tulika",
