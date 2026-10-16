@@ -2,7 +2,7 @@ import sanitizeHtml from "sanitize-html";
 
 const allowedTags = [
   "address","article","aside","blockquote","br","caption","code","dd","div","dl","dt",
-  "em","figcaption","figure","footer","h1","h2","h3","h4","h5","h6","header","hr",
+  "a","em","figcaption","figure","footer","h1","h2","h3","h4","h5","h6","header","hr",
   "i","img","li","main","ol","p","pre","section","small","span","strong","sub","sup",
   "table","tbody","td","tfoot","th","thead","tr","u","ul"
 ];
@@ -18,6 +18,13 @@ export function sanitizeArticleHtml(html: string): string {
     allowedSchemes: ["http", "https", "mailto"],
     allowedSchemesByTag: {
       img: ["http", "https"]
+    },
+    allowedStyles: {
+      p: { "text-align": [/^(left|right|center|justify)$/] },
+      div: { "text-align": [/^(left|right|center|justify)$/] },
+      h2: { "text-align": [/^(left|right|center|justify)$/] },
+      h3: { "text-align": [/^(left|right|center|justify)$/] },
+      figure: { "text-align": [/^(left|right|center|justify)$/] }
     },
     allowProtocolRelative: false,
     disallowedTagsMode: "discard"
