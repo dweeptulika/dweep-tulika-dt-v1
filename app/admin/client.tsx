@@ -179,6 +179,34 @@ export default function AdminPage() {
     setUploading(false); event.target.value = "";
   }
 
+  async function uploadInlineImage(file: File): Promise<{ url: string; alt: string } | null> {
+    setUploading(true);
+    setMessage("");
+    try {
+      const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const safeBase = makeSlug(file.name.replace(/\.[^.]+$/, "")) || "inline-image";
+      const path = "articles/inline-" + Date.now() + "-" + safeBase + "." + extension;
+      const { error: uploadError } = await supabase.storage.from("news-media").upload(path, file, { cacheControl: "31536000", upsert: false });
+      if (uploadError) {
+        setMessage("Inline image upload failed: " + uploadError.message);
+        return null;
+      }
+      const { data: publicData } = supabase.storage.from("news-media").getPublicUrl(path);
+      const { data: userData } = await supabase.auth.getUser();
+      const alt = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() || title || "Article image";
+      const { error: mediaError } = await supabase.from("media").insert({
+        file_path: path, public_url: publicData.publicUrl, alt_text: alt, caption: alt,
+        uploaded_by: userData.user?.id ?? null,
+      });
+      if (mediaError) {
+        setMessage("Image uploaded, but the media-library record failed: " + mediaError.message);
+      }
+      return { url: publicData.publicUrl, alt };
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function syncArticleCategories(articleId: string, names: string[]) {
     const clean = [...new Set(names.length ? names : [category])];
     await supabase.from("article_categories").delete().eq("article_id", articleId);
@@ -352,7 +380,7 @@ export default function AdminPage() {
           {featuredImage && <div className="adminImagePreview"><img src={featuredImage} alt="Selected featured image" /><button type="button" onClick={() => setFeaturedImage("")}>Remove featured image</button></div>}
           {socialImage && <div className="adminImagePreview"><img src={socialImage} alt="Selected social image" /><button type="button" onClick={() => setSocialImage("")}>Remove social image</button></div>}
           <label>Article body
-            <RichTextEditor value={body} onChange={setBody} />
+            <RichTextEditor key={editingId || "new-article"} value={body} onChange={setBody} onUploadImage={uploadInlineImage} />
           </label>
           <div className="adminFormGrid">
             <label>Publication date &amp; time<input type="datetime-local" value={publicationDate} onChange={e => setPublicationDate(e.target.value)} /><small>Use this to preserve or set the original publication date for backdated stories.</small></label>
