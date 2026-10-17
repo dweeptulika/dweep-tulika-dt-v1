@@ -74,3 +74,10 @@ html{overflow-x:hidden}body{overflow-x:hidden}.masthead{background:#111;padding:
 .richEditorSurface figure.dt-image-wrap-left+*,.richEditorSurface figure.dt-image-wrap-right+*{min-width:0}
 .articlebody:after{content:"";display:block;clear:both}
 @media(max-width:600px){.richEditorSurface figure.dt-image-wrap-left,.richEditorSurface figure.dt-image-wrap-right,.articlebody figure.dt-image-wrap-left,.articlebody figure.dt-image-wrap-right{float:none;width:min(100%,420px);max-width:100%;margin:18px auto;text-align:center}}
+
+
+/* Correct block-image right alignment and prevent native image drag/caret artefacts */
+.richEditorSurface figure.dt-image-align-left img,.articlebody figure.dt-image-align-left img{margin-left:0!important;margin-right:auto!important}
+.richEditorSurface figure.dt-image-align-right img,.articlebody figure.dt-image-align-right img{margin-left:auto!important;margin-right:0!important}
+.richEditorSurface img{user-select:none;-webkit-user-drag:none}
+.richToolbar button:disabled{opacity:.4;cursor:not-allowed;background:#eee;color:#777}
