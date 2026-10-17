@@ -84,7 +84,11 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const image = target.closest("img");
-    if (image && editorRef.current?.contains(image)) selectedImageRef.current = image as HTMLImageElement;
+    if (image && editorRef.current?.contains(image)) {
+      editorRef.current.querySelectorAll("img.dt-image-selected").forEach((node) => node.classList.remove("dt-image-selected"));
+      image.classList.add("dt-image-selected");
+      selectedImageRef.current = image as HTMLImageElement;
+    }
   }
 
   function preventImageCaretJump(event: MouseEvent<HTMLDivElement>) {
@@ -112,8 +116,9 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       image.replaceWith(figure);
       figure.appendChild(image);
     }
-    figure.classList.remove("dt-image-align-left", "dt-image-align-center", "dt-image-align-right", "dt-image-align-full");
+    figure.classList.remove("dt-image-align-left", "dt-image-align-center", "dt-image-align-right", "dt-image-align-full", "dt-image-wrap-left", "dt-image-wrap-right");
     figure.classList.add(`dt-image-align-${alignment}`);
+    image.classList.add("dt-image-selected");
     onChange(editor.innerHTML);
   }
 
@@ -182,6 +187,25 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     document.execCommand("insertHTML", false, imageHtml + "<p><br></p>");
     selectedImageRef.current = null;
     saveSelection();
+    onChange(editor.innerHTML);
+  }
+
+  function wrapSelectedImage(side: "left" | "right") {
+    const image = selectedImageRef.current;
+    const editor = editorRef.current;
+    if (!image || !editor?.contains(image)) {
+      window.alert("Click the image you want to wrap text around first.");
+      return;
+    }
+    let figure = image.closest("figure");
+    if (!figure) {
+      figure = document.createElement("figure");
+      image.replaceWith(figure);
+      figure.appendChild(image);
+    }
+    figure.classList.remove("dt-image-align-left", "dt-image-align-center", "dt-image-align-right", "dt-image-align-full", "dt-image-wrap-left", "dt-image-wrap-right");
+    figure.classList.add(`dt-image-wrap-${side}`);
+    image.classList.add("dt-image-selected");
     onChange(editor.innerHTML);
   }
 
@@ -276,6 +300,8 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         <button type="button" title="Centre selected image" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => alignSelectedImage("center")}>Image centre</button>
         <button type="button" title="Align selected image right" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => alignSelectedImage("right")}>Image right</button>
         <button type="button" title="Make selected image full width" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => alignSelectedImage("full")}>Image full width</button>
+        <button type="button" title="Float image left and wrap text around it" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => wrapSelectedImage("left")}>Wrap left</button>
+        <button type="button" title="Float image right and wrap text around it" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => wrapSelectedImage("right")}>Wrap right</button>
         <button type="button" title="Remove selected image" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={removeSelectedImage}>Remove image</button>
         <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(event) => void insertImage(event)} aria-label="Choose inline image" />
       </div>
@@ -286,7 +312,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         onMouseDown={preventImageCaretJump}
         onClick={rememberClickedImage}
         data-placeholder="Write your article here. Place the cursor to insert a table or image." />
-      <p className="richEditorHint">Select text to format it. Insert a table at the cursor, then type in its cells. To add an image inside a cell, click in that cell and choose Insert image. Click an image to edit its alternative text or caption, move it, align it left/centre/right or full width, or remove it. Save and reopen a test draft to verify the final layout.</p>
+      <p className="richEditorHint">Select text to format it. Insert a table at the cursor, then type in its cells. To add an image inside a cell, click in that cell and choose Insert image. Click an image to select it, edit its alternative text or caption, move it, align it left/centre/right or full width, wrap text around it, or remove it. Save and reopen a test draft to verify the final layout.</p>
     </div>
   );
 }
