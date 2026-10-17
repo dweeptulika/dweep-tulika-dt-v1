@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useRef } from "react";
+import { ChangeEvent, MouseEvent, useEffect, useRef } from "react";
 
 type Props = {
   value: string;
@@ -80,7 +80,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     if (url && /^https?:\/\//i.test(url.trim())) run("createLink", url.trim());
   }
 
-  function rememberClickedImage(event: React.MouseEvent<HTMLDivElement>) {
+  function rememberClickedImage(event: MouseEvent<HTMLDivElement>) {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const image = target.closest("img");
