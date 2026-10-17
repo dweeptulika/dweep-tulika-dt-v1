@@ -156,6 +156,45 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     onChange(editor.innerHTML);
   }
 
+  function insertTable() {
+    const editor = editorRef.current;
+    const range = savedRange.current;
+    if (!editor || !range || !editor.contains(range.startContainer) || !editor.contains(range.endContainer)) {
+      window.alert("Click inside the article where you want the table, then choose Insert table.");
+      return;
+    }
+
+    const rowInput = window.prompt("How many rows? (1–20)", "3");
+    if (rowInput === null) return;
+    const rows = Number(rowInput);
+    if (!Number.isInteger(rows) || rows < 1 || rows > 20) {
+      window.alert("Enter a whole number of rows between 1 and 20.");
+      return;
+    }
+
+    const columnInput = window.prompt("How many columns? (1–10)", "3");
+    if (columnInput === null) return;
+    const columns = Number(columnInput);
+    if (!Number.isInteger(columns) || columns < 1 || columns > 10) {
+      window.alert("Enter a whole number of columns between 1 and 10.");
+      return;
+    }
+
+    if (!restoreSelection()) {
+      window.alert("Click inside the article again to set the table position, then retry.");
+      return;
+    }
+    const cellHtml = "<p><br></p>";
+    const rowsHtml = Array.from({ length: rows }, (_, rowIndex) => {
+      const cellTag = rowIndex === 0 ? "th" : "td";
+      const cells = Array.from({ length: columns }, () => `<${cellTag}>${cellHtml}</${cellTag}>`).join("");
+      return `<tr>${cells}</tr>`;
+    }).join("");
+    document.execCommand("insertHTML", false, `<table><tbody>${rowsHtml}</tbody></table><p><br></p>`);
+    saveSelection();
+    onChange(editor.innerHTML);
+  }
+
   async function insertImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -200,7 +239,8 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
           >{tool.label}</button>
         ))}
         <button type="button" title="Insert link" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={addLink}>Link</button>
-        <button type="button" title="Insert image at cursor" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => imageInputRef.current?.click()}>Insert image</button>
+        <button type="button" title="Insert an editable table at the cursor" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={insertTable}>Insert table</button>
+        <button type="button" title="Insert image at cursor or inside a table cell" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => imageInputRef.current?.click()}>Insert image</button>
         <button type="button" title="Edit selected image alternative text and caption" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={editImageDetails}>Image details</button>
         <button type="button" title="Move selected image to the current cursor position" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={moveSelectedImageToCursor}>Move image</button>
         <button type="button" title="Remove selected image" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={removeSelectedImage}>Remove image</button>
@@ -211,8 +251,8 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         onInput={(event) => onChange(event.currentTarget.innerHTML)}
         onKeyUp={saveSelection} onMouseUp={saveSelection} onBlur={saveSelection}
         onClick={rememberClickedImage}
-        data-placeholder="Write your article here. Place the cursor where you want to insert an image." />
-      <p className="richEditorHint">Select text to format it. Place the cursor before inserting an image. Click an image to edit its alternative text or caption, move it, or remove it. Save and reopen a test draft to verify the final layout.</p>
+        data-placeholder="Write your article here. Place the cursor to insert a table or image." />
+      <p className="richEditorHint">Select text to format it. Insert a table at the cursor, then type in its cells. To add an image inside a cell, click in that cell and choose Insert image. Click an image to edit its alternative text or caption, move it, or remove it. Save and reopen a test draft to verify the final layout.</p>
     </div>
   );
 }
