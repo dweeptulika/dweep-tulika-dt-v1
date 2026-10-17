@@ -21,6 +21,8 @@ type PendingMove = { node: JSONContent };
 export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const pendingMoveRef = useRef<PendingMove | null>(null);
+  // Prevent a parent echo of editor HTML from resetting ProseMirror after a click/selection.
+  const lastEmittedHtmlRef = useRef<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(false);
   const [moveMode, setMoveMode] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -43,8 +45,19 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         "aria-multiline": "true",
         spellcheck: "true",
       },
+      // Explicitly select the figure on click. Relying on browser/node drag defaults
+      // made image selection inconsistent and hid the contextual image tools.
+      handleClickOn: (view, _pos, node, nodePos) => {
+        if (node.type.name !== "imageFigure") return false;
+        view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, nodePos)));
+        return true;
+      },
     },
-    onUpdate: ({ editor: current }) => onChange(current.getHTML()),
+    onUpdate: ({ editor: current }) => {
+      const html = current.getHTML();
+      lastEmittedHtmlRef.current = html;
+      onChange(html);
+    },
     onSelectionUpdate: ({ editor: current }) => {
       const selection = current.state.selection;
       setSelectedImage(selection instanceof NodeSelection && selection.node.type.name === "imageFigure");
@@ -55,7 +68,16 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   });
 
   useEffect(() => {
-    if (editor && value !== editor.getHTML()) {
+    if (!editor) return;
+
+    // onChange updates the parent value. Ignore that exact echo: calling setContent
+    // for the editor's own HTML can replace the document and clear the selected image.
+    if (lastEmittedHtmlRef.current !== null && value === lastEmittedHtmlRef.current) {
+      lastEmittedHtmlRef.current = null;
+      return;
+    }
+
+    if (value !== editor.getHTML()) {
       editor.commands.setContent(value || "", { emitUpdate: false });
     }
   }, [editor, value]);
@@ -214,19 +236,19 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         <button type="button" title="Insert a table at the cursor" onMouseDown={toolbarMouseDown} onClick={insertTable}>Insert table</button>
         <button type="button" title="Insert image at the cursor" disabled={uploading} onMouseDown={toolbarMouseDown} onClick={() => imageInputRef.current?.click()}>{uploading ? "Uploading…" : "Insert image"}</button>
         <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(event) => void insertImage(event)} aria-label="Choose inline image" />
-        {selectedImage && <>
+        <>
           <span className="richToolbarDivider" aria-hidden="true" />
-          <span className="richToolbarLabel">Selected image</span>
-          <button type="button" title="Edit image alternative text and caption" onMouseDown={toolbarMouseDown} onClick={editImageDetails}>Image details</button>
-          <button type="button" title="Align image left" onMouseDown={toolbarMouseDown} onClick={() => applyImageAlign("left")}>Image left</button>
-          <button type="button" title="Centre image" onMouseDown={toolbarMouseDown} onClick={() => applyImageAlign("center")}>Image centre</button>
-          <button type="button" title="Align image right" onMouseDown={toolbarMouseDown} onClick={() => applyImageAlign("right")}>Image right</button>
-          <button type="button" title="Make image full width" onMouseDown={toolbarMouseDown} onClick={() => applyImageAlign("full")}>Full width</button>
-          <button type="button" title="Wrap text to the left of image" onMouseDown={toolbarMouseDown} onClick={() => applyImageWrap("left")}>Wrap left</button>
-          <button type="button" title="Wrap text to the right of image" onMouseDown={toolbarMouseDown} onClick={() => applyImageWrap("right")}>Wrap right</button>
-          <button type="button" title="Move image to another cursor position" onMouseDown={toolbarMouseDown} onClick={startMoveSelectedImage}>Move image</button>
-          <button type="button" title="Remove selected image" onMouseDown={toolbarMouseDown} onClick={removeSelectedImage}>Remove image</button>
-        </>}
+          <span className="richToolbarLabel">{selectedImage ? "Selected image" : "Image tools (select an image)"}</span>
+          <button type="button" title="Edit image alternative text and caption" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={editImageDetails}>Image details</button>
+          <button type="button" title="Align image left" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={() => applyImageAlign("left")}>Image left</button>
+          <button type="button" title="Centre image" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={() => applyImageAlign("center")}>Image centre</button>
+          <button type="button" title="Align image right" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={() => applyImageAlign("right")}>Image right</button>
+          <button type="button" title="Make image full width" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={() => applyImageAlign("full")}>Full width</button>
+          <button type="button" title="Wrap text to the left of image" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={() => applyImageWrap("left")}>Wrap left</button>
+          <button type="button" title="Wrap text to the right of image" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={() => applyImageWrap("right")}>Wrap right</button>
+          <button type="button" title="Move image to another cursor position" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={startMoveSelectedImage}>Move image</button>
+          <button type="button" title="Remove selected image" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={removeSelectedImage}>Remove image</button>
+        </>
         {moveMode && <button type="button" title="Cancel image move and restore image" onMouseDown={toolbarMouseDown} onClick={cancelMove}>Cancel move</button>}
       </div>
       {moveMode && <p className="richEditorMoveNotice" role="status">Move mode: click the position in the article where the image should be placed. The image will be inserted there. <button type="button" onMouseDown={toolbarMouseDown} onClick={cancelMove}>Cancel</button></p>}
