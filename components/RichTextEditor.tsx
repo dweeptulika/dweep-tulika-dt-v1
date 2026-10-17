@@ -84,8 +84,37 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const image = target.closest("img");
-    // Keep the last selected image while the editor moves the cursor to a new position.
     if (image && editorRef.current?.contains(image)) selectedImageRef.current = image as HTMLImageElement;
+  }
+
+  function preventImageCaretJump(event: MouseEvent<HTMLDivElement>) {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const image = target.closest("img");
+    if (image && editorRef.current?.contains(image)) {
+      // Browsers can move the contentEditable caret into the following paragraph
+      // when an image is clicked. Keep the cursor and adjacent punctuation stable.
+      event.preventDefault();
+      selectedImageRef.current = image as HTMLImageElement;
+    }
+  }
+
+  function alignSelectedImage(alignment: "left" | "center" | "right" | "full") {
+    const image = selectedImageRef.current;
+    const editor = editorRef.current;
+    if (!image || !editor?.contains(image)) {
+      window.alert("Click the image you want to align first.");
+      return;
+    }
+    let figure = image.closest("figure");
+    if (!figure) {
+      figure = document.createElement("figure");
+      image.replaceWith(figure);
+      figure.appendChild(image);
+    }
+    figure.classList.remove("dt-image-align-left", "dt-image-align-center", "dt-image-align-right", "dt-image-align-full");
+    figure.classList.add(`dt-image-align-${alignment}`);
+    onChange(editor.innerHTML);
   }
 
   function editImageDetails() {
@@ -243,6 +272,10 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         <button type="button" title="Insert image at cursor or inside a table cell" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => imageInputRef.current?.click()}>Insert image</button>
         <button type="button" title="Edit selected image alternative text and caption" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={editImageDetails}>Image details</button>
         <button type="button" title="Move selected image to the current cursor position" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={moveSelectedImageToCursor}>Move image</button>
+        <button type="button" title="Align selected image left" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => alignSelectedImage("left")}>Image left</button>
+        <button type="button" title="Centre selected image" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => alignSelectedImage("center")}>Image centre</button>
+        <button type="button" title="Align selected image right" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => alignSelectedImage("right")}>Image right</button>
+        <button type="button" title="Make selected image full width" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => alignSelectedImage("full")}>Image full width</button>
         <button type="button" title="Remove selected image" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={removeSelectedImage}>Remove image</button>
         <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(event) => void insertImage(event)} aria-label="Choose inline image" />
       </div>
@@ -250,9 +283,10 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         role="textbox" aria-label="Article body" aria-multiline="true"
         onInput={(event) => onChange(event.currentTarget.innerHTML)}
         onKeyUp={saveSelection} onMouseUp={saveSelection} onBlur={saveSelection}
+        onMouseDown={preventImageCaretJump}
         onClick={rememberClickedImage}
         data-placeholder="Write your article here. Place the cursor to insert a table or image." />
-      <p className="richEditorHint">Select text to format it. Insert a table at the cursor, then type in its cells. To add an image inside a cell, click in that cell and choose Insert image. Click an image to edit its alternative text or caption, move it, or remove it. Save and reopen a test draft to verify the final layout.</p>
+      <p className="richEditorHint">Select text to format it. Insert a table at the cursor, then type in its cells. To add an image inside a cell, click in that cell and choose Insert image. Click an image to edit its alternative text or caption, move it, align it left/centre/right or full width, or remove it. Save and reopen a test draft to verify the final layout.</p>
     </div>
   );
 }
