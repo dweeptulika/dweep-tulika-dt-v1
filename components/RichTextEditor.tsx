@@ -160,6 +160,12 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file || uploadingImage.current) return;
+    const editor = editorRef.current;
+    const range = savedRange.current;
+    if (!editor || !range || !editor.contains(range.startContainer) || !editor.contains(range.endContainer)) {
+      window.alert("Click inside the article at the exact position for the image, then choose Insert image.");
+      return;
+    }
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       window.alert("Choose a JPEG, PNG, or WebP image.");
       return;
