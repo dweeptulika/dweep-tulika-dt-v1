@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, MouseEvent, PointerEvent, useEffect, useRef } from "react";
+import { ChangeEvent, MouseEvent, PointerEvent, useEffect, useRef, useState } from "react";
 
 type Props = {
   value: string;
@@ -31,6 +31,42 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   const savedRange = useRef<Range | null>(null);
   const selectedImageRef = useRef<HTMLImageElement | null>(null);
   const uploadingImage = useRef(false);
+  const historyRef = useRef<string[]>([]);
+  const historyIndexRef = useRef(-1);
+  const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
+
+  function updateHistoryState() {
+    setHistoryState({ canUndo: historyIndexRef.current > 0, canRedo: historyIndexRef.current >= 0 && historyIndexRef.current < historyRef.current.length - 1 });
+  }
+
+  function recordHistory(html: string) {
+    const history = historyRef.current;
+    const index = historyIndexRef.current;
+    if (index >= 0 && history[index] === html) return;
+    historyRef.current = history.slice(0, index + 1).concat(html);
+    historyIndexRef.current = historyRef.current.length - 1;
+    updateHistoryState();
+  }
+
+  function commitEditorChange() {
+    const editor = editorRef.current;
+    if (!editor) return;
+    recordHistory(editor.innerHTML);
+    onChange(editor.innerHTML);
+  }
+
+  function restoreHistory(direction: "undo" | "redo") {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const nextIndex = historyIndexRef.current + (direction === "undo" ? -1 : 1);
+    if (nextIndex < 0 || nextIndex >= historyRef.current.length) return;
+    historyIndexRef.current = nextIndex;
+    editor.innerHTML = historyRef.current[nextIndex];
+    selectedImageRef.current = null;
+    savedRange.current = null;
+    updateHistoryState();
+    onChange(editor.innerHTML);
+  }
 
   useEffect(() => {
     const el = editorRef.current;
@@ -39,6 +75,13 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       el.innerHTML = value || "";
       selectedImageRef.current = null;
       savedRange.current = null;
+      historyRef.current = [el.innerHTML];
+      historyIndexRef.current = 0;
+      updateHistoryState();
+    } else if (el && historyIndexRef.current === -1) {
+      historyRef.current = [el.innerHTML];
+      historyIndexRef.current = 0;
+      updateHistoryState();
     }
   }, [value]);
 
@@ -101,6 +144,8 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     // Handle selection on mousedown, before contentEditable's native caret placement.
     // preventDefault can suppress the later click event, so selection must happen here.
     event.preventDefault();
+    event.stopPropagation();
+    (image as HTMLImageElement).draggable = false;
     editor.querySelectorAll("img.dt-image-selected").forEach((node) => node.classList.remove("dt-image-selected"));
     image.classList.add("dt-image-selected");
     selectedImageRef.current = image as HTMLImageElement;
@@ -122,7 +167,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     figure.classList.remove("dt-image-align-left", "dt-image-align-center", "dt-image-align-right", "dt-image-align-full", "dt-image-wrap-left", "dt-image-wrap-right");
     figure.classList.add(`dt-image-align-${alignment}`);
     image.classList.add("dt-image-selected");
-    onChange(editor.innerHTML);
+    commitEditorChange();
   }
 
   function editImageDetails() {
@@ -163,7 +208,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     if (figure) figure.remove();
     else image.remove();
     selectedImageRef.current = null;
-    onChange(editorRef.current.innerHTML);
+    commitEditorChange();
   }
 
   function moveSelectedImageToCursor() {
@@ -179,18 +224,22 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       return;
     }
     const figure = image.closest("figure");
-    const imageHtml = figure ? figure.outerHTML : image.outerHTML;
-    if (range.startContainer === figure || (figure && figure.contains(range.startContainer))) {
+    const movingNode: HTMLElement = figure || image;
+    if (range.startContainer === movingNode || movingNode.contains(range.startContainer)) {
       window.alert("Choose a different position outside the selected image.");
       return;
     }
-    if (figure) figure.remove();
-    else image.remove();
-    restoreSelection();
-    document.execCommand("insertHTML", false, imageHtml + "<p><br></p>");
-    selectedImageRef.current = null;
+    const targetRange = range.cloneRange();
+    targetRange.collapse(false);
+    const marker = document.createElement("span");
+    marker.setAttribute("data-dt-move-target", "true");
+    targetRange.insertNode(marker);
+    movingNode.remove();
+    marker.replaceWith(movingNode);
+    selectedImageRef.current = image;
+    image.classList.add("dt-image-selected");
     saveSelection();
-    onChange(editor.innerHTML);
+    commitEditorChange();
   }
 
   function wrapSelectedImage(side: "left" | "right") {
@@ -209,7 +258,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     figure.classList.remove("dt-image-align-left", "dt-image-align-center", "dt-image-align-right", "dt-image-align-full", "dt-image-wrap-left", "dt-image-wrap-right");
     figure.classList.add(`dt-image-wrap-${side}`);
     image.classList.add("dt-image-selected");
-    onChange(editor.innerHTML);
+    commitEditorChange();
   }
 
   function insertTable() {
@@ -288,6 +337,8 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   return (
     <div className="richEditor">
       <div className="richToolbar" role="toolbar" aria-label="Article formatting">
+        <button type="button" title="Undo last editor change" disabled={!historyState.canUndo} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => restoreHistory("undo")}>Undo</button>
+        <button type="button" title="Redo editor change" disabled={!historyState.canRedo} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => restoreHistory("redo")}>Redo</button>
         {tools.map((tool) => (
           <button key={tool.title} type="button" title={tool.title}
             onMouseDown={(event) => { event.preventDefault(); saveSelection(); }}
@@ -310,7 +361,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       </div>
       <div ref={editorRef} className="richEditorSurface" contentEditable suppressContentEditableWarning
         role="textbox" aria-label="Article body" aria-multiline="true"
-        onInput={(event) => onChange(event.currentTarget.innerHTML)}
+        onInput={(event) => { recordHistory(event.currentTarget.innerHTML); onChange(event.currentTarget.innerHTML); }}
         onKeyUp={saveSelection} onMouseUp={saveSelection} onBlur={saveSelection}
         onPointerDown={preventImageCaretJump}
         onClick={rememberClickedImage}
