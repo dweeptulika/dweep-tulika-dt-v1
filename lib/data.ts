@@ -182,7 +182,7 @@ export async function getActiveAdvertisements(placement: Advertisement["placemen
   if (error || !data) return [];
   return data.map((ad) => ({ id: ad.id, name: ad.name, advertiser: ad.advertiser, imageUrl: ad.image_url, targetUrl: ad.target_url, placement: ad.placement }));
 }
-async function getDeletedArticlePaths(): Promise<Set<string>> {
+export async function getDeletedArticlePaths(): Promise<Set<string>> {
   const supabase = publicSupabase();
   if (!supabase) return new Set();
   const { data, error } = await supabase
@@ -221,7 +221,7 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
   return (data as DbArticle[]).map(mapDbArticle);
 }
 
-function normalizePublicPath(value: string) {
+export function normalizePublicPath(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return "";
   try {
