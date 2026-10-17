@@ -6,7 +6,14 @@ import { SITE_URL, websiteJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  icons: { icon: [{ url: "/favicon-white.png", type: "image/png" }] },
+  icons: {
+    icon: [
+      { url: "/favicon-white.png?v=2", type: "image/png", sizes: "512x512" },
+      { url: "/favicon-white.png?v=2", type: "image/png", sizes: "any" },
+    ],
+    shortcut: ["/favicon-white.png?v=2"],
+    apple: [{ url: "/favicon-white.png?v=2", sizes: "180x180", type: "image/png" }],
+  },
   title: {
     default: "Dweep Tulika — A Truthful & Unbiased Perspective",
     template: "%s | Dweep Tulika",
