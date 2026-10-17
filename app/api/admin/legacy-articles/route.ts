@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { liveArticles, articleImage, articleSlug, canonicalCategory } from "@/lib/data";
+import { liveArticles, articleImage, articleSlug, canonicalCategory, getDeletedArticlePaths, normalizePublicPath } from "@/lib/data";
 
 export async function GET() {
   const supabase = await createClient();
@@ -20,6 +20,7 @@ export async function GET() {
 
   // Keep the admin list response small. Full article HTML is still included
   // because the existing Adopt & Edit flow needs it immediately.
+  const deletedPaths = await getDeletedArticlePaths();
   const stories = liveArticles
     .map((article) => ({
       id: String(article.id),
@@ -35,6 +36,7 @@ export async function GET() {
       updatedAt: article.updated || article.published,
       labels: article.labels,
     }))
+    .filter((article) => !deletedPaths.has(normalizePublicPath(article.publicPath)))
     .sort((a, b) => Date.parse(b.updatedAt || b.publishedAt) - Date.parse(a.updatedAt || a.publishedAt))
 ;
 
