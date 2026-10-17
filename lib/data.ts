@@ -67,6 +67,7 @@ type DbArticle = {
   featured_image: string | null;
   published_at: string;
   updated_at: string;
+  deleted_at?: string | null;
   seo_title: string | null;
   meta_description: string | null;
   social_image: string | null;
@@ -181,12 +182,37 @@ export async function getActiveAdvertisements(placement: Advertisement["placemen
   if (error || !data) return [];
   return data.map((ad) => ({ id: ad.id, name: ad.name, advertiser: ad.advertiser, imageUrl: ad.image_url, targetUrl: ad.target_url, placement: ad.placement }));
 }
+async function getDeletedArticlePaths(): Promise<Set<string>> {
+  const supabase = publicSupabase();
+  if (!supabase) return new Set();
+  const { data, error } = await supabase
+    .from("articles")
+    .select("slug,public_path,legacy_url,published_at")
+    .not("deleted_at", "is", null);
+  if (error || !data) return new Set();
+  const paths = new Set<string>();
+  for (const article of data) {
+    if (article.public_path) paths.add(normalizePublicPath(article.public_path));
+    if (article.legacy_url) paths.add(normalizePublicPath(article.legacy_url));
+    if (article.published_at && article.slug) {
+      const date = new Date(article.published_at);
+      paths.add(normalizePublicPath(`/${date.getUTCFullYear()}/${String(date.getUTCMonth() + 1).padStart(2, "0")}/${article.slug}.html`));
+    }
+  }
+  return paths;
+}
+
+export async function isDeletedArticlePath(path: string): Promise<boolean> {
+  return (await getDeletedArticlePaths()).has(normalizePublicPath(path));
+}
+
 export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> {
   const supabase = publicSupabase();
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("articles")
     .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,article_categories(categories(name))")
+    .is("deleted_at", null)
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
@@ -221,10 +247,12 @@ export async function getAllPublishedArticles(): Promise<PublishedStory[]> {
   for (const article of newsroomByPath.values()) {
     adoptedPaths.add(normalizePublicPath(article.url));
   }
+  const deletedPaths = await getDeletedArticlePaths();
 
   const blogger = liveArticles
     .map(mapLegacyArticle)
-    .filter((article) => !adoptedPaths.has(normalizePublicPath(article.url)));
+    .filter((article) => !adoptedPaths.has(normalizePublicPath(article.url)))
+    .filter((article) => !deletedPaths.has(normalizePublicPath(article.url)));
 
   return [...newsroomByPath.values(), ...blogger]
     .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
@@ -236,19 +264,21 @@ export async function getPublishedNewsroomArticleByPath(year: string, month: str
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("articles")
-    .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
+    .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,deleted_at")
     .eq("slug", normalizedSlug)
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
     .maybeSingle();
-  if (error || !data) return null;
+  if (error || !data || data.deleted_at) return null;
   const article = mapDbArticle(data as DbArticle);
   if (article.url !== `/${year}/${month}/${normalizedSlug}.html`) return null;
   return article;
 }
 
 export async function findArticleByPath(year: string, month: string, slug: string): Promise<PublishedStory | null> {
+  const requestedPath = `/${year}/${month}/${slug.replace(/\\.html$/, "")}.html`;
+  if (await isDeletedArticlePath(requestedPath)) return null;
   const newsroom = await getPublishedNewsroomArticleByPath(year, month, slug);
   if (newsroom) return newsroom;
   const legacy = articleFromPath(year, month, slug);
