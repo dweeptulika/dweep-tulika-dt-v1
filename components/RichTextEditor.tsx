@@ -115,7 +115,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     restoreSelection();
     document.execCommand(command, false, commandValue);
     saveSelection();
-    onChange(el.innerHTML);
+    commitEditorChange();
   }
 
   function addLink() {
@@ -195,7 +195,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     } else {
       currentCaption?.remove();
     }
-    onChange(editorRef.current.innerHTML);
+    commitEditorChange();
   }
 
   function removeSelectedImage() {
@@ -297,7 +297,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     }).join("");
     document.execCommand("insertHTML", false, `<table><tbody>${rowsHtml}</tbody></table><p><br></p>`);
     saveSelection();
-    onChange(editor.innerHTML);
+    commitEditorChange();
   }
 
   async function insertImage(event: ChangeEvent<HTMLInputElement>) {
