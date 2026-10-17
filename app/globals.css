@@ -31,3 +31,165 @@ html{overflow-x:hidden}body{overflow-x:hidden}.masthead{background:#111;padding:
 
 
 .adSlot{margin:24px 0}.adLabel{display:inline-block;margin-bottom:6px;padding:4px 8px;background:#111;color:#fff;font:800 9px Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase}.adSlot>a{display:block}.adSlot img{display:block;width:100%;height:auto}.adSlot small{display:block;margin-top:6px;font:11px Arial;color:#6b665e}
+/* Inline newsroom images */
+.richEditorSurface figure{margin:24px auto;text-align:center;max-width:100%}
+.richEditorSurface figure img{display:block;width:auto;max-width:100%;max-height:650px;height:auto;margin:0 auto;object-fit:contain}
+.richEditorSurface figcaption{margin-top:8px;color:#6b665e;font:italic 13px/1.5 Arial,sans-serif;text-align:center}
+.articlebody figure{margin:28px auto;max-width:100%;text-align:center}
+.articlebody figure img{margin:0 auto;max-height:650px}
+.articlebody figcaption{margin-top:8px;color:#6b665e;font:italic 13px/1.5 Arial,sans-serif;text-align:center}
+
+/* Editable newsroom tables and tables in published articles */
+.richEditorSurface table,.articlebody table{width:100%;border-collapse:collapse;margin:1.25em 0;table-layout:auto}
+.richEditorSurface table{max-width:100%;overflow-x:auto}
+.richEditorSurface th,.richEditorSurface td,.articlebody th,.articlebody td{border:1px solid #9c958a;padding:10px 12px;vertical-align:top;text-align:left;min-width:80px}
+.richEditorSurface th,.articlebody th{background:#b51e2a;color:#fff;font-weight:700}
+.richEditorSurface td p,.richEditorSurface th p{margin:0 0 .5em}
+.richEditorSurface td img,.richEditorSurface th img{max-width:100%;height:auto}
+.richEditorSurface td figure,.richEditorSurface th figure{margin:8px auto}
+@media(max-width:600px){.richEditorSurface th,.richEditorSurface td,.articlebody th,.articlebody td{padding:7px;min-width:72px}}
+
+/* Explicit alignment controls for inline newsroom images */
+.richEditorSurface figure.dt-image-align-left{text-align:left;margin-left:0;margin-right:auto}
+.richEditorSurface figure.dt-image-align-center{text-align:center;margin-left:auto;margin-right:auto}
+.richEditorSurface figure.dt-image-align-right{text-align:right;margin-left:auto;margin-right:0}
+.richEditorSurface figure.dt-image-align-full{width:100%;max-width:100%;text-align:center}
+.richEditorSurface figure.dt-image-align-left img,.richEditorSurface figure.dt-image-align-right img{margin-left:0;margin-right:0}
+.richEditorSurface figure.dt-image-align-center img{margin-left:auto;margin-right:auto}
+.richEditorSurface figure.dt-image-align-full img{width:100%;max-width:100%;max-height:none}
+.articlebody figure.dt-image-align-left{text-align:left;margin-left:0;margin-right:auto}
+.articlebody figure.dt-image-align-center{text-align:center;margin-left:auto;margin-right:auto}
+.articlebody figure.dt-image-align-right{text-align:right;margin-left:auto;margin-right:0}
+.articlebody figure.dt-image-align-full{width:100%;max-width:100%;text-align:center}
+.articlebody figure.dt-image-align-left img,.articlebody figure.dt-image-align-right img{margin-left:0;margin-right:0}
+.articlebody figure.dt-image-align-center img{margin-left:auto;margin-right:auto}
+.articlebody figure.dt-image-align-full img{width:100%;max-width:100%;max-height:none}
+
+/* Visible newsroom image selection and text wrapping */
+.richEditorSurface img.dt-image-selected{outline:3px solid #b51e2a;outline-offset:3px;cursor:move}
+.richEditorSurface figure.dt-image-wrap-left,.articlebody figure.dt-image-wrap-left{float:left;width:42%;max-width:42%;margin:6px 22px 14px 0;text-align:left}
+.richEditorSurface figure.dt-image-wrap-right,.articlebody figure.dt-image-wrap-right{float:right;width:42%;max-width:42%;margin:6px 0 14px 22px;text-align:right}
+.richEditorSurface figure.dt-image-wrap-left img,.richEditorSurface figure.dt-image-wrap-right img,.articlebody figure.dt-image-wrap-left img,.articlebody figure.dt-image-wrap-right img{display:block;width:100%;max-width:100%;max-height:none;height:auto;margin:0}
+.richEditorSurface figure.dt-image-wrap-left figcaption,.richEditorSurface figure.dt-image-wrap-right figcaption,.articlebody figure.dt-image-wrap-left figcaption,.articlebody figure.dt-image-wrap-right figcaption{font-size:12px;text-align:inherit}
+.richEditorSurface figure.dt-image-wrap-left+*,.richEditorSurface figure.dt-image-wrap-right+*{min-width:0}
+.articlebody:after{content:"";display:block;clear:both}
+@media(max-width:600px){.richEditorSurface figure.dt-image-wrap-left,.richEditorSurface figure.dt-image-wrap-right,.articlebody figure.dt-image-wrap-left,.articlebody figure.dt-image-wrap-right{float:none;width:min(100%,420px);max-width:100%;margin:18px auto;text-align:center}}
+
+
+/* Correct block-image right alignment and prevent native image drag/caret artefacts */
+.richEditorSurface figure.dt-image-align-left img,.articlebody figure.dt-image-align-left img{margin-left:0!important;margin-right:auto!important}
+.richEditorSurface figure.dt-image-align-right img,.articlebody figure.dt-image-align-right img{margin-left:auto!important;margin-right:0!important}
+.richEditorSurface img{user-select:none;-webkit-user-drag:none}
+.richToolbar button:disabled{opacity:.4;cursor:not-allowed;background:#eee;color:#777}
+
+/* Structured Tiptap/ProseMirror newsroom editor */
+.richEditorLoading{min-height:380px;padding:24px;color:#625c54;font:14px/1.6 Arial,sans-serif}
+.richToolbarDivider{display:inline-block;align-self:stretch;width:1px;margin:2px 4px;background:#cfc8bc}
+.richToolbarLabel{display:inline-flex;align-items:center;padding:0 6px;color:#b51e2a;font:800 10px Arial,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.richToolbar button[aria-pressed="true"]{background:#b51e2a;color:#fff;border-color:#b51e2a}
+.richToolbar button:disabled{opacity:.45;cursor:not-allowed}
+.richEditorSurface .ProseMirror{min-height:380px;padding:18px;outline:none;font:16px/1.7 Arial,sans-serif;color:#171717;overflow-wrap:anywhere}
+.richEditorSurface .ProseMirror p{margin:0 0 1em}
+.richEditorSurface .ProseMirror h2{font:700 25px/1.25 Georgia,serif;margin:1.2em 0 .55em}
+.richEditorSurface .ProseMirror h3{font:700 21px/1.3 Georgia,serif;margin:1.1em 0 .5em}
+.richEditorSurface .ProseMirror blockquote{margin:1em 0;padding:10px 16px;border-left:4px solid #b51e2a;background:#f7f3ea}
+.richEditorSurface .ProseMirror table{width:100%;border-collapse:collapse;table-layout:auto}
+.richEditorSurface .ProseMirror th,.richEditorSurface .ProseMirror td{border:1px solid #9c958a;padding:10px 12px;vertical-align:top;min-width:70px}
+.richEditorSurface .ProseMirror th{background:#b51e2a;color:#fff}
+.richEditorSurface .ProseMirror p.is-editor-empty:first-child:before{float:left;height:0;content:attr(data-placeholder);color:#888;pointer-events:none}
+.richEditorSurface figure.dt-news-image{position:relative;max-width:100%;cursor:grab;user-select:none}
+.richEditorSurface figure.dt-news-image:active{cursor:grabbing}
+.richEditorSurface figure.dt-news-image-selected{outline:3px solid #b51e2a;outline-offset:4px;border-radius:1px}
+.richEditorSurface figure.dt-news-image img{pointer-events:auto}
+.richEditorSurface figure.dt-news-image figcaption{margin-top:8px;color:#6b665e;font:italic 13px/1.5 Arial,sans-serif;text-align:center}
+.richEditorMoveNotice{margin:0;padding:10px 14px;background:#fff3e7;border-left:4px solid #b51e2a;color:#5d3026;font:13px/1.5 Arial,sans-serif}
+.richEditorMoveNotice button{margin-left:8px;padding:5px 10px;border:1px solid #111;background:#fff;color:#111;font:700 11px Arial,sans-serif;cursor:pointer}
+@media(max-width:600px){.richEditorSurface .ProseMirror{min-height:320px;padding:12px}.richToolbarLabel{padding:0 3px}.richEditorSurface .ProseMirror th,.richEditorSurface .ProseMirror td{padding:7px;min-width:62px}}
+
+/* Tiptap newsroom editor: structured document and selectable image nodes */
+.richEditorSurface .ProseMirror{min-height:380px;padding:18px;outline:none;font:16px/1.7 Arial,sans-serif;color:#171717;overflow-wrap:anywhere}
+.richEditorSurface .ProseMirror:focus{outline:none}
+.richEditorSurface .ProseMirror p{margin:0 0 1em}
+.richEditorSurface .ProseMirror h2{font:700 25px/1.25 Georgia,serif;margin:1.2em 0 .55em}
+.richEditorSurface .ProseMirror h3{font:700 21px/1.3 Georgia,serif;margin:1.1em 0 .5em}
+.richEditorSurface .ProseMirror blockquote{margin:1em 0;padding:10px 16px;border-left:4px solid #b51e2a;background:#f7f3ea}
+.richEditorSurface .ProseMirror table{width:100%;border-collapse:collapse;table-layout:auto}
+.richEditorSurface .ProseMirror th,.richEditorSurface .ProseMirror td{border:1px solid #9c958a;padding:10px 12px;vertical-align:top;min-width:70px}
+.richEditorSurface .ProseMirror th{background:#b51e2a;color:#fff}
+.richEditorSurface .ProseMirror p.is-editor-empty:first-child:before{float:left;height:0;content:attr(data-placeholder);color:#888;pointer-events:none}
+.richEditorSurface figure.dt-news-image{position:relative;max-width:100%;cursor:grab;user-select:none}
+.richEditorSurface figure.dt-news-image:active{cursor:grabbing}
+.richEditorSurface figure.dt-news-image-selected{outline:3px solid #b51e2a;outline-offset:4px;border-radius:1px}
+.richEditorSurface figure.dt-news-image img{display:block;width:auto;max-width:100%;max-height:650px;height:auto;margin:0 auto;object-fit:contain;pointer-events:auto}
+.richEditorSurface figure.dt-news-image figcaption{margin-top:8px;color:#6b665e;font:italic 13px/1.5 Arial,sans-serif;text-align:center}
+.richEditorSurface figure.dt-news-image.dt-image-align-left{margin-left:0;margin-right:auto;text-align:left}
+.richEditorSurface figure.dt-news-image.dt-image-align-center{margin-left:auto;margin-right:auto;text-align:center}
+.richEditorSurface figure.dt-news-image.dt-image-align-right{margin-left:auto;margin-right:0;text-align:right}
+.richEditorSurface figure.dt-news-image.dt-image-align-left img{margin-left:0;margin-right:auto}
+.richEditorSurface figure.dt-news-image.dt-image-align-right img{margin-left:auto;margin-right:0}
+.richEditorSurface figure.dt-news-image.dt-image-align-full{width:100%;max-width:100%;text-align:center}
+.richEditorSurface figure.dt-news-image.dt-image-align-full img{width:100%;max-width:100%;max-height:none}
+.richEditorMoveNotice{margin:0;padding:10px 14px;background:#fff3e7;border-left:4px solid #b51e2a;color:#5d3026;font:13px/1.5 Arial,sans-serif}
+.richEditorMoveNotice button{margin-left:8px;padding:5px 10px;border:1px solid #111;background:#fff;color:#111;font:700 11px Arial,sans-serif;cursor:pointer}
+.richToolbarDivider{display:inline-block;align-self:stretch;width:1px;margin:2px 4px;background:#cfc8bc}
+.richToolbarLabel{display:inline-flex;align-items:center;padding:0 6px;color:#b51e2a;font:800 10px Arial,sans-serif;text-transform:uppercase;letter-spacing:.06em}
+.richToolbar button[aria-pressed="true"]{background:#b51e2a;color:#fff;border-color:#b51e2a}
+.richToolbar button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:600px){.richEditorSurface .ProseMirror{min-height:320px;padding:12px}.richToolbarLabel{padding:0 3px}.richEditorSurface .ProseMirror th,.richEditorSurface .ProseMirror td{padding:7px;min-width:62px}}
+
+/* Final newsroom editor selection + wrap corrections: native ProseMirror node selection. */
+.richEditorSurface .ProseMirror figure.dt-news-image.ProseMirror-selectednode,
+.richEditorSurface .ProseMirror figure.dt-news-image.ProseMirror-selectednode:hover {
+  outline: 3px solid #b51e2a;
+  outline-offset: 4px;
+  border-radius: 1px;
+}
+.richEditorSurface .ProseMirror figure.dt-image-wrap-left {
+  float: left !important;
+  display: block;
+  width: 42% !important;
+  max-width: 42% !important;
+  margin: 6px 22px 14px 0 !important;
+  text-align: left;
+}
+.richEditorSurface .ProseMirror figure.dt-image-wrap-right {
+  float: right !important;
+  display: block;
+  width: 42% !important;
+  max-width: 42% !important;
+  margin: 6px 0 14px 22px !important;
+  text-align: right;
+}
+.richEditorSurface .ProseMirror figure.dt-image-wrap-left img,
+.richEditorSurface .ProseMirror figure.dt-image-wrap-right img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  height: auto;
+  margin: 0;
+}
+.richEditorSurface .ProseMirror figure.dt-news-image::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+@media (max-width: 600px) {
+  .richEditorSurface .ProseMirror figure.dt-image-wrap-left,
+  .richEditorSurface .ProseMirror figure.dt-image-wrap-right {
+    float: none !important;
+    width: min(100%, 420px) !important;
+    max-width: 100% !important;
+    margin: 18px auto !important;
+  }
+}
+
+
+/* Image sizing controls for the Tiptap newsroom editor. */
+.richEditorSurface .ProseMirror figure.dt-news-image.dt-image-size-small img { width: 25%; max-width: 100%; }
+.richEditorSurface .ProseMirror figure.dt-news-image.dt-image-size-medium img { width: 50%; max-width: 100%; }
+.richEditorSurface .ProseMirror figure.dt-news-image.dt-image-size-large img { width: 75%; max-width: 100%; }
+.richEditorSurface .ProseMirror figure.dt-news-image.dt-image-size-full img { width: 100%; max-width: 100%; max-height: none; }
+.richEditorSurface .ProseMirror figure.dt-news-image.dt-image-align-full img { width: 100%; max-width: 100%; max-height: none; }
+.richEditorSurface .ProseMirror figure.dt-news-image.dt-image-wrap-left img,
+.richEditorSurface .ProseMirror figure.dt-news-image.dt-image-wrap-right img { width: 100%; max-width: 100%; }
