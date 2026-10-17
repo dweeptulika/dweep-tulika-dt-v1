@@ -7,12 +7,9 @@ import { SITE_URL, websiteJsonLd } from "@/lib/seo";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   icons: {
-    icon: [
-      { url: "/favicon-white.png?v=2", type: "image/png", sizes: "512x512" },
-      { url: "/favicon-white.png?v=2", type: "image/png", sizes: "any" },
-    ],
-    shortcut: ["/favicon-white.png?v=2"],
-    apple: [{ url: "/favicon-white.png?v=2", sizes: "180x180", type: "image/png" }],
+    icon: [{ url: "/dweep-tulika-favicon.svg?v=1", type: "image/svg+xml" }],
+    shortcut: ["/dweep-tulika-favicon.svg?v=1"],
+    apple: [{ url: "/dweep-tulika-favicon.svg?v=1", type: "image/svg+xml" }],
   },
   title: {
     default: "Dweep Tulika — A Truthful & Unbiased Perspective",
