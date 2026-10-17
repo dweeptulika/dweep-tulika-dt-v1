@@ -64,3 +64,13 @@ html{overflow-x:hidden}body{overflow-x:hidden}.masthead{background:#111;padding:
 .articlebody figure.dt-image-align-left img,.articlebody figure.dt-image-align-right img{margin-left:0;margin-right:0}
 .articlebody figure.dt-image-align-center img{margin-left:auto;margin-right:auto}
 .articlebody figure.dt-image-align-full img{width:100%;max-width:100%;max-height:none}
+
+/* Visible newsroom image selection and text wrapping */
+.richEditorSurface img.dt-image-selected{outline:3px solid #b51e2a;outline-offset:3px;cursor:move}
+.richEditorSurface figure.dt-image-wrap-left,.articlebody figure.dt-image-wrap-left{float:left;width:42%;max-width:42%;margin:6px 22px 14px 0;text-align:left}
+.richEditorSurface figure.dt-image-wrap-right,.articlebody figure.dt-image-wrap-right{float:right;width:42%;max-width:42%;margin:6px 0 14px 22px;text-align:right}
+.richEditorSurface figure.dt-image-wrap-left img,.richEditorSurface figure.dt-image-wrap-right img,.articlebody figure.dt-image-wrap-left img,.articlebody figure.dt-image-wrap-right img{display:block;width:100%;max-width:100%;max-height:none;height:auto;margin:0}
+.richEditorSurface figure.dt-image-wrap-left figcaption,.richEditorSurface figure.dt-image-wrap-right figcaption,.articlebody figure.dt-image-wrap-left figcaption,.articlebody figure.dt-image-wrap-right figcaption{font-size:12px;text-align:inherit}
+.richEditorSurface figure.dt-image-wrap-left+*,.richEditorSurface figure.dt-image-wrap-right+*{min-width:0}
+.articlebody:after{content:"";display:block;clear:both}
+@media(max-width:600px){.richEditorSurface figure.dt-image-wrap-left,.richEditorSurface figure.dt-image-wrap-right,.articlebody figure.dt-image-wrap-left,.articlebody figure.dt-image-wrap-right{float:none;width:min(100%,420px);max-width:100%;margin:18px auto;text-align:center}}
