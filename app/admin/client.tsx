@@ -121,6 +121,7 @@ export default function AdminPage() {
   async function loadArticles() {
     const { data } = await supabase.from("articles")
       .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
+      .is("deleted_at", null)
       .order("updated_at", { ascending: false });
     if (data) setArticles(data as ArticleRow[]);
     const { data: categoryData } = await supabase.from("categories").select("id,name,description").order("name");
@@ -177,6 +178,31 @@ export default function AdminPage() {
     }
     setMessage("Editing saved newsroom article.");
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function deleteArticle(article: ArticleRow) {
+    if (busy) return;
+    const confirmed = window.confirm(
+      `Remove "${article.title}" from the newsroom and public website? The article record and redirect history will be retained for recovery. This action will hide the article from public pages.`
+    );
+    if (!confirmed) return;
+
+    setBusy(true);
+    const { error } = await supabase
+      .from("articles")
+      .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("id", article.id)
+      .is("deleted_at", null);
+
+    if (error) {
+      setMessage(`Could not delete article: ${error.message}`);
+    } else {
+      setArticles(rows => rows.filter(row => row.id !== article.id));
+      if (editingId === article.id) resetEditor();
+      setMessage("Article moved out of the newsroom. Its record and redirects have been retained for recovery.");
+      await loadArticles();
+    }
+    setBusy(false);
   }
 
   async function uploadImage(event: ChangeEvent<HTMLInputElement>, kind: "featured" | "social") {
@@ -487,7 +513,7 @@ export default function AdminPage() {
           {pagedArticles.map(article => (
             <article className="adminStoryRow" key={article.id}>
               <div><span className="adminStatus">{article.status}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(article.published_at || article.updated_at))}</p></div>
-              <button type="button" onClick={() => editArticle(article)}>Edit</button>
+              <div className="adminStoryActions"><button type="button" disabled={busy} onClick={() => void editArticle(article)}>Edit</button><button type="button" disabled={busy} onClick={() => void deleteArticle(article)}>Delete</button></div>
             </article>
           ))}
           {filteredLegacyArticles.map((legacy: LegacyArticle) => (
