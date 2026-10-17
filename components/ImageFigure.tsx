@@ -9,6 +9,7 @@ type ImageFigureAttributes = {
   caption: string;
   alignment: "left" | "center" | "right" | "full" | null;
   wrap: "left" | "right" | null;
+  size: "small" | "medium" | "large" | "full";
 };
 
 function readFigure(element: HTMLElement): ImageFigureAttributes | false {
@@ -22,6 +23,10 @@ function readFigure(element: HTMLElement): ImageFigureAttributes | false {
   const wrap = classes.contains("dt-image-wrap-left") ? "left"
     : classes.contains("dt-image-wrap-right") ? "right"
     : null;
+  const size = classes.contains("dt-image-size-small") ? "small"
+    : classes.contains("dt-image-size-large") ? "large"
+    : classes.contains("dt-image-size-full") ? "full"
+    : "medium";
   return {
     src: image.getAttribute("src"),
     alt: image.getAttribute("alt") || "",
@@ -29,6 +34,7 @@ function readFigure(element: HTMLElement): ImageFigureAttributes | false {
     caption: element.querySelector("figcaption")?.textContent || image.getAttribute("data-caption") || "",
     alignment,
     wrap,
+    size,
   };
 }
 
@@ -53,6 +59,7 @@ export const ImageFigure = Node.create({
       caption: { default: "", ...hidden },
       alignment: { default: "center", ...hidden },
       wrap: { default: null, ...hidden },
+      size: { default: "medium", ...hidden },
     };
   },
 
@@ -74,9 +81,10 @@ export const ImageFigure = Node.create({
       loading: "lazy",
     };
     if (attrs.title) imageAttrs.title = attrs.title;
+    const sizeClass = `dt-image-size-${attrs.size || "medium"}`;
     const children: any[] = [["img", imageAttrs]];
     if (attrs.caption) children.push(["figcaption", {}, attrs.caption]);
-    return ["figure", { class: `dt-news-image ${modeClass}` }, ...children];
+    return ["figure", { class: `dt-news-image ${modeClass} ${sizeClass}` }, ...children];
   },
 });
 
