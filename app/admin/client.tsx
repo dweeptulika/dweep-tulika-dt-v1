@@ -27,7 +27,7 @@ type LegacyArticle = {
 };
 
 type ArticleCategoryLink = {
-  categories: { name: string } | null;
+  categories: { name: string }[] | null;
   is_primary: boolean;
 };
 
@@ -175,7 +175,10 @@ export default function AdminPage() {
     setOriginalPublishedAt(article.published_at);
     setStatus(article.scheduled_for && new Date(article.scheduled_for).getTime() > Date.now() ? "scheduled" : article.status);
     const { data: categoryRows } = await supabase.from("article_categories").select("categories(name),is_primary").eq("article_id", article.id);
-    if (categoryRows?.length) setSelectedCategories((categoryRows as ArticleCategoryLink[]).map((row) => row.categories?.name).filter(Boolean));
+    if (categoryRows?.length) {
+      const linkedCategories = categoryRows as unknown as ArticleCategoryLink[];
+      setSelectedCategories(linkedCategories.map((row) => row.categories?.[0]?.name).filter((name): name is string => Boolean(name)));
+    }
     setMessage("Editing saved newsroom article.");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
