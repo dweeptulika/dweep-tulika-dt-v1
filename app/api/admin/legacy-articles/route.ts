@@ -36,7 +36,7 @@ export async function GET() {
       labels: article.labels,
     }))
     .sort((a, b) => Date.parse(b.updatedAt || b.publishedAt) - Date.parse(a.updatedAt || a.publishedAt))
-    .slice(0, 100);
+;
 
   return NextResponse.json(stories, {
     headers: { "Cache-Control": "private, no-store" },
