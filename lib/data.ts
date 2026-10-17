@@ -209,7 +209,7 @@ export async function isDeletedArticlePath(path: string): Promise<boolean> {
 export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> {
   const supabase = publicSupabase();
   if (!supabase) return [];
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("articles")
     .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,article_categories(categories(name))")
     .is("deleted_at", null)
@@ -217,6 +217,18 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
     .order("published_at", { ascending: false });
+  // Keep previews readable before the soft-delete migration is applied.
+  if (error?.message.includes("deleted_at")) {
+    const fallback = await supabase
+      .from("articles")
+      .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,article_categories(categories(name))")
+      .in("status", ["published", "scheduled"])
+      .not("published_at", "is", null)
+      .lte("published_at", new Date().toISOString())
+      .order("published_at", { ascending: false });
+    data = fallback.data;
+    error = fallback.error;
+  }
   if (error || !data) return [];
   return (data as DbArticle[]).map(mapDbArticle);
 }
@@ -262,7 +274,7 @@ export async function getPublishedNewsroomArticleByPath(year: string, month: str
   const normalizedSlug = slug.replace(/\.html$/, "");
   const supabase = publicSupabase();
   if (!supabase) return null;
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("articles")
     .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,deleted_at")
     .eq("slug", normalizedSlug)
@@ -270,6 +282,19 @@ export async function getPublishedNewsroomArticleByPath(year: string, month: str
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
     .maybeSingle();
+  // Older preview databases may not have the soft-delete column yet.
+  if (error?.message.includes("deleted_at")) {
+    const fallback = await supabase
+      .from("articles")
+      .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
+      .eq("slug", normalizedSlug)
+      .in("status", ["published", "scheduled"])
+      .not("published_at", "is", null)
+      .lte("published_at", new Date().toISOString())
+      .maybeSingle();
+    data = fallback.data;
+    error = fallback.error;
+  }
   if (error || !data || data.deleted_at) return null;
   const article = mapDbArticle(data as DbArticle);
   if (article.url !== `/${year}/${month}/${normalizedSlug}.html`) return null;
@@ -277,7 +302,7 @@ export async function getPublishedNewsroomArticleByPath(year: string, month: str
 }
 
 export async function findArticleByPath(year: string, month: string, slug: string): Promise<PublishedStory | null> {
-  const requestedPath = `/${year}/${month}/${slug.replace(/\\.html$/, "")}.html`;
+  const requestedPath = `/${year}/${month}/${slug.replace(/\.html$/, "")}.html`;
   if (await isDeletedArticlePath(requestedPath)) return null;
   const newsroom = await getPublishedNewsroomArticleByPath(year, month, slug);
   if (newsroom) return newsroom;
