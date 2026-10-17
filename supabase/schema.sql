@@ -71,11 +71,11 @@ grant select, insert, update, delete on public.article_categories to authenticat
 drop policy if exists "public can read categories" on public.categories;
 create policy "public can read categories" on public.categories for select to anon, authenticated using (true);
 drop policy if exists "editors can manage categories" on public.categories;
-create policy "editors can manage categories" on public.categories for all to authenticated using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid())) with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+create policy "editors can manage categories" on public.categories for all to authenticated using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin'))) with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')));
 drop policy if exists "public can read article categories" on public.article_categories;
 create policy "public can read article categories" on public.article_categories for select to anon, authenticated using (true);
 drop policy if exists "editors can manage article categories" on public.article_categories;
-create policy "editors can manage article categories" on public.article_categories for all to authenticated using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid())) with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+create policy "editors can manage article categories" on public.article_categories for all to authenticated using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin'))) with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')));
 
 insert into public.categories (slug,name) values
 ('andaman-nicobar','Andaman News'),('national','National'),('politics','Politics'),('editorial','Editorial'),('culture','Culture'),('business','Business'),('sports','Sports')
@@ -184,29 +184,29 @@ create policy "public can read published articles"
 drop policy if exists "editors can read all articles" on public.articles;
 create policy "editors can read all articles"
   on public.articles for select to authenticated
-  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')));
 
 drop policy if exists "editors can insert articles" on public.articles;
 create policy "editors can insert articles"
   on public.articles for insert to authenticated
-  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')));
 
 drop policy if exists "editors can update articles" on public.articles;
 create policy "editors can update articles"
   on public.articles for update to authenticated
-  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()))
-  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')))
+  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')));
 
 drop policy if exists "editors can delete articles" on public.articles;
 create policy "editors can delete articles"
   on public.articles for delete to authenticated
-  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')));
 
 drop policy if exists "editors can manage media" on public.media;
 create policy "editors can manage media"
   on public.media for all to authenticated
-  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()))
-  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')))
+  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')));
 
 drop policy if exists "editors can read profiles" on public.editorial_profiles;
 create policy "editors can read profiles"
@@ -229,6 +229,13 @@ before update on public.articles
 for each row execute function public.touch_updated_at();
 
 
+-- Enforce image upload restrictions at the storage service, not only in the browser.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('news-media', 'news-media', true, 10485760, array['image/jpeg', 'image/png', 'image/webp']::text[])
+on conflict (id) do update
+set file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
 -- Storage: only authenticated editorial users may upload, replace, or delete
 -- objects in the public news-media bucket. Public reads are provided by the
 -- bucket's public setting.
@@ -244,7 +251,7 @@ with check (
   and exists (
     select 1
     from public.editorial_profiles p
-    where p.id = auth.uid()
+    where p.id = auth.uid() and p.role in ('editor', 'admin')
   )
 );
 
@@ -260,7 +267,7 @@ using (
   and exists (
     select 1
     from public.editorial_profiles p
-    where p.id = auth.uid()
+    where p.id = auth.uid() and p.role in ('editor', 'admin')
   )
 )
 with check (
@@ -268,7 +275,7 @@ with check (
   and exists (
     select 1
     from public.editorial_profiles p
-    where p.id = auth.uid()
+    where p.id = auth.uid() and p.role in ('editor', 'admin')
   )
 );
 
@@ -284,7 +291,7 @@ using (
   and exists (
     select 1
     from public.editorial_profiles p
-    where p.id = auth.uid()
+    where p.id = auth.uid() and p.role in ('editor', 'admin')
   )
 );
 
@@ -325,8 +332,8 @@ create policy "public can read active advertisements"
 drop policy if exists "editors can manage advertisements" on public.advertisements;
 create policy "editors can manage advertisements"
   on public.advertisements for all to authenticated
-  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()))
-  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')))
+  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')));
 
 drop trigger if exists advertisements_touch_updated_at on public.advertisements;
 create trigger advertisements_touch_updated_at
