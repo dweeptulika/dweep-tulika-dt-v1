@@ -9,6 +9,27 @@ import { AdvertisementPanel } from "@/components/AdvertisementPanel";
 
 const categories = ["Andaman News", "National", "Politics", "Editorial", "Culture", "Business", "Sports"];
 type ArticleStatus = "draft" | "published" | "scheduled";
+
+type LegacyArticle = {
+  id: string;
+  title: string;
+  slug: string;
+  category: string;
+  author: string;
+  excerpt: string;
+  publicPath: string;
+  bodyHtml: string;
+  featuredImage: string | null;
+  publishedAt: string;
+  updatedAt: string;
+  labels?: string[];
+};
+
+type ArticleCategoryLink = {
+  categories: { name: string } | null;
+  is_primary: boolean;
+};
+
 type ArticleRow = {
   id: string; title: string; slug: string; category: string; source?: "blogger" | "newsroom"; public_path?: string | null; author: string; excerpt: string;
   body_html: string; featured_image: string | null; seo_title: string | null;
@@ -32,7 +53,7 @@ export default function AdminPage() {
   const supabase = useMemo(() => createClient(), []);
   const [sessionReady, setSessionReady] = useState(false);
   const [articles, setArticles] = useState<ArticleRow[]>([]);
-  const [legacyArticles, setLegacyArticles] = useState<any[]>([]);
+  const [legacyArticles, setLegacyArticles] = useState<LegacyArticle[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([categories[0]]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState(""); const [slug, setSlug] = useState("");
@@ -61,7 +82,7 @@ export default function AdminPage() {
   const recentEditedArticles = [...articles].sort((a, b) => Date.parse(b.updated_at || "") - Date.parse(a.updated_at || "")).slice(0, 5);
   const categoryNames = categoryRows.length ? categoryRows.map(row => row.name) : categories;
   const sortedArticles = useMemo(() => [...articles].sort((a, b) => Date.parse(b.updated_at || b.published_at || "") - Date.parse(a.updated_at || a.published_at || "")), [articles]);
-  const availableLegacyArticles = useMemo(() => legacyArticles.filter((legacy: any) => !articles.some(a => a.public_path === legacy.publicPath)).sort((a: any, b: any) => Date.parse(b.updatedAt || b.publishedAt || "") - Date.parse(a.updatedAt || a.publishedAt || "")), [legacyArticles, articles]);
+  const availableLegacyArticles = useMemo(() => legacyArticles.filter((legacy: LegacyArticle) => !articles.some(a => a.public_path === legacy.publicPath)).sort((a: LegacyArticle, b: LegacyArticle) => Date.parse(b.updatedAt || b.publishedAt || "") - Date.parse(a.updatedAt || a.publishedAt || "")), [legacyArticles, articles]);
   const filteredArticles = useMemo(() => {
     const query = libraryQuery.trim().toLowerCase();
     return sortedArticles.filter((article) => {
@@ -76,7 +97,7 @@ export default function AdminPage() {
   const filteredLegacyArticles = useMemo(() => {
     const query = libraryQuery.trim().toLowerCase();
     if (libraryStatus !== "All statuses" && libraryStatus !== "published") return [];
-    return availableLegacyArticles.filter((legacy: any) => {
+    return availableLegacyArticles.filter((legacy: LegacyArticle) => {
       const matchesQuery = !query || [legacy.title, legacy.slug, legacy.author, legacy.category, legacy.excerpt, legacy.publicPath].join(" ").toLowerCase().includes(query);
       const matchesCategory = libraryCategory === "All categories" || legacy.category === libraryCategory;
       const matchesSource = librarySource === "All sources" || librarySource === "blogger";
@@ -150,7 +171,7 @@ export default function AdminPage() {
     setOriginalPublishedAt(article.published_at);
     setStatus(article.scheduled_for && new Date(article.scheduled_for).getTime() > Date.now() ? "scheduled" : article.status);
     const { data: categoryRows } = await supabase.from("article_categories").select("categories(name),is_primary").eq("article_id", article.id);
-    if (categoryRows?.length) setSelectedCategories(categoryRows.map((row: any) => row.categories?.name).filter(Boolean));
+    if (categoryRows?.length) setSelectedCategories((categoryRows as ArticleCategoryLink[]).map((row) => row.categories?.name).filter(Boolean));
     setMessage("Editing saved newsroom article.");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -211,7 +232,7 @@ export default function AdminPage() {
     const clean = [...new Set(names.length ? names : [category])];
     await supabase.from("article_categories").delete().eq("article_id", articleId);
     const { data: rows } = await supabase.from("categories").select("id,name").in("name", clean);
-    if (rows?.length) await supabase.from("article_categories").insert(rows.map((row: any, index: number) => ({ article_id: articleId, category_id: row.id, is_primary: row.name === category || index === 0 })));
+    if (rows?.length) await supabase.from("article_categories").insert(rows.map((row: { id: string; name: string }, index: number) => ({ article_id: articleId, category_id: row.id, is_primary: row.name === category || index === 0 })));
   }
 
   async function saveArticle(requestedStatus: ArticleStatus) {
@@ -299,7 +320,7 @@ export default function AdminPage() {
     setBusy(false);
   }
 
-  async function adoptLegacyArticle(article: any) {
+  async function adoptLegacyArticle(article: LegacyArticle) {
     setBusy(true); setMessage("");
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) { router.replace("/admin/login"); return; }
@@ -432,7 +453,7 @@ export default function AdminPage() {
               <button type="button" onClick={() => editArticle(article)}>Edit</button>
             </article>
           ))}
-          {filteredLegacyArticles.slice(0,100).map((legacy: any) => (
+          {filteredLegacyArticles.map((legacy: LegacyArticle) => (
             <article className="adminStoryRow" key={"legacy-" + legacy.id}>
               <div><span className="adminStatus">blogger</span><h3>{legacy.title}</h3><p>{legacy.category} · {legacy.publicPath}</p></div>
               <button type="button" disabled={busy} onClick={() => void adoptLegacyArticle(legacy)}>Adopt &amp; Edit</button>
