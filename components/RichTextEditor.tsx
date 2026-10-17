@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, MouseEvent, useEffect, useRef } from "react";
+import { ChangeEvent, MouseEvent, PointerEvent, useEffect, useRef } from "react";
 
 type Props = {
   value: string;
@@ -91,7 +91,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     }
   }
 
-  function preventImageCaretJump(event: MouseEvent<HTMLDivElement>) {
+  function preventImageCaretJump(event: PointerEvent<HTMLDivElement>) {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const image = target.closest("img");
@@ -312,7 +312,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         role="textbox" aria-label="Article body" aria-multiline="true"
         onInput={(event) => onChange(event.currentTarget.innerHTML)}
         onKeyUp={saveSelection} onMouseUp={saveSelection} onBlur={saveSelection}
-        onMouseDown={preventImageCaretJump}
+        onPointerDown={preventImageCaretJump}
         onClick={rememberClickedImage}
         data-placeholder="Write your article here. Place the cursor to insert a table or image." />
       <p className="richEditorHint">Select text to format it. Insert a table at the cursor, then type in its cells. To add an image inside a cell, click in that cell and choose Insert image. Click an image to select it, edit its alternative text or caption, move it, align it left/centre/right or full width, wrap text around it, or remove it. Save and reopen a test draft to verify the final layout.</p>
