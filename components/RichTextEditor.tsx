@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type MouseEvent } from "react";
+import { useCallback, useMemo, useRef, useState, type ChangeEvent, type MouseEvent } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import type { JSONContent } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
@@ -28,16 +28,19 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   const [uploading, setUploading] = useState(false);
   const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
 
+  // Keep extension instances stable across selection/toolbar state updates.
+  const extensions = useMemo(() => [
+    StarterKit,
+    TextAlign.configure({ types: ["heading", "paragraph"] }),
+    TableKit.configure({ table: { resizable: true } }),
+    Placeholder.configure({ placeholder: "Write your article here. Place the cursor to insert a table or image." }),
+    ImageFigure,
+  ], []);
+
   const editor = useEditor({
     immediatelyRender: false,
     content: value || "",
-    extensions: [
-      StarterKit,
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
-      TableKit.configure({ table: { resizable: true } }),
-      Placeholder.configure({ placeholder: "Write your article here. Place the cursor to insert a table or image." }),
-      ImageFigure,
-    ],
+    extensions,
     editorProps: {
       attributes: {
         class: "ProseMirror",
@@ -45,8 +48,30 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         "aria-multiline": "true",
         spellcheck: "true",
       },
-      // Explicitly select the figure on click. Relying on browser/node drag defaults
-      // made image selection inconsistent and hid the contextual image tools.
+      // Select the atom on pointer-down, before browser caret/drag handling can
+      // move the selection away from it. This is the primary selection path.
+      handleDOMEvents: {
+        mousedown: (view, event) => {
+          const target = event.target;
+          if (!(target instanceof Element)) return false;
+          const figure = target.closest("figure.dt-news-image");
+          if (!figure) return false;
+          let imagePosition: number | null = null;
+          view.state.doc.descendants((node, pos) => {
+            if (node.type.name === "imageFigure" && view.nodeDOM(pos) === figure) {
+              imagePosition = pos;
+              return false;
+            }
+            return true;
+          });
+          if (imagePosition === null) return false;
+          event.preventDefault();
+          view.focus();
+          view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, imagePosition)));
+          return true;
+        },
+      },
+      // Backup selection path for browsers that dispatch click without mousedown.
       handleClickOn: (view, _pos, node, nodePos) => {
         if (node.type.name !== "imageFigure") return false;
         view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, nodePos)));
@@ -67,20 +92,11 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     },
   });
 
-  useEffect(() => {
-    if (!editor) return;
+  // Intentionally do not mirror every parent value update back into the editor.
+  // The parent updates "body" on every keystroke; setContent() here would replace
+  // the document and clear node selections. Article changes remount this editor
+  // via key={editingId || "new-article"} in the parent, so external loads are handled.
 
-    // onChange updates the parent value. Ignore that exact echo: calling setContent
-    // for the editor's own HTML can replace the document and clear the selected image.
-    if (lastEmittedHtmlRef.current !== null && value === lastEmittedHtmlRef.current) {
-      lastEmittedHtmlRef.current = null;
-      return;
-    }
-
-    if (value !== editor.getHTML()) {
-      editor.commands.setContent(value || "", { emitUpdate: false });
-    }
-  }, [editor, value]);
 
   const toolbarMouseDown = (event: MouseEvent<HTMLButtonElement>) => event.preventDefault();
 
@@ -97,6 +113,11 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   const applyImageWrap = (wrap: "left" | "right") => {
     if (!editor || !selectedImage) return;
     editor.chain().focus().updateAttributes("imageFigure", { alignment: null, wrap }).run();
+  };
+
+  const applyImageSize = (size: "small" | "medium" | "large" | "full") => {
+    if (!editor || !selectedImage) return;
+    editor.chain().focus().updateAttributes("imageFigure", { size }).run();
   };
 
   const editImageDetails = () => {
@@ -244,6 +265,10 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
           <button type="button" title="Centre image" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={() => applyImageAlign("center")}>Image centre</button>
           <button type="button" title="Align image right" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={() => applyImageAlign("right")}>Image right</button>
           <button type="button" title="Make image full width" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={() => applyImageAlign("full")}>Full width</button>
+          <button type="button" title="Set image width to 25%" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={() => applyImageSize("small")}>Size 25%</button>
+          <button type="button" title="Set image width to 50%" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={() => applyImageSize("medium")}>Size 50%</button>
+          <button type="button" title="Set image width to 75%" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={() => applyImageSize("large")}>Size 75%</button>
+          <button type="button" title="Set image width to 100%" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={() => applyImageSize("full")}>Size 100%</button>
           <button type="button" title="Wrap text to the left of image" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={() => applyImageWrap("left")}>Wrap left</button>
           <button type="button" title="Wrap text to the right of image" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={() => applyImageWrap("right")}>Wrap right</button>
           <button type="button" title="Move image to another cursor position" disabled={!selectedImage} onMouseDown={toolbarMouseDown} onClick={startMoveSelectedImage}>Move image</button>
