@@ -43,8 +43,24 @@ html{overflow-x:hidden}body{overflow-x:hidden}.masthead{background:#111;padding:
 .richEditorSurface table,.articlebody table{width:100%;border-collapse:collapse;margin:1.25em 0;table-layout:auto}
 .richEditorSurface table{max-width:100%;overflow-x:auto}
 .richEditorSurface th,.richEditorSurface td,.articlebody th,.articlebody td{border:1px solid #9c958a;padding:10px 12px;vertical-align:top;text-align:left;min-width:80px}
-.richEditorSurface th,.articlebody th{background:#eee8dc;font-weight:700}
+.richEditorSurface th,.articlebody th{background:#b51e2a;color:#fff;font-weight:700}
 .richEditorSurface td p,.richEditorSurface th p{margin:0 0 .5em}
 .richEditorSurface td img,.richEditorSurface th img{max-width:100%;height:auto}
 .richEditorSurface td figure,.richEditorSurface th figure{margin:8px auto}
 @media(max-width:600px){.richEditorSurface th,.richEditorSurface td,.articlebody th,.articlebody td{padding:7px;min-width:72px}}
+
+/* Explicit alignment controls for inline newsroom images */
+.richEditorSurface figure.dt-image-align-left{text-align:left;margin-left:0;margin-right:auto}
+.richEditorSurface figure.dt-image-align-center{text-align:center;margin-left:auto;margin-right:auto}
+.richEditorSurface figure.dt-image-align-right{text-align:right;margin-left:auto;margin-right:0}
+.richEditorSurface figure.dt-image-align-full{width:100%;max-width:100%;text-align:center}
+.richEditorSurface figure.dt-image-align-left img,.richEditorSurface figure.dt-image-align-right img{margin-left:0;margin-right:0}
+.richEditorSurface figure.dt-image-align-center img{margin-left:auto;margin-right:auto}
+.richEditorSurface figure.dt-image-align-full img{width:100%;max-width:100%;max-height:none}
+.articlebody figure.dt-image-align-left{text-align:left;margin-left:0;margin-right:auto}
+.articlebody figure.dt-image-align-center{text-align:center;margin-left:auto;margin-right:auto}
+.articlebody figure.dt-image-align-right{text-align:right;margin-left:auto;margin-right:0}
+.articlebody figure.dt-image-align-full{width:100%;max-width:100%;text-align:center}
+.articlebody figure.dt-image-align-left img,.articlebody figure.dt-image-align-right img{margin-left:0;margin-right:0}
+.articlebody figure.dt-image-align-center img{margin-left:auto;margin-right:auto}
+.articlebody figure.dt-image-align-full img{width:100%;max-width:100%;max-height:none}
