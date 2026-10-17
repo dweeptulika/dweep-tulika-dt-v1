@@ -95,12 +95,15 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const image = target.closest("img");
-    if (image && editorRef.current?.contains(image)) {
-      // Browsers can move the contentEditable caret into the following paragraph
-      // when an image is clicked. Keep the cursor and adjacent punctuation stable.
-      event.preventDefault();
-      selectedImageRef.current = image as HTMLImageElement;
-    }
+    const editor = editorRef.current;
+    if (!image || !editor?.contains(image)) return;
+
+    // Handle selection on mousedown, before contentEditable's native caret placement.
+    // preventDefault can suppress the later click event, so selection must happen here.
+    event.preventDefault();
+    editor.querySelectorAll("img.dt-image-selected").forEach((node) => node.classList.remove("dt-image-selected"));
+    image.classList.add("dt-image-selected");
+    selectedImageRef.current = image as HTMLImageElement;
   }
 
   function alignSelectedImage(alignment: "left" | "center" | "right" | "full") {
