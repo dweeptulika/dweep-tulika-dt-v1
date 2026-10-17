@@ -226,7 +226,7 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
       .not("published_at", "is", null)
       .lte("published_at", new Date().toISOString())
       .order("published_at", { ascending: false });
-    data = fallback.data;
+    data = fallback.data ? { ...fallback.data, deleted_at: null } : null;
     error = fallback.error;
   }
   if (error || !data) return [];
