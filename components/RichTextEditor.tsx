@@ -6,6 +6,7 @@ import type { JSONContent } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { TableKit } from "@tiptap/extension-table";
+import { Placeholder } from "@tiptap/extensions";
 import { NodeSelection } from "@tiptap/pm/state";
 import ImageFigure from "@/components/ImageFigure";
 
@@ -32,6 +33,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       StarterKit,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       TableKit.configure({ table: { resizable: true } }),
+      Placeholder.configure({ placeholder: "Write your article here. Place the cursor to insert a table or image." }),
       ImageFigure,
     ],
     editorProps: {
