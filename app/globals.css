@@ -136,3 +136,50 @@ html{overflow-x:hidden}body{overflow-x:hidden}.masthead{background:#111;padding:
 .richToolbar button[aria-pressed="true"]{background:#b51e2a;color:#fff;border-color:#b51e2a}
 .richToolbar button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:600px){.richEditorSurface .ProseMirror{min-height:320px;padding:12px}.richToolbarLabel{padding:0 3px}.richEditorSurface .ProseMirror th,.richEditorSurface .ProseMirror td{padding:7px;min-width:62px}}
+
+/* Final newsroom editor selection + wrap corrections: native ProseMirror node selection. */
+.richEditorSurface .ProseMirror figure.dt-news-image.ProseMirror-selectednode,
+.richEditorSurface .ProseMirror figure.dt-news-image.ProseMirror-selectednode:hover {
+  outline: 3px solid #b51e2a;
+  outline-offset: 4px;
+  border-radius: 1px;
+}
+.richEditorSurface .ProseMirror figure.dt-image-wrap-left {
+  float: left !important;
+  display: block;
+  width: 42% !important;
+  max-width: 42% !important;
+  margin: 6px 22px 14px 0 !important;
+  text-align: left;
+}
+.richEditorSurface .ProseMirror figure.dt-image-wrap-right {
+  float: right !important;
+  display: block;
+  width: 42% !important;
+  max-width: 42% !important;
+  margin: 6px 0 14px 22px !important;
+  text-align: right;
+}
+.richEditorSurface .ProseMirror figure.dt-image-wrap-left img,
+.richEditorSurface .ProseMirror figure.dt-image-wrap-right img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  height: auto;
+  margin: 0;
+}
+.richEditorSurface .ProseMirror figure.dt-news-image::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+@media (max-width: 600px) {
+  .richEditorSurface .ProseMirror figure.dt-image-wrap-left,
+  .richEditorSurface .ProseMirror figure.dt-image-wrap-right {
+    float: none !important;
+    width: min(100%, 420px) !important;
+    max-width: 100% !important;
+    margin: 18px auto !important;
+  }
+}
