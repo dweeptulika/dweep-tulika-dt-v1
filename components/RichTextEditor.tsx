@@ -84,7 +84,8 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const image = target.closest("img");
-    selectedImageRef.current = image && editorRef.current?.contains(image) ? image as HTMLImageElement : null;
+    // Keep the last selected image while the editor moves the cursor to a new position.
+    if (image && editorRef.current?.contains(image)) selectedImageRef.current = image as HTMLImageElement;
   }
 
   function editImageDetails() {
