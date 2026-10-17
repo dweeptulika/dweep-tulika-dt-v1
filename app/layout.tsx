@@ -13,6 +13,11 @@ export const metadata: Metadata = {
   description:
     "Dweep Tulika — island-centric news, public affairs, culture and stories from Andaman & Nicobar Islands.",
   alternates: { canonical: "/" },
+  icons: {
+    icon: [{ url: "/favicon-logo-white.jpg?v=1", type: "image/jpeg", sizes: "128x128" }],
+    shortcut: [{ url: "/favicon-logo-white.jpg?v=1", type: "image/jpeg" }],
+    apple: [{ url: "/favicon-logo-white.jpg?v=1", type: "image/jpeg", sizes: "128x128" }],
+  },
   openGraph: { siteName: "Dweep Tulika", type: "website", locale: "en_IN" },
   robots: {
     index: true,
