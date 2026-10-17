@@ -183,3 +183,13 @@ html{overflow-x:hidden}body{overflow-x:hidden}.masthead{background:#111;padding:
     margin: 18px auto !important;
   }
 }
+
+
+/* Image sizing controls for the Tiptap newsroom editor. */
+.richEditorSurface .ProseMirror figure.dt-news-image.dt-image-size-small img { width: 25%; max-width: 100%; }
+.richEditorSurface .ProseMirror figure.dt-news-image.dt-image-size-medium img { width: 50%; max-width: 100%; }
+.richEditorSurface .ProseMirror figure.dt-news-image.dt-image-size-large img { width: 75%; max-width: 100%; }
+.richEditorSurface .ProseMirror figure.dt-news-image.dt-image-size-full img { width: 100%; max-width: 100%; max-height: none; }
+.richEditorSurface .ProseMirror figure.dt-news-image.dt-image-align-full img { width: 100%; max-width: 100%; max-height: none; }
+.richEditorSurface .ProseMirror figure.dt-news-image.dt-image-wrap-left img,
+.richEditorSurface .ProseMirror figure.dt-news-image.dt-image-wrap-right img { width: 100%; max-width: 100%; }
