@@ -21,8 +21,6 @@ type PendingMove = { node: JSONContent };
 export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const pendingMoveRef = useRef<PendingMove | null>(null);
-  // Prevent a parent echo of editor HTML from resetting ProseMirror after a click/selection.
-  const lastEmittedHtmlRef = useRef<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(false);
   const [moveMode, setMoveMode] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -56,18 +54,18 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
           if (!(target instanceof Element)) return false;
           const figure = target.closest("figure.dt-news-image");
           if (!figure) return false;
-          let imagePosition: number | null = null;
+          const imagePosition = { current: null as number | null };
           view.state.doc.descendants((node, pos) => {
             if (node.type.name === "imageFigure" && view.nodeDOM(pos) === figure) {
-              imagePosition = pos;
+              imagePosition.current = pos;
               return false;
             }
             return true;
           });
-          if (imagePosition === null) return false;
+          if (imagePosition.current === null) return false;
           event.preventDefault();
           view.focus();
-          view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, imagePosition)));
+          view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, imagePosition.current)));
           return true;
         },
       },
@@ -80,7 +78,6 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     },
     onUpdate: ({ editor: current }) => {
       const html = current.getHTML();
-      lastEmittedHtmlRef.current = html;
       onChange(html);
     },
     onSelectionUpdate: ({ editor: current }) => {
