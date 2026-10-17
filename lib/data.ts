@@ -226,7 +226,7 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
       .not("published_at", "is", null)
       .lte("published_at", new Date().toISOString())
       .order("published_at", { ascending: false });
-    data = fallback.data ? { ...fallback.data, deleted_at: null } : null;
+    data = fallback.data as typeof data;
     error = fallback.error;
   }
   if (error || !data) return [];
@@ -292,7 +292,7 @@ export async function getPublishedNewsroomArticleByPath(year: string, month: str
       .not("published_at", "is", null)
       .lte("published_at", new Date().toISOString())
       .maybeSingle();
-    data = fallback.data;
+    data = (fallback.data ? { ...fallback.data, deleted_at: null } : null) as typeof data;
     error = fallback.error;
   }
   if (error || !data || data.deleted_at) return null;
