@@ -119,10 +119,18 @@ export default function AdminPage() {
   }, [router, supabase]);
 
   async function loadArticles() {
-    const { data } = await supabase.from("articles")
+    let { data, error } = await supabase.from("articles")
       .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
       .is("deleted_at", null)
       .order("updated_at", { ascending: false });
+    // Keep the newsroom list available while a preview database awaits the migration.
+    if (error?.message.includes("deleted_at")) {
+      const fallback = await supabase.from("articles")
+        .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
+        .order("updated_at", { ascending: false });
+      data = fallback.data;
+      error = fallback.error;
+    }
     if (data) setArticles(data as ArticleRow[]);
     const { data: categoryData } = await supabase.from("categories").select("id,name,description").order("name");
     if (categoryData) setCategoryRows(categoryData);
