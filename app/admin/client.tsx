@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { AdvertisementPanel } from "@/components/AdvertisementPanel";
+import { sanitizeArticleHtml } from "@/lib/security";
 
 const categories = ["Andaman News", "National", "Politics", "Editorial", "Culture", "Business", "Sports"];
 type ArticleStatus = "draft" | "published" | "scheduled";
@@ -56,6 +57,7 @@ export default function AdminPage() {
   const [legacyArticles, setLegacyArticles] = useState<LegacyArticle[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([categories[0]]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [title, setTitle] = useState(""); const [slug, setSlug] = useState("");
   const [category, setCategory] = useState(categories[0]); const [author, setAuthor] = useState("Dweep Tulika");
   const [excerpt, setExcerpt] = useState(""); const [body, setBody] = useState("");
@@ -157,12 +159,14 @@ export default function AdminPage() {
   }
 
   function resetEditor() {
+    setPreviewOpen(false);
     setEditingId(null); setTitle(""); setSlug(""); setCategory(categories[0]); setSelectedCategories([categories[0]]); setAuthor("Dweep Tulika");
     setExcerpt(""); setBody(""); setFeaturedImage(""); setSeoTitle(""); setMetaDescription("");
     setSocialImage(""); setScheduledFor(""); setPublicationDate(""); setStatus("draft"); setOriginalPublishedAt(null); setMessage("");
   }
 
   async function editArticle(article: ArticleRow) {
+    setPreviewOpen(false);
     setEditingId(article.id); setTitle(article.title); setSlug(article.slug); setCategory(article.category); setSelectedCategories([article.category]);
     setAuthor(article.author); setExcerpt(article.excerpt); setBody(article.body_html); setFeaturedImage(article.featured_image || "");
     setSeoTitle(article.seo_title || ""); setMetaDescription(article.meta_description || "");
@@ -346,6 +350,31 @@ export default function AdminPage() {
     setBusy(false);
   }
 
+
+  function requestPublish() {
+    const missing: string[] = [];
+    if (!title.trim()) missing.push("headline");
+    if (!body.replace(/<[^>]*>/g, " ").trim()) missing.push("article text");
+    if (!selectedCategories.length) missing.push("category");
+    if (missing.length) {
+      setMessage("Before publishing, please add: " + missing.join(", ") + ".");
+      return;
+    }
+    const recommendedMissing: string[] = [];
+    if (!excerpt.trim()) recommendedMissing.push("summary");
+    if (!featuredImage) recommendedMissing.push("featured image");
+    if (recommendedMissing.length && !window.confirm(
+      "This story has no " + recommendedMissing.join(" or ") + ". You can publish without it, but a summary and featured image are recommended. Continue?"
+    )) return;
+    const action = status === "scheduled" ? "schedule" : "publish";
+    if (!window.confirm(
+      action === "schedule"
+        ? "Schedule this story for the selected date and time?"
+        : "Publish this story to the live Dweep Tulika website now?"
+    )) return;
+    void saveArticle(status === "draft" ? "published" : status);
+  }
+
   async function submit(event: FormEvent) { event.preventDefault(); await saveArticle(editingId ? status : "draft"); }
 
   if (!sessionReady) return <main className="adminLogin"><p>Checking newsroom access…</p></main>;
@@ -403,6 +432,15 @@ export default function AdminPage() {
           <label>Article body
             <RichTextEditor key={editingId || "new-article"} value={body} onChange={setBody} onUploadImage={uploadInlineImage} />
           </label>
+          <div className="adminActions">
+            <button type="button" onClick={() => setPreviewOpen(open => !open)}>{previewOpen ? "Hide Preview" : "Preview Article"}</button>
+          </div>
+          {previewOpen && <section className="adminSection" aria-label="Article preview">
+            <div className="adminSectionHeader"><div><div className="adminLabel">Reader preview</div><h2>{title.trim() || "Your headline will appear here"}</h2></div></div>
+            {excerpt.trim() && <p>{excerpt}</p>}
+            {featuredImage && <div className="adminImagePreview"><img src={featuredImage} alt={title.trim() ? "Featured image for " + title : "Article featured image"} /></div>}
+            <div className="articlebody" dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(body) }} />
+          </section>}
           <div className="adminFormGrid">
             <label>Publication date &amp; time<input type="datetime-local" value={publicationDate} onChange={e => setPublicationDate(e.target.value)} /><small>Use this to preserve or set the original publication date for backdated stories.</small></label>
             <label>Schedule date &amp; time<input type="datetime-local" value={scheduledFor} onChange={e => setScheduledFor(e.target.value)} /></label>
@@ -413,7 +451,7 @@ export default function AdminPage() {
           {message && <p className="adminMessage">{message}</p>}
           <div className="adminActions">
             <button type="submit" disabled={busy || uploading}>{busy ? "Saving…" : editingId ? "Save Changes" : "Save Draft"}</button>
-            <button type="button" disabled={busy || uploading} onClick={() => void saveArticle(status === "draft" ? "published" : status)}>{busy ? "Working…" : status === "scheduled" ? "Schedule Article" : "Publish"}</button>
+            <button type="button" disabled={busy || uploading} onClick={requestPublish}>{busy ? "Working…" : status === "scheduled" ? "Schedule Article" : "Publish"}</button>
             {editingId && <button type="button" disabled={busy || uploading} onClick={resetEditor}>Cancel Edit</button>}
           </div>
           <p className="adminNote">Published URLs retain the newsroom date/slug format. Media is stored in the Dweep Tulika newsroom library.</p>
