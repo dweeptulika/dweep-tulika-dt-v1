@@ -112,10 +112,6 @@ export default function AdminPage() {
   const libraryPageCount = Math.max(1, Math.ceil(filteredArticles.length / libraryPageSize));
 
   useEffect(() => {
-    setLibraryPage(1);
-  }, [libraryQuery, libraryCategory, libraryStatus, librarySource, libraryDate]);
-
-  useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) router.replace("/admin/login");
       else { setSessionReady(true); void loadArticles(); }
@@ -144,7 +140,7 @@ export default function AdminPage() {
     setCategoryBusy(false);
   }
 
-  async function deleteCategory(id: string, name: string) {
+  async function deleteCategory(id: string) {
     if (categoryRows.length <= 1) return;
     setCategoryBusy(true);
     const { count } = await supabase.from("article_categories").select("article_id", { count: "exact", head: true }).eq("category_id", id);
@@ -472,21 +468,21 @@ export default function AdminPage() {
             <div><button type="button" disabled={categoryBusy || !newCategory.trim()} onClick={() => void addCategory()}>Add category</button></div>
           </div>
           <div className="adminCategoryChecks">
-            {categoryRows.map(row => <div key={row.id} className="adminCategoryItem"><span>{row.name}</span><button type="button" disabled={categoryBusy} onClick={() => void deleteCategory(row.id, row.name)}>Delete</button></div>)}
+            {categoryRows.map(row => <div key={row.id} className="adminCategoryItem"><span>{row.name}</span><button type="button" disabled={categoryBusy} onClick={() => void deleteCategory(row.id)}>Delete</button></div>)}
           </div>
         </section>
 
         <div className="adminStoryList">
           <div className="adminFormGrid">
-            <label>Search library<input value={libraryQuery} onChange={e => setLibraryQuery(e.target.value)} placeholder="Headline, slug, author or keyword" /></label>
-            <label>Category<select value={libraryCategory} onChange={e => setLibraryCategory(e.target.value)}><option>All categories</option>{categoryNames.map(item => <option key={item}>{item}</option>)}</select></label>
+            <label>Search library<input value={libraryQuery} onChange={e => { setLibraryPage(1); setLibraryQuery(e.target.value); }} placeholder="Headline, slug, author or keyword" /></label>
+            <label>Category<select value={libraryCategory} onChange={e => { setLibraryPage(1); setLibraryCategory(e.target.value); }}><option>All categories</option>{categoryNames.map(item => <option key={item}>{item}</option>)}</select></label>
           </div>
           <div className="adminFormGrid">
-            <label>Source<select value={librarySource} onChange={e => setLibrarySource(e.target.value)}><option>All sources</option><option value="newsroom">Newsroom</option><option value="blogger">Blogger</option></select></label>
-            <label>Published/updated date<input type="date" value={libraryDate} onChange={e => setLibraryDate(e.target.value)} /></label>
+            <label>Source<select value={librarySource} onChange={e => { setLibraryPage(1); setLibrarySource(e.target.value); }}><option>All sources</option><option value="newsroom">Newsroom</option><option value="blogger">Blogger</option></select></label>
+            <label>Published/updated date<input type="date" value={libraryDate} onChange={e => { setLibraryPage(1); setLibraryDate(e.target.value); }} /></label>
           </div>
           <div className="adminFormGrid">
-            <label>Status<select value={libraryStatus} onChange={e => setLibraryStatus(e.target.value)}><option>All statuses</option><option value="draft">Draft</option><option value="published">Published</option><option value="scheduled">Scheduled</option></select></label>
+            <label>Status<select value={libraryStatus} onChange={e => { setLibraryPage(1); setLibraryStatus(e.target.value); }}><option>All statuses</option><option value="draft">Draft</option><option value="published">Published</option><option value="scheduled">Scheduled</option></select></label>
           </div>
           {pagedArticles.map(article => (
             <article className="adminStoryRow" key={article.id}>
