@@ -46,33 +46,12 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         "aria-multiline": "true",
         spellcheck: "true",
       },
-      // Select the atom on pointer-down, before browser caret/drag handling can
-      // move the selection away from it. This is the primary selection path.
-      handleDOMEvents: {
-        mousedown: (view, event) => {
-          const target = event.target;
-          if (!(target instanceof Element)) return false;
-          const figure = target.closest("figure.dt-news-image");
-          if (!figure) return false;
-          const imagePosition = { current: null as number | null };
-          view.state.doc.descendants((node, pos) => {
-            if (node.type.name === "imageFigure" && view.nodeDOM(pos) === figure) {
-              imagePosition.current = pos;
-              return false;
-            }
-            return true;
-          });
-          if (imagePosition.current === null) return false;
-          event.preventDefault();
-          view.focus();
-          view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, imagePosition.current)));
-          return true;
-        },
-      },
-      // Backup selection path for browsers that dispatch click without mousedown.
+      // Let ProseMirror perform native mouse selection for the selectable image atom.
+      // Intercepting mousedown here can bypass its internal drag/selection lifecycle.
       handleClickOn: (view, _pos, node, nodePos) => {
         if (node.type.name !== "imageFigure") return false;
-        view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, nodePos)));
+        const selection = NodeSelection.create(view.state.doc, nodePos);
+        view.dispatch(view.state.tr.setSelection(selection));
         return true;
       },
     },
