@@ -7,9 +7,9 @@ import { SITE_URL, websiteJsonLd } from "@/lib/seo";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   icons: {
-    icon: [{ url: "/dweep-tulika-favicon.svg?v=1", type: "image/svg+xml" }],
-    shortcut: ["/dweep-tulika-favicon.svg?v=1"],
-    apple: [{ url: "/dweep-tulika-favicon.svg?v=1", type: "image/svg+xml" }],
+    icon: [{ url: "https://blogger.googleusercontent.com/img/a/AVvXsEhJ3O2ALVPRaVh4xa5sjb5cak1NEUvqzGOAVMb6_pKdZtiafHPuuXuO4IJU13NasgeXor5zyzIWviKh8bZ5yAS4A36CoJ24lxyF8EsIubyouuUyCQIa9eIif8ggVe8Xkua8sg6Tn-KafGLP6ZcB2GSOtA8_uaHZcosg_WJXtm-FyJ2fVglkrqMTdqvnyqw=s676", type: "image/png" }],
+    shortcut: ["https://blogger.googleusercontent.com/img/a/AVvXsEhJ3O2ALVPRaVh4xa5sjb5cak1NEUvqzGOAVMb6_pKdZtiafHPuuXuO4IJU13NasgeXor5zyzIWviKh8bZ5yAS4A36CoJ24lxyF8EsIubyouuUyCQIa9eIif8ggVe8Xkua8sg6Tn-KafGLP6ZcB2GSOtA8_uaHZcosg_WJXtm-FyJ2fVglkrqMTdqvnyqw=s676"],
+    apple: [{ url: "https://blogger.googleusercontent.com/img/a/AVvXsEhJ3O2ALVPRaVh4xa5sjb5cak1NEUvqzGOAVMb6_pKdZtiafHPuuXuO4IJU13NasgeXor5zyzIWviKh8bZ5yAS4A36CoJ24lxyF8EsIubyouuUyCQIa9eIif8ggVe8Xkua8sg6Tn-KafGLP6ZcB2GSOtA8_uaHZcosg_WJXtm-FyJ2fVglkrqMTdqvnyqw=s676", type: "image/png" }],
   },
   title: {
     default: "Dweep Tulika — A Truthful & Unbiased Perspective",
