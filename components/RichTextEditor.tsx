@@ -29,12 +29,17 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const savedRange = useRef<Range | null>(null);
+  const selectedImageRef = useRef<HTMLImageElement | null>(null);
   const uploadingImage = useRef(false);
 
   useEffect(() => {
     const el = editorRef.current;
     // Reconcile external loads (switching articles) without overwriting live typing.
-    if (el && document.activeElement !== el && el.innerHTML !== value) el.innerHTML = value || "";
+    if (el && document.activeElement !== el && el.innerHTML !== value) {
+      el.innerHTML = value || "";
+      selectedImageRef.current = null;
+      savedRange.current = null;
+    }
   }, [value]);
 
   function saveSelection() {
@@ -73,6 +78,78 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   function addLink() {
     const url = window.prompt("Enter the link URL (https://…):");
     if (url && /^https?:\/\//i.test(url.trim())) run("createLink", url.trim());
+  }
+
+  function rememberClickedImage(event: React.MouseEvent<HTMLDivElement>) {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const image = target.closest("img");
+    selectedImageRef.current = image && editorRef.current?.contains(image) ? image as HTMLImageElement : null;
+  }
+
+  function editImageDetails() {
+    const image = selectedImageRef.current;
+    if (!image || !editorRef.current?.contains(image)) {
+      window.alert("Click the image you want to edit first.");
+      return;
+    }
+    const figure = image.closest("figure");
+    const currentCaption = figure?.querySelector("figcaption");
+    const nextAlt = window.prompt("Describe this image for accessibility (alternative text):", image.alt || "");
+    if (nextAlt === null) return;
+    const nextCaption = window.prompt("Image caption (leave blank for no caption):", currentCaption?.textContent || "");
+    if (nextCaption === null) return;
+    image.alt = nextAlt.trim();
+    if (figure) {
+      if (nextCaption.trim()) {
+        const caption = currentCaption || document.createElement("figcaption");
+        caption.textContent = nextCaption.trim();
+        if (!currentCaption) figure.appendChild(caption);
+      } else {
+        currentCaption?.remove();
+      }
+    }
+    onChange(editorRef.current.innerHTML);
+  }
+
+  function removeSelectedImage() {
+    const image = selectedImageRef.current;
+    if (!image || !editorRef.current?.contains(image)) {
+      window.alert("Click the image you want to remove first.");
+      return;
+    }
+    const figure = image.closest("figure");
+    if (figure) figure.remove();
+    else image.remove();
+    selectedImageRef.current = null;
+    onChange(editorRef.current.innerHTML);
+  }
+
+  function moveSelectedImageToCursor() {
+    const image = selectedImageRef.current;
+    const editor = editorRef.current;
+    const range = savedRange.current;
+    if (!image || !editor?.contains(image)) {
+      window.alert("Click the image you want to move first.");
+      return;
+    }
+    if (!range || !editor.contains(range.startContainer) || !editor.contains(range.endContainer)) {
+      window.alert("Click in the article where you want the image to move, then choose this option.");
+      return;
+    }
+    const figure = image.closest("figure");
+    const imageHtml = figure ? figure.outerHTML : image.outerHTML;
+    if (range.startContainer === figure || (figure && figure.contains(range.startContainer))) {
+      window.alert("Choose a different position outside the selected image.");
+      return;
+    }
+    if (figure) figure.remove();
+    else image.remove();
+    restoreSelection();
+    document.execCommand("insertHTML", false, imageHtml + "<p><br></p>");
+    selectedImageRef.current = null;
+    saveSelection();
+    onChange(editor.innerHTML);
   }
 
   async function insertImage(event: ChangeEvent<HTMLInputElement>) {
@@ -114,16 +191,18 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         ))}
         <button type="button" title="Insert link" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={addLink}>Link</button>
         <button type="button" title="Insert image at cursor" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => imageInputRef.current?.click()}>Insert image</button>
+        <button type="button" title="Edit selected image alternative text and caption" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={editImageDetails}>Image details</button>
+        <button type="button" title="Move selected image to the current cursor position" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={moveSelectedImageToCursor}>Move image</button>
+        <button type="button" title="Remove selected image" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={removeSelectedImage}>Remove image</button>
         <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(event) => void insertImage(event)} aria-label="Choose inline image" />
-        <button type="button" title="Undo" onMouseDown={(event) => event.preventDefault()} onClick={() => run("undo")}>↶</button>
-        <button type="button" title="Redo" onMouseDown={(event) => event.preventDefault()} onClick={() => run("redo")}>↷</button>
       </div>
       <div ref={editorRef} className="richEditorSurface" contentEditable suppressContentEditableWarning
         role="textbox" aria-label="Article body" aria-multiline="true"
         onInput={(event) => onChange(event.currentTarget.innerHTML)}
         onKeyUp={saveSelection} onMouseUp={saveSelection} onBlur={saveSelection}
+        onClick={rememberClickedImage}
         data-placeholder="Write your article here. Place the cursor where you want to insert an image." />
-      <p className="richEditorHint">Select text to format it. Place the cursor inside the article before inserting an image. Images are uploaded to the newsroom media library.</p>
+      <p className="richEditorHint">Select text to format it. Place the cursor before inserting an image. Click an image to edit its alternative text or caption, move it, or remove it. Save and reopen a test draft to verify the final layout.</p>
     </div>
   );
 }
