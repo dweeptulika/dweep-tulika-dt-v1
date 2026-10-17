@@ -1,7 +1,6 @@
 "use client";
 
 import { Node } from "@tiptap/core";
-import { NodeViewWrapper, ReactNodeViewRenderer, type NodeViewProps } from "@tiptap/react";
 
 type ImageFigureAttributes = {
   src: string | null;
@@ -33,30 +32,11 @@ function readFigure(element: HTMLElement): ImageFigureAttributes | false {
   };
 }
 
-function ImageFigureView({ node, selected, editor, getPos }: NodeViewProps) {
-  const attrs = node.attrs as ImageFigureAttributes;
-  const position = typeof getPos === "function" ? getPos() : undefined;
-  const classes = [
-    "dt-news-image",
-    attrs.wrap ? `dt-image-wrap-${attrs.wrap}` : `dt-image-align-${attrs.alignment || "center"}`,
-    selected ? "dt-news-image-selected" : "",
-  ].filter(Boolean).join(" ");
-
-  return (
-    <NodeViewWrapper
-      className={classes}
-      data-drag-handle=""
-      contentEditable={false}
-      onClick={() => {
-        if (typeof position === "number") editor.commands.setNodeSelection(position);
-      }}
-    >
-      {attrs.src ? <img src={attrs.src} alt={attrs.alt || ""} title={attrs.title || undefined} draggable={false} loading="lazy" /> : <span>Image unavailable</span>}
-      {attrs.caption && <figcaption>{attrs.caption}</figcaption>}
-    </NodeViewWrapper>
-  );
-}
-
+/**
+ * A native ProseMirror atom, deliberately without a React NodeView.
+ * Native node selection keeps the image in the document while selecting it and
+ * avoids React NodeView DOM reconciliation replacing the selected figure.
+ */
 export const ImageFigure = Node.create({
   name: "imageFigure",
   group: "block",
@@ -85,9 +65,9 @@ export const ImageFigure = Node.create({
 
   renderHTML({ node }) {
     const attrs = node.attrs as ImageFigureAttributes;
-    const classes = attrs.wrap
-      ? [`dt-image-wrap-${attrs.wrap}`]
-      : [`dt-image-align-${attrs.alignment || "center"}`];
+    const modeClass = attrs.wrap
+      ? `dt-image-wrap-${attrs.wrap}`
+      : `dt-image-align-${attrs.alignment || "center"}`;
     const imageAttrs: Record<string, string> = {
       src: attrs.src || "",
       alt: attrs.alt || "",
@@ -96,11 +76,7 @@ export const ImageFigure = Node.create({
     if (attrs.title) imageAttrs.title = attrs.title;
     const children: any[] = [["img", imageAttrs]];
     if (attrs.caption) children.push(["figcaption", {}, attrs.caption]);
-    return ["figure", { class: classes.join(" ") }, ...children];
-  },
-
-  addNodeView() {
-    return ReactNodeViewRenderer(ImageFigureView, { as: "figure" });
+    return ["figure", { class: `dt-news-image ${modeClass}` }, ...children];
   },
 });
 
