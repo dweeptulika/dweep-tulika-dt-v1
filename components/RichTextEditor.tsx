@@ -94,21 +94,24 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       window.alert("Click the image you want to edit first.");
       return;
     }
-    const figure = image.closest("figure");
-    const currentCaption = figure?.querySelector("figcaption");
+    let figure = image.closest("figure");
+    if (!figure) {
+      figure = document.createElement("figure");
+      image.replaceWith(figure);
+      figure.appendChild(image);
+    }
+    const currentCaption = figure.querySelector("figcaption");
     const nextAlt = window.prompt("Describe this image for accessibility (alternative text):", image.alt || "");
     if (nextAlt === null) return;
     const nextCaption = window.prompt("Image caption (leave blank for no caption):", currentCaption?.textContent || "");
     if (nextCaption === null) return;
     image.alt = nextAlt.trim();
-    if (figure) {
-      if (nextCaption.trim()) {
-        const caption = currentCaption || document.createElement("figcaption");
-        caption.textContent = nextCaption.trim();
-        if (!currentCaption) figure.appendChild(caption);
-      } else {
-        currentCaption?.remove();
-      }
+    if (nextCaption.trim()) {
+      const caption = currentCaption || document.createElement("figcaption");
+      caption.textContent = nextCaption.trim();
+      if (!currentCaption) figure.appendChild(caption);
+    } else {
+      currentCaption?.remove();
     }
     onChange(editorRef.current.innerHTML);
   }
