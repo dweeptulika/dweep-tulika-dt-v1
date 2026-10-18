@@ -76,16 +76,39 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     const editor = editorRef.current;
     if (!selection || !editor) return null;
     editor.focus();
-    if (savedRange.current && editor.contains(savedRange.current.commonAncestorContainer)) {
-      selection.removeAllRanges();
-      selection.addRange(savedRange.current);
-      return savedRange.current;
+
+    // A saved Range can outlive the paragraph/cell it originally referenced.
+    // Validate both endpoints before restoring it to avoid stale DOM selection.
+    const saved = savedRange.current;
+    const isLive = !!saved
+      && editor.contains(saved.startContainer)
+      && editor.contains(saved.endContainer);
+    if (saved && isLive) {
+      try {
+        selection.removeAllRanges();
+        selection.addRange(saved);
+        return saved;
+      } catch {
+        savedRange.current = null;
+      }
     }
+
+    // If a parent update invalidated the range, recover inside the selected
+    // live table cell instead of silently placing content elsewhere in the article.
+    const liveCell = selectedTableCell && editor.contains(selectedTableCell)
+      ? selectedTableCell
+      : null;
     const range = document.createRange();
-    range.selectNodeContents(editor);
-    range.collapse(false);
+    if (liveCell) {
+      range.selectNodeContents(liveCell);
+      range.collapse(false);
+    } else {
+      range.selectNodeContents(editor);
+      range.collapse(false);
+    }
     selection.removeAllRanges();
     selection.addRange(range);
+    savedRange.current = range.cloneRange();
     return range;
   }
 
@@ -232,6 +255,17 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       if (!editor) return;
       const range = restoreSelection();
       if (!range) return;
+
+      // Snapshot the insertion context before changing the DOM. Images inserted
+      // in a table must remain children of the same cell, not escape into article flow.
+      const startNode = range.startContainer;
+      const startElement = startNode instanceof Element ? startNode : startNode.parentElement;
+      const insertionCell = startElement?.closest("td,th") as HTMLTableCellElement | null;
+      const insertionTable = insertionCell?.closest("table.dtArticleTable") as HTMLTableElement | null;
+      const validTableCell = insertionCell && insertionTable && editor.contains(insertionTable)
+        ? insertionCell
+        : null;
+
       const figure = document.createElement("figure");
       figure.className = "articleInlineFigure articleImageSizeLarge articleImageAlignCenter";
       figure.draggable = true;
@@ -242,9 +276,19 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       figure.appendChild(image);
       range.deleteContents();
       range.insertNode(figure);
+
+      // Keep the image and its following caret paragraph inside the same table
+      // cell. Normal article images retain the existing insertion behaviour.
       const paragraph = document.createElement("p");
       paragraph.appendChild(document.createElement("br"));
-      figure.parentNode?.insertBefore(paragraph, figure.nextSibling);
+      const parentCell = figure.parentElement?.closest("td,th") as HTMLTableCellElement | null;
+      if (validTableCell && parentCell === validTableCell) {
+        validTableCell.insertBefore(paragraph, figure.nextSibling);
+      } else {
+        figure.parentNode?.insertBefore(paragraph, figure.nextSibling);
+      }
+      setSelectedTable(null);
+      setSelectedTableCell(null);
       setSelectedFigure(figure);
       const selection = window.getSelection();
       const nextRange = document.createRange();
@@ -298,6 +342,23 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     if (!figure || !editor || !editor.contains(figure)) return;
     const isEmptySpacer = (node: Element) =>
       node.tagName === "P" && !(node.textContent ?? "").trim() && !node.querySelector("img,video,iframe");
+    // Do not let the article-level Move earlier/later controls pull an image
+    // out of its table cell. Reordering remains local to that cell.
+    const containingCell = figure.closest("td,th");
+    if (containingCell) {
+      if (direction === "earlier") {
+        let previous = figure.previousElementSibling;
+        while (previous && isEmptySpacer(previous)) previous = previous.previousElementSibling;
+        if (previous && previous.parentElement === containingCell) containingCell.insertBefore(figure, previous);
+      } else {
+        let next = figure.nextElementSibling;
+        while (next && isEmptySpacer(next)) next = next.previousElementSibling;
+        if (next && next.parentElement === containingCell) containingCell.insertBefore(figure, next.nextSibling);
+      }
+      setSelectedFigure(figure);
+      syncEditor();
+      return;
+    }
     if (direction === "earlier") {
       let previous = figure.previousElementSibling;
       while (previous && isEmptySpacer(previous)) previous = previous.previousElementSibling;
@@ -484,6 +545,8 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
             // replacing this state with a text selection.
             event.preventDefault();
             setSelectedFigure(figure);
+            setSelectedTable(null);
+            setSelectedTableCell(null);
             return;
           }
           setSelectedFigure(null);
@@ -503,6 +566,8 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
           if (figure) {
             event.preventDefault();
             setSelectedFigure(figure);
+            setSelectedTable(null);
+            setSelectedTableCell(null);
           } else {
             setSelectedFigure(null);
             saveSelection();
