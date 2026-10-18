@@ -147,7 +147,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       thead.appendChild(row); table.appendChild(thead);
     }
     const tbody = document.createElement("tbody");
-    for (let r = 0; r < Math.max(1, includeHeader ? rows - 1 : rows); r++) {
+    for (let r = 0; r < Math.max(0, includeHeader ? rows - 1 : rows); r++) {
       const row = document.createElement("tr");
       for (let c = 0; c < columns; c++) { const cell = document.createElement("td"); cell.appendChild(document.createElement("br")); row.appendChild(cell); }
       tbody.appendChild(row);
@@ -176,7 +176,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     updateSelectedTable((_table, cell) => {
       const row = cell.parentElement as HTMLTableRowElement | null; if (!row) return;
       const newRow = document.createElement("tr");
-      Array.from(row.cells).forEach(() => { const next = document.createElement("td"); next.appendChild(document.createElement("br")); newRow.appendChild(next); });
+      Array.from(row.cells).forEach(() => { const next = document.createElement(row.parentElement?.tagName === "THEAD" ? "th" : "td"); if (next.tagName === "TH") (next as HTMLTableCellElement).scope = "col"; next.appendChild(document.createElement("br")); newRow.appendChild(next); });
       row.parentNode?.insertBefore(newRow, row.nextSibling);
       setSelectedTableCell(newRow.cells[Math.min(cell.cellIndex, newRow.cells.length - 1)] ?? null);
     });
@@ -426,6 +426,12 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
           const figure = closestImageFigure(event.target, event.currentTarget);
           if (!figure) {
             event.preventDefault();
+            return;
+          }
+          if (figure.closest("table.dtArticleTable")) {
+            // Keep images embedded in table cells from being dragged out of the table.
+            event.preventDefault();
+            setSelectedFigure(figure);
             return;
           }
           draggedFigure.current = figure;
