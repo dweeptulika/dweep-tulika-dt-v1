@@ -14,7 +14,7 @@ html{overflow-x:hidden}body{overflow-x:hidden}.masthead{background:#111;padding:
 .richToolbar{display:flex;flex-wrap:wrap;gap:5px;padding:8px;border-bottom:1px solid #cfc8bc;background:#f2eee6}
 .richToolbar button{min-width:34px;min-height:32px;padding:6px 9px;border:1px solid #aaa;background:#fff;color:#111;font:700 12px Arial;cursor:pointer}
 .richToolbar button:hover,.richToolbar button:focus{background:#111;color:#fff;border-color:#111}
-.richEditorSurface{min-height:380px;padding:18px;font:16px/1.7 Arial,sans-serif;color:#171717;outline:none;overflow-wrap:anywhere}
+.richEditorSurface{min-height:380px;padding:18px;font:16px/1.7 Arial,sans-serif;color:#171717;outline:none;overflow-wrap:anywhere;text-transform:none;letter-spacing:normal}
 .richEditorSurface:empty:before{content:attr(data-placeholder);color:#888;pointer-events:none}
 .richEditorSurface p{margin:0 0 1em}
 .richEditorSurface h2{font:700 25px/1.25 Georgia,serif;margin:1.2em 0 .55em}
@@ -60,7 +60,7 @@ html{overflow-x:hidden}body{overflow-x:hidden}.masthead{background:#111;padding:
 .richEditorSurface figure.articleImageAlignLeft{margin-left:0;margin-right:auto;text-align:left}
 .richEditorSurface figure.articleImageAlignCenter{margin-left:auto;margin-right:auto;text-align:center}
 .richEditorSurface figure.articleImageAlignRight{margin-left:auto;margin-right:0;text-align:right}
-.richEditorSurface figure.articleInlineFigure figcaption{margin:8px auto 0;color:#625c54;font:italic 13px/1.5 Georgia,serif;text-align:center}
+.richEditorSurface figure.articleInlineFigure figcaption{margin:8px auto 0;color:#625c54;font:italic 13px/1.5 Georgia,serif;text-align:center;text-transform:none;letter-spacing:normal}
 .articlebody figure.articleInlineFigure{display:block;max-width:100%;margin:24px auto;text-align:center}
 .articlebody figure.articleInlineFigure img{display:block;width:100%;height:auto;max-width:100%;max-height:560px;object-fit:contain;margin:0 auto}
 .articlebody figure.articleInlineFigure.articleImageSizeSmall{width:25%}
@@ -72,3 +72,15 @@ html{overflow-x:hidden}body{overflow-x:hidden}.masthead{background:#111;padding:
 .articlebody figure.articleImageAlignRight{margin-left:auto;margin-right:0}
 .articlebody figure.articleInlineFigure figcaption{margin:8px auto 0;color:#625c54;font:italic 14px/1.5 Georgia,serif;text-align:center}
 @media(max-width:600px){.richImageToolbar{align-items:stretch}.richImageToolbar label{justify-content:space-between}.richImageToolbar select{flex:1;max-width:none}.richEditorSurface figure.articleInlineFigure.articleImageSizeSmall{width:50%}.richEditorSurface figure.articleInlineFigure.articleImageSizeMedium{width:75%}.articlebody figure.articleInlineFigure.articleImageSizeSmall{width:50%}.articlebody figure.articleInlineFigure.articleImageSizeMedium{width:75%}}
+
+
+/* Inline image text wrapping is opt-in; default images stay on their own line. */
+.richEditorSurface figure.articleInlineFigure.articleImageWrapNone{float:none}
+.richEditorSurface figure.articleInlineFigure.articleImageWrapLeft{float:left;width:40%;margin:4px 18px 12px 0;text-align:center}
+.richEditorSurface figure.articleInlineFigure.articleImageWrapRight{float:right;width:40%;margin:4px 0 12px 18px;text-align:center}
+.articlebody figure.articleInlineFigure.articleImageWrapNone{float:none}
+.articlebody figure.articleInlineFigure.articleImageWrapLeft{float:left;width:40%;margin:4px 18px 12px 0;text-align:center}
+.articlebody figure.articleInlineFigure.articleImageWrapRight{float:right;width:40%;margin:4px 0 12px 18px;text-align:center}
+.articlebody figure.articleInlineFigure.articleImageWrapLeft img,.articlebody figure.articleInlineFigure.articleImageWrapRight img{width:100%}
+.articlebody figure.articleInlineFigure.articleImageWrapLeft figcaption,.articlebody figure.articleInlineFigure.articleImageWrapRight figcaption{text-align:center}
+@media(max-width:600px){.richEditorSurface figure.articleInlineFigure.articleImageWrapLeft,.richEditorSurface figure.articleInlineFigure.articleImageWrapRight,.articlebody figure.articleInlineFigure.articleImageWrapLeft,.articlebody figure.articleInlineFigure.articleImageWrapRight{float:none;width:75%;margin:18px auto}}
