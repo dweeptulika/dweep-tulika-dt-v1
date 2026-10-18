@@ -26,12 +26,17 @@ const tools = [
 
 function closestImageFigure(target: EventTarget | null, editor: HTMLElement): HTMLElement | null {
   if (!(target instanceof Element)) return null;
-  // Do not depend on a CSS class surviving HTML normalization. An image figure
-  // is any figure inside this editor that still contains an image.
+  // The table wrapper is also a <figure>, and may contain images in its cells.
+  // It must never be treated as the selected image when a user clicks elsewhere
+  // in that table. Only an image-specific figure can activate image tools.
   const figure = target.closest("figure");
-  return figure && editor.contains(figure) && figure.querySelector("img")
-    ? figure as HTMLElement
-    : null;
+  if (!figure || !editor.contains(figure)) return null;
+  if (figure.classList.contains("dtTableFigure") || figure.querySelector("table.dtArticleTable")) return null;
+  const image = figure.querySelector("img");
+  if (!image) return null;
+  // If this figure contains another image figure, only the nearest image figure
+  // should be selectable; outer layout wrappers are not image controls.
+  return figure as HTMLElement;
 }
 
 export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
