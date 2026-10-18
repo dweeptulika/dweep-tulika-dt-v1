@@ -31,3 +31,11 @@ html{overflow-x:hidden}body{overflow-x:hidden}.masthead{background:#111;padding:
 
 
 .adSlot{margin:24px 0}.adLabel{display:inline-block;margin-bottom:6px;padding:4px 8px;background:#111;color:#fff;font:800 9px Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase}.adSlot>a{display:block}.adSlot img{display:block;width:100%;height:auto}.adSlot small{display:block;margin-top:6px;font:11px Arial;color:#6b665e}
+
+/* Inline newsroom images: readable captions and predictable figure spacing. */
+.richEditorSurface figure.articleInlineFigure{margin:20px 0;text-align:center}
+.richEditorSurface figure.articleInlineFigure img{display:block;max-width:100%;height:auto;margin:0 auto}
+.richEditorSurface figure.articleInlineFigure figcaption{margin-top:8px;color:#625c54;font:italic 13px/1.5 Arial,sans-serif}
+.articlebody figure.articleInlineFigure{margin:24px 0;text-align:center}
+.articlebody figure.articleInlineFigure img{margin:0 auto}
+.articlebody figure.articleInlineFigure figcaption{margin-top:8px;color:#625c54;font:italic 14px/1.5 Arial,sans-serif}
