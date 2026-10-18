@@ -274,17 +274,21 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       image.alt = file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
       image.loading = "lazy";
       figure.appendChild(image);
-      range.deleteContents();
-      range.insertNode(figure);
 
-      // Keep the image and its following caret paragraph inside the same table
-      // cell. Normal article images retain the existing insertion behaviour.
       const paragraph = document.createElement("p");
       paragraph.appendChild(document.createElement("br"));
-      const parentCell = figure.parentElement?.closest("td,th") as HTMLTableCellElement | null;
-      if (validTableCell && parentCell === validTableCell) {
+      if (validTableCell) {
+        // Never insert a block-level figure inside a paragraph in a table cell:
+        // browsers may silently restructure that invalid HTML and break selection.
+        // Insert after the current cell block (or at cell end) as valid cell children.
+        const block = startElement?.closest("p,div,ul,ol,blockquote,figure");
+        const anchor = block && validTableCell.contains(block) ? block : null;
+        const reference = anchor?.nextSibling ?? null;
+        validTableCell.insertBefore(figure, reference);
         validTableCell.insertBefore(paragraph, figure.nextSibling);
       } else {
+        range.deleteContents();
+        range.insertNode(figure);
         figure.parentNode?.insertBefore(paragraph, figure.nextSibling);
       }
       setSelectedTable(null);
@@ -352,7 +356,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         if (previous && previous.parentElement === containingCell) containingCell.insertBefore(figure, previous);
       } else {
         let next = figure.nextElementSibling;
-        while (next && isEmptySpacer(next)) next = next.previousElementSibling;
+        while (next && isEmptySpacer(next)) next = next.nextElementSibling;
         if (next && next.parentElement === containingCell) containingCell.insertBefore(figure, next.nextSibling);
       }
       setSelectedFigure(figure);
