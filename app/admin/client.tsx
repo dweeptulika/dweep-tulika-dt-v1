@@ -97,6 +97,57 @@ export default function AdminPage() {
     setUploading(false); event.target.value = "";
   }
 
+  async function uploadInlineImage(file: File): Promise<string | null> {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setMessage("Only JPEG, PNG and WebP images are allowed.");
+      return null;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setMessage("Image is larger than the 10 MB newsroom limit.");
+      return null;
+    }
+    if (uploading || busy) {
+      setMessage("Wait for the current newsroom operation to finish.");
+      return null;
+    }
+
+    setUploading(true);
+    setMessage("Uploading inline image…");
+    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const safeBase = makeSlug(file.name.replace(/\.[^.]+$/, "")) || "article-image";
+    const path = "articles/" + Date.now() + "-" + safeBase + "." + extension;
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from("news-media")
+        .upload(path, file, { cacheControl: "31536000", upsert: false });
+      if (uploadError) {
+        setMessage("Inline image upload failed: " + uploadError.message);
+        return null;
+      }
+
+      const { data: publicData } = supabase.storage.from("news-media").getPublicUrl(path);
+      const { data: userData } = await supabase.auth.getUser();
+      const { error: mediaError } = await supabase.from("media").insert({
+        file_path: path,
+        public_url: publicData.publicUrl,
+        alt_text: title || safeBase.replace(/-/g, " "),
+        caption: "",
+        uploaded_by: userData.user?.id ?? null,
+      });
+
+      setMessage(mediaError
+        ? "Image uploaded; media-library record needs attention: " + mediaError.message
+        : "Inline image uploaded. Add alt text and an optional caption.");
+      return publicData.publicUrl;
+    } catch (error) {
+      setMessage("Inline image upload failed. Please try again.");
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function saveArticle(requestedStatus: ArticleStatus) {
     setBusy(true); setMessage("");
     const { data: userData } = await supabase.auth.getUser(); const user = userData.user;
@@ -164,7 +215,7 @@ export default function AdminPage() {
           {featuredImage && <div className="adminImagePreview"><img src={featuredImage} alt="Selected featured image" /><button type="button" onClick={() => setFeaturedImage("")}>Remove featured image</button></div>}
           {socialImage && <div className="adminImagePreview"><img src={socialImage} alt="Selected social image" /><button type="button" onClick={() => setSocialImage("")}>Remove social image</button></div>}
           <label>Article body
-            <RichTextEditor value={body} onChange={setBody} />
+            <RichTextEditor value={body} onChange={setBody} onUploadImage={uploadInlineImage} />
           </label>
           <div className="adminFormGrid">
             <label>Publication date &amp; time<input type="datetime-local" value={publicationDate} onChange={e => setPublicationDate(e.target.value)} /><small>Use this to preserve or set the original publication date for backdated stories.</small></label>
