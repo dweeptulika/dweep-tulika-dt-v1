@@ -1,7 +1,7 @@
 import sanitizeHtml from "sanitize-html";
 
 const allowedTags = [
-  "address","article","aside","blockquote","br","caption","code","dd","div","dl","dt",
+  "a","address","article","aside","blockquote","br","caption","code","dd","div","dl","dt",
   "em","figcaption","figure","footer","h1","h2","h3","h4","h5","h6","header","hr",
   "i","img","li","main","ol","p","pre","section","small","span","strong","sub","sup",
   "table","tbody","td","tfoot","th","thead","tr","u","ul"
@@ -17,10 +17,26 @@ export function sanitizeArticleHtml(html: string): string {
     },
     allowedSchemes: ["http", "https", "mailto"],
     allowedSchemesByTag: {
+      a: ["http", "https", "mailto"],
       img: ["http", "https"]
     },
     allowProtocolRelative: false,
-    disallowedTagsMode: "discard"
+    disallowedTagsMode: "discard",
+    transformTags: {
+      a: (tagName, attribs) => {
+        const target = attribs.target;
+        if (target === "_blank") {
+          return {
+            tagName,
+            attribs: {
+              ...attribs,
+              rel: Array.from(new Set([...(attribs.rel || "").split(/\\s+/), "noopener", "noreferrer"].filter(Boolean))).join(" ")
+            }
+          };
+        }
+        return { tagName, attribs };
+      }
+    }
   });
 }
 
