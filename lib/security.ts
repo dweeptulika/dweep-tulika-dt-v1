@@ -20,17 +20,21 @@ export function sanitizeArticleHtml(html: string): string {
       a: ["http", "https", "mailto"],
       img: ["http", "https"]
     },
-    allowedStyles: {\n      "*": {\n        "text-align": [/^(left|right|center|justify)$/]\n      }\n    },\n    allowProtocolRelative: false,
+    allowedStyles: {
+      "*": {
+        "text-align": [/^(left|right|center|justify)$/]
+      }
+    },
+    allowProtocolRelative: false,
     disallowedTagsMode: "discard",
     transformTags: {
       a: (tagName, attribs) => {
-        const target = attribs.target;
-        if (target === "_blank") {
+        if (attribs.target === "_blank") {
           return {
             tagName,
             attribs: {
               ...attribs,
-              rel: Array.from(new Set([...(attribs.rel || "").split(/\\s+/), "noopener", "noreferrer"].filter(Boolean))).join(" ")
+              rel: Array.from(new Set([...(attribs.rel || "").split(/\s+/), "noopener", "noreferrer"].filter(Boolean))).join(" ")
             }
           };
         }
