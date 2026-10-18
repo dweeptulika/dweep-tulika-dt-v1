@@ -34,7 +34,8 @@ function closestImageFigure(target: EventTarget | null, editor: HTMLElement): HT
 export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const savedRange = useRef<Range | null>(null);\n  const draggedFigure = useRef<HTMLElement | null>(null);
+  const savedRange = useRef<Range | null>(null);
+  const draggedFigure = useRef<HTMLElement | null>(null);
   // Parent state echoes must not replace live contentEditable DOM or selection.
   const lastEmittedHtml = useRef<string | null>(null);
   const [selectedFigure, setSelectedFigure] = useState<HTMLElement | null>(null);
@@ -123,7 +124,8 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       const range = restoreSelection();
       if (!range) return;
       const figure = document.createElement("figure");
-      figure.className = "articleInlineFigure articleImageSizeLarge articleImageAlignCenter";\n      figure.draggable = true;
+      figure.className = "articleInlineFigure articleImageSizeLarge articleImageAlignCenter";
+      figure.draggable = true;
       const image = document.createElement("img");
       image.src = url;
       image.alt = file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
