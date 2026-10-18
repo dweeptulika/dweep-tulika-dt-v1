@@ -277,11 +277,23 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       <div ref={editorRef} className="richEditorSurface" style={{ textTransform: "none", letterSpacing: "normal" }} contentEditable suppressContentEditableWarning
         role="textbox" aria-label="Article body" aria-multiline="true"
         onInput={(event) => handleEditorInput(event.currentTarget)}
+        onMouseDown={(event) => {
+          // Select the whole figure before the browser moves focus/selection to its caption.
+          const figure = closestImageFigure(event.target, event.currentTarget);
+          if (figure) {
+            figure.draggable = true;
+            setSelectedFigure(figure);
+          }
+        }}
         onClick={(event) => {
           const figure = closestImageFigure(event.target, event.currentTarget);
-          if (figure) figure.draggable = true;
-          setSelectedFigure(figure);
-          if (!figure) saveSelection();
+          if (figure) {
+            figure.draggable = true;
+            setSelectedFigure(figure);
+          } else {
+            setSelectedFigure(null);
+            saveSelection();
+          }
         }}
         onDragStart={(event) => {
           const figure = closestImageFigure(event.target, event.currentTarget);
@@ -302,14 +314,37 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
           const editor = event.currentTarget;
           if (!figure || !editor.contains(figure)) return;
           event.preventDefault();
-          const doc = document as Document & { caretRangeFromPoint?: (x: number, y: number) => Range | null };
-          const range = doc.caretRangeFromPoint?.(event.clientX, event.clientY);
+          // Reject drops outside the editor's visible rectangle.
+          const bounds = editor.getBoundingClientRect();
+          if (event.clientX < bounds.left || event.clientX > bounds.right ||
+              event.clientY < bounds.top || event.clientY > bounds.bottom) {
+            draggedFigure.current = null;
+            return;
+          }
+          const doc = document as Document & {
+            caretRangeFromPoint?: (x: number, y: number) => Range | null;
+            caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+          };
+          let range = doc.caretRangeFromPoint?.(event.clientX, event.clientY) ?? null;
+          if (!range && doc.caretPositionFromPoint) {
+            const position = doc.caretPositionFromPoint(event.clientX, event.clientY);
+            if (position) {
+              range = document.createRange();
+              range.setStart(position.offsetNode, position.offset);
+              range.collapse(true);
+            }
+          }
           if (!range || !editor.contains(range.startContainer) || figure.contains(range.startContainer)) {
             draggedFigure.current = null;
             return;
           }
+          // Pin the destination before removing the dragged node; otherwise a live Range
+          // can collapse or retarget and unexpectedly move the image outside the editor.
+          const marker = document.createComment("image-drop-target");
+          range.insertNode(marker);
           figure.remove();
-          range.insertNode(figure);
+          marker.parentNode?.insertBefore(figure, marker);
+          marker.remove();
           const spacer = document.createElement("p");
           spacer.appendChild(document.createElement("br"));
           if (!figure.nextSibling) figure.parentNode?.appendChild(spacer);
