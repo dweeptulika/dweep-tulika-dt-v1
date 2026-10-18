@@ -26,8 +26,7 @@ const tools = [
 
 function closestImageFigure(target: EventTarget | null, editor: HTMLElement): HTMLElement | null {
   if (!(target instanceof Element)) return null;
-  const image = target.closest("img");
-  const figure = image?.closest("figure.articleInlineFigure");
+  const figure = target.closest("figure.articleInlineFigure");
   return figure && editor.contains(figure) ? figure as HTMLElement : null;
 }
 
@@ -280,9 +279,45 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         onInput={(event) => handleEditorInput(event.currentTarget)}
         onClick={(event) => {
           const figure = closestImageFigure(event.target, event.currentTarget);
+          if (figure) figure.draggable = true;
           setSelectedFigure(figure);
           if (!figure) saveSelection();
         }}
+        onDragStart={(event) => {
+          const figure = closestImageFigure(event.target, event.currentTarget);
+          if (!figure) return;
+          figure.draggable = true;
+          draggedFigure.current = figure;
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", "dweep-tulika-inline-image");
+          setSelectedFigure(figure);
+        }}
+        onDragOver={(event) => {
+          if (!draggedFigure.current || !event.currentTarget.contains(draggedFigure.current)) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+        }}
+        onDrop={(event) => {
+          const figure = draggedFigure.current;
+          const editor = event.currentTarget;
+          if (!figure || !editor.contains(figure)) return;
+          event.preventDefault();
+          const doc = document as Document & { caretRangeFromPoint?: (x: number, y: number) => Range | null };
+          const range = doc.caretRangeFromPoint?.(event.clientX, event.clientY);
+          if (!range || !editor.contains(range.startContainer) || figure.contains(range.startContainer)) {
+            draggedFigure.current = null;
+            return;
+          }
+          figure.remove();
+          range.insertNode(figure);
+          const spacer = document.createElement("p");
+          spacer.appendChild(document.createElement("br"));
+          if (!figure.nextSibling) figure.parentNode?.appendChild(spacer);
+          draggedFigure.current = null;
+          setSelectedFigure(figure);
+          syncEditor();
+        }}
+        onDragEnd={() => { draggedFigure.current = null; }}
         onKeyUp={saveSelection} onMouseUp={saveSelection} onBlur={saveSelection}
         data-placeholder="Write your article here. Select text and use the toolbar to format it." />
       {imageStatus && <p className="richEditorHint" role="status">{imageStatus}</p>}
