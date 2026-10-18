@@ -35,15 +35,22 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const savedRange = useRef<Range | null>(null);
+  // Parent state echoes must not replace live contentEditable DOM or selection.
+  const lastEmittedHtml = useRef<string | null>(null);
   const [selectedFigure, setSelectedFigure] = useState<HTMLElement | null>(null);
   const [imageStatus, setImageStatus] = useState("");
 
   useEffect(() => {
     const el = editorRef.current;
-    if (el && el.innerHTML !== value && document.activeElement !== el) {
+    if (!el) return;
+    // Ignore the value echoed back from our own onChange call.
+    if (lastEmittedHtml.current === value) return;
+    if (el.innerHTML !== value) {
       el.innerHTML = value;
+      savedRange.current = null;
       setSelectedFigure(null);
     }
+    lastEmittedHtml.current = value;
   }, [value]);
 
   function saveSelection() {
@@ -72,7 +79,17 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   }
 
   function syncEditor() {
-    if (editorRef.current) onChange(editorRef.current.innerHTML);
+    if (!editorRef.current) return;
+    const html = editorRef.current.innerHTML;
+    lastEmittedHtml.current = html;
+    onChange(html);
+  }
+
+  function handleEditorInput(editor: HTMLDivElement) {
+    setSelectedFigure(null);
+    const html = editor.innerHTML;
+    lastEmittedHtml.current = html;
+    onChange(html);
   }
 
   function run(command: string, commandValue?: string) {
@@ -235,14 +252,17 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
           <button type="button" onClick={editAltText}>Edit alt text</button>
           <button type="button" onClick={editCaption}>Edit caption</button>
           <button type="button" className="richImageRemove" onClick={removeImage}>Remove image</button>
-          <button type="button" onClick={() => setSelectedFigure(null)} aria-label="Close image tools">Done</button>
+          <button type="button" onClick={() => {
+            setSelectedFigure(null);
+            editorRef.current?.focus();
+          }} aria-label="Close image tools">Done</button>
         </div>
         <p className="richEditorHint">Changes apply to the selected image. Click another image to edit it.</p>
       </>}
 
       <div ref={editorRef} className="richEditorSurface" contentEditable suppressContentEditableWarning
         role="textbox" aria-label="Article body" aria-multiline="true"
-        onInput={(event) => { setSelectedFigure(null); onChange(event.currentTarget.innerHTML); }}
+        onInput={(event) => handleEditorInput(event.currentTarget)}
         onClick={(event) => {
           const figure = closestImageFigure(event.target, event.currentTarget);
           setSelectedFigure(figure);
