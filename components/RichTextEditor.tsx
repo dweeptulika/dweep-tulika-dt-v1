@@ -298,19 +298,33 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         onInput={(event) => handleEditorInput(event.currentTarget)}
         onMouseDown={(event) => {
           const figure = closestImageFigure(event.target, event.currentTarget);
-          if (figure) setSelectedFigure(figure);
+          if (figure) {
+            setSelectedFigure(figure);
+          } else {
+            setSelectedFigure(null);
+            saveSelection();
+          }
+        }}
+        onMouseUp={(event) => {
+          // Re-check after the browser completes its native click/selection handling.
+          const figure = closestImageFigure(event.target, event.currentTarget);
+          setSelectedFigure(figure);
+          if (!figure) saveSelection();
         }}
         onContextMenu={(event) => {
           const figure = closestImageFigure(event.target, event.currentTarget);
           if (figure) {
             event.preventDefault();
             setSelectedFigure(figure);
+          } else {
+            setSelectedFigure(null);
+            saveSelection();
           }
         }}
         onClick={(event) => {
           const figure = closestImageFigure(event.target, event.currentTarget);
-          if (figure) setSelectedFigure(figure);
-          else saveSelection();
+          setSelectedFigure(figure);
+          if (!figure) saveSelection();
         }}
         data-placeholder="Write your article here. Select text and use the toolbar to format it." />
       {imageStatus && <p className="richEditorHint" role="status">{imageStatus}</p>}
