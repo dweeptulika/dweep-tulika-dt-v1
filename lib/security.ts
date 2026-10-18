@@ -13,14 +13,14 @@ export function sanitizeArticleHtml(html: string): string {
     allowedAttributes: {
       a: ["href", "target", "rel", "title"],
       img: ["src", "alt", "title", "width", "height", "loading"],
-      "*": ["class", "id"]
+      "*": ["class", "id", "style"]
     },
     allowedSchemes: ["http", "https", "mailto"],
     allowedSchemesByTag: {
       a: ["http", "https", "mailto"],
       img: ["http", "https"]
     },
-    allowProtocolRelative: false,
+    allowedStyles: {\n      "*": {\n        "text-align": [/^(left|right|center|justify)$/]\n      }\n    },\n    allowProtocolRelative: false,
     disallowedTagsMode: "discard",
     transformTags: {
       a: (tagName, attribs) => {
