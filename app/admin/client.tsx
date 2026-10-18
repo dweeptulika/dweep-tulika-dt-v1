@@ -140,7 +140,7 @@ export default function AdminPage() {
         ? "Image uploaded; media-library record needs attention: " + mediaError.message
         : "Inline image uploaded. Add alt text and an optional caption.");
       return publicData.publicUrl;
-    } catch (error) {
+    } catch {
       setMessage("Inline image upload failed. Please try again.");
       return null;
     } finally {
