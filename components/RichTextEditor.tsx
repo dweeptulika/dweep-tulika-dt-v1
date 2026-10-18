@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { ChangeEvent, useEffect, useRef } from "react";
 
-type Props = { value: string; onChange: (html: string) => void };
+type Props = {
+  value: string;
+  onChange: (html: string) => void;
+  onUploadImage?: (file: File) => Promise<string | null>;
+};
 
 const tools = [
   { label: "B", title: "Bold", command: "bold" },
@@ -20,8 +24,9 @@ const tools = [
   { label: "☷", title: "Justify paragraph", command: "justifyFull" },
 ];
 
-export function RichTextEditor({ value, onChange }: Props) {
+export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const savedRange = useRef<Range | null>(null);
 
   useEffect(() => {
@@ -36,15 +41,29 @@ export function RichTextEditor({ value, onChange }: Props) {
     }
   }
 
+  function restoreSelection() {
+    const selection = window.getSelection();
+    const editor = editorRef.current;
+    if (!selection || !editor) return null;
+    editor.focus();
+    if (savedRange.current && editor.contains(savedRange.current.commonAncestorContainer)) {
+      selection.removeAllRanges();
+      selection.addRange(savedRange.current);
+      return savedRange.current;
+    }
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return range;
+  }
+
   function run(command: string, commandValue?: string) {
     const el = editorRef.current;
     if (!el) return;
     el.focus();
-    const selection = window.getSelection();
-    if (savedRange.current && selection) {
-      selection.removeAllRanges();
-      selection.addRange(savedRange.current);
-    }
+    restoreSelection();
     document.execCommand(command, false, commandValue);
     saveSelection();
     onChange(el.innerHTML);
@@ -53,6 +72,49 @@ export function RichTextEditor({ value, onChange }: Props) {
   function addLink() {
     const url = window.prompt("Enter the link URL (https://…):");
     if (url && /^https?:\/\//i.test(url.trim())) run("createLink", url.trim());
+  }
+
+  async function addInlineImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !onUploadImage) return;
+
+    const url = await onUploadImage(file);
+    if (!url) return;
+
+    const editor = editorRef.current;
+    if (!editor) return;
+    const range = restoreSelection();
+    if (!range) return;
+
+    const alt = window.prompt("Enter descriptive alt text for this image:", file.name.replace(/\.[^.]+$/, "")) ?? "";
+    const caption = window.prompt("Enter an optional image caption (leave blank for none):", "") ?? "";
+    const figure = document.createElement("figure");
+    figure.className = "articleInlineFigure";
+    const image = document.createElement("img");
+    image.src = url;
+    image.alt = alt.trim();
+    image.loading = "lazy";
+    figure.appendChild(image);
+    if (caption.trim()) {
+      const figcaption = document.createElement("figcaption");
+      figcaption.textContent = caption.trim();
+      figure.appendChild(figcaption);
+    }
+
+    range.deleteContents();
+    range.insertNode(figure);
+    const paragraph = document.createElement("p");
+    paragraph.appendChild(document.createElement("br"));
+    figure.parentNode?.insertBefore(paragraph, figure.nextSibling);
+    const selection = window.getSelection();
+    const nextRange = document.createRange();
+    nextRange.selectNodeContents(paragraph);
+    nextRange.collapse(true);
+    selection?.removeAllRanges();
+    selection?.addRange(nextRange);
+    savedRange.current = nextRange.cloneRange();
+    onChange(editor.innerHTML);
   }
 
   return (
@@ -67,6 +129,13 @@ export function RichTextEditor({ value, onChange }: Props) {
         <button type="button" title="Insert link"
           onMouseDown={(event) => { event.preventDefault(); saveSelection(); }}
           onClick={addLink}>Link</button>
+        {onUploadImage && <>
+          <button type="button" title="Insert image into article"
+            onMouseDown={(event) => { event.preventDefault(); saveSelection(); }}
+            onClick={() => imageInputRef.current?.click()}>Image</button>
+          <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp"
+            onChange={(event) => void addInlineImage(event)} hidden />
+        </>}
         <button type="button" title="Undo" onMouseDown={(event) => event.preventDefault()} onClick={() => run("undo")}>↶</button>
         <button type="button" title="Redo" onMouseDown={(event) => event.preventDefault()} onClick={() => run("redo")}>↷</button>
       </div>
