@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useRef } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 
 type Props = {
   value: string;
@@ -24,14 +24,26 @@ const tools = [
   { label: "☷", title: "Justify paragraph", command: "justifyFull" },
 ];
 
+function closestImageFigure(target: EventTarget | null, editor: HTMLElement): HTMLElement | null {
+  if (!(target instanceof Element)) return null;
+  const image = target.closest("img");
+  const figure = image?.closest("figure.articleInlineFigure");
+  return figure && editor.contains(figure) ? figure as HTMLElement : null;
+}
+
 export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const savedRange = useRef<Range | null>(null);
+  const [selectedFigure, setSelectedFigure] = useState<HTMLElement | null>(null);
+  const [imageStatus, setImageStatus] = useState("");
 
   useEffect(() => {
     const el = editorRef.current;
-    if (el && el.innerHTML !== value && document.activeElement !== el) el.innerHTML = value;
+    if (el && el.innerHTML !== value && document.activeElement !== el) {
+      el.innerHTML = value;
+      setSelectedFigure(null);
+    }
   }, [value]);
 
   function saveSelection() {
@@ -59,6 +71,10 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     return range;
   }
 
+  function syncEditor() {
+    if (editorRef.current) onChange(editorRef.current.innerHTML);
+  }
+
   function run(command: string, commandValue?: string) {
     const el = editorRef.current;
     if (!el) return;
@@ -66,11 +82,11 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     restoreSelection();
     document.execCommand(command, false, commandValue);
     saveSelection();
-    onChange(el.innerHTML);
+    syncEditor();
   }
 
   function addLink() {
-    const url = window.prompt("Enter the link URL (https://…):");
+    const url = window.prompt("Enter a full link starting with https://");
     if (url && /^https?:\/\//i.test(url.trim())) run("createLink", url.trim());
   }
 
@@ -78,43 +94,102 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file || !onUploadImage) return;
-
-    const url = await onUploadImage(file);
-    if (!url) return;
-
-    const editor = editorRef.current;
-    if (!editor) return;
-    const range = restoreSelection();
-    if (!range) return;
-
-    const alt = window.prompt("Enter descriptive alt text for this image:", file.name.replace(/\.[^.]+$/, "")) ?? "";
-    const caption = window.prompt("Enter an optional image caption (leave blank for none):", "") ?? "";
-    const figure = document.createElement("figure");
-    figure.className = "articleInlineFigure";
-    const image = document.createElement("img");
-    image.src = url;
-    image.alt = alt.trim();
-    image.loading = "lazy";
-    figure.appendChild(image);
-    if (caption.trim()) {
-      const figcaption = document.createElement("figcaption");
-      figcaption.textContent = caption.trim();
-      figure.appendChild(figcaption);
+    setImageStatus("Uploading image…");
+    try {
+      const url = await onUploadImage(file);
+      if (!url) {
+        setImageStatus("Image was not inserted. Please check the upload message and try again.");
+        return;
+      }
+      const editor = editorRef.current;
+      if (!editor) return;
+      const range = restoreSelection();
+      if (!range) return;
+      const figure = document.createElement("figure");
+      figure.className = "articleInlineFigure articleImageSizeLarge articleImageAlignCenter";
+      const image = document.createElement("img");
+      image.src = url;
+      image.alt = file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
+      image.loading = "lazy";
+      figure.appendChild(image);
+      range.deleteContents();
+      range.insertNode(figure);
+      const paragraph = document.createElement("p");
+      paragraph.appendChild(document.createElement("br"));
+      figure.parentNode?.insertBefore(paragraph, figure.nextSibling);
+      setSelectedFigure(figure);
+      const selection = window.getSelection();
+      const nextRange = document.createRange();
+      nextRange.selectNodeContents(paragraph);
+      nextRange.collapse(true);
+      selection?.removeAllRanges();
+      selection?.addRange(nextRange);
+      savedRange.current = nextRange.cloneRange();
+      syncEditor();
+      setImageStatus("Image inserted. Select it to adjust layout, caption or alt text.");
+    } catch {
+      setImageStatus("Image upload failed. Please try again.");
     }
+  }
 
-    range.deleteContents();
-    range.insertNode(figure);
-    const paragraph = document.createElement("p");
-    paragraph.appendChild(document.createElement("br"));
-    figure.parentNode?.insertBefore(paragraph, figure.nextSibling);
-    const selection = window.getSelection();
-    const nextRange = document.createRange();
-    nextRange.selectNodeContents(paragraph);
-    nextRange.collapse(true);
-    selection?.removeAllRanges();
-    selection?.addRange(nextRange);
-    savedRange.current = nextRange.cloneRange();
-    onChange(editor.innerHTML);
+  function updateFigure(mutator: (figure: HTMLElement, image: HTMLImageElement) => void) {
+    const figure = selectedFigure;
+    const image = figure?.querySelector("img");
+    if (!figure || !image || !editorRef.current?.contains(figure)) {
+      setSelectedFigure(null);
+      return;
+    }
+    mutator(figure, image);
+    syncEditor();
+  }
+
+  function setImageSize(size: "small" | "medium" | "large" | "full") {
+    updateFigure((figure) => {
+      figure.classList.remove("articleImageSizeSmall", "articleImageSizeMedium", "articleImageSizeLarge", "articleImageSizeFull");
+      figure.classList.add(`articleImageSize${size[0].toUpperCase()}${size.slice(1)}`);
+    });
+  }
+
+  function setImageAlignment(alignment: "left" | "center" | "right") {
+    updateFigure((figure) => {
+      figure.classList.remove("articleImageAlignLeft", "articleImageAlignCenter", "articleImageAlignRight");
+      figure.classList.add(`articleImageAlign${alignment[0].toUpperCase()}${alignment.slice(1)}`);
+    });
+  }
+
+  function editAltText() {
+    const image = selectedFigure?.querySelector("img");
+    if (!image) return;
+    const alt = window.prompt("Describe what this image shows (for screen readers and search engines):", image.alt);
+    if (alt !== null) updateFigure((_figure, target) => { target.alt = alt.trim(); });
+  }
+
+  function editCaption() {
+    const figure = selectedFigure;
+    if (!figure) return;
+    const current = figure.querySelector("figcaption")?.textContent ?? "";
+    const caption = window.prompt("Caption shown below the image (leave blank to remove):", current);
+    if (caption === null) return;
+    const existing = figure.querySelector("figcaption");
+    if (caption.trim()) {
+      const node = existing ?? document.createElement("figcaption");
+      node.textContent = caption.trim();
+      if (!existing) figure.appendChild(node);
+    } else {
+      existing?.remove();
+    }
+    syncEditor();
+  }
+
+  function removeImage() {
+    const figure = selectedFigure;
+    if (!figure) return;
+    const next = document.createElement("p");
+    next.appendChild(document.createElement("br"));
+    figure.replaceWith(next);
+    setSelectedFigure(null);
+    syncEditor();
+    editorRef.current?.focus();
   }
 
   return (
@@ -132,19 +207,51 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         {onUploadImage && <>
           <button type="button" title="Insert image into article"
             onMouseDown={(event) => { event.preventDefault(); saveSelection(); }}
-            onClick={() => imageInputRef.current?.click()}>Image</button>
+            onClick={() => imageInputRef.current?.click()}>+ Image</button>
           <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp"
             onChange={(event) => void addInlineImage(event)} hidden />
         </>}
-        <button type="button" title="Undo" onMouseDown={(event) => event.preventDefault()} onClick={() => run("undo")}>↶</button>
-        <button type="button" title="Redo" onMouseDown={(event) => event.preventDefault()} onClick={() => run("redo")}>↷</button>
+        <button type="button" title="Undo" onMouseDown={(event) => event.preventDefault()} onClick={() => run("undo")}>↶ Undo</button>
+        <button type="button" title="Redo" onMouseDown={(event) => event.preventDefault()} onClick={() => run("redo")}>↷ Redo</button>
       </div>
+
+      {selectedFigure && editorRef.current?.contains(selectedFigure) && <>
+        <div className="richImageToolbar" role="group" aria-label="Selected image tools">
+          <strong>Image selected</strong>
+          <label>Size
+            <select aria-label="Image size" defaultValue="large"
+              value={selectedFigure.classList.contains("articleImageSizeSmall") ? "small" : selectedFigure.classList.contains("articleImageSizeMedium") ? "medium" : selectedFigure.classList.contains("articleImageSizeFull") ? "full" : "large"}
+              onChange={(event) => setImageSize(event.target.value as "small" | "medium" | "large" | "full")}>
+              <option value="small">Small (25%)</option><option value="medium">Medium (50%)</option>
+              <option value="large">Large (75%)</option><option value="full">Full width</option>
+            </select>
+          </label>
+          <label>Align
+            <select aria-label="Image alignment" value={selectedFigure.classList.contains("articleImageAlignLeft") ? "left" : selectedFigure.classList.contains("articleImageAlignRight") ? "right" : "center"}
+              onChange={(event) => setImageAlignment(event.target.value as "left" | "center" | "right")}>
+              <option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option>
+            </select>
+          </label>
+          <button type="button" onClick={editAltText}>Edit alt text</button>
+          <button type="button" onClick={editCaption}>Edit caption</button>
+          <button type="button" className="richImageRemove" onClick={removeImage}>Remove image</button>
+          <button type="button" onClick={() => setSelectedFigure(null)} aria-label="Close image tools">Done</button>
+        </div>
+        <p className="richEditorHint">Changes apply to the selected image. Click another image to edit it.</p>
+      </>}
+
       <div ref={editorRef} className="richEditorSurface" contentEditable suppressContentEditableWarning
         role="textbox" aria-label="Article body" aria-multiline="true"
-        onInput={(event) => onChange(event.currentTarget.innerHTML)}
+        onInput={(event) => { setSelectedFigure(null); onChange(event.currentTarget.innerHTML); }}
+        onClick={(event) => {
+          const figure = closestImageFigure(event.target, event.currentTarget);
+          setSelectedFigure(figure);
+          if (!figure) saveSelection();
+        }}
         onKeyUp={saveSelection} onMouseUp={saveSelection} onBlur={saveSelection}
         data-placeholder="Write your article here. Select text and use the toolbar to format it." />
-      <p className="richEditorHint">Formatting applies to the selected text or current paragraph. Press Enter to start a new paragraph.</p>
+      {imageStatus && <p className="richEditorHint" role="status">{imageStatus}</p>}
+      <p className="richEditorHint">Tip: click an image to open its editing tools. Select text to format it. Press Enter to start a new paragraph.</p>
     </div>
   );
 }
