@@ -553,6 +553,34 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
             setSelectedTableCell(null);
             return;
           }
+
+          // Explicitly place the caret at the mouse/touch point inside table cells.
+          // Some browser/contentEditable combinations keep the old caret when the
+          // cell contains block elements such as paragraphs or image figures.
+          const target = event.target instanceof Element ? event.target : null;
+          const cell = target?.closest("td,th") as HTMLTableCellElement | null;
+          const table = cell?.closest("table.dtArticleTable") as HTMLTableElement | null;
+          if (cell && table && event.currentTarget.contains(table)) {
+            const doc = event.currentTarget.ownerDocument;
+            const pointRange = typeof doc.caretRangeFromPoint === "function"
+              ? doc.caretRangeFromPoint(event.clientX, event.clientY)
+              : null;
+            const range = doc.createRange();
+            if (pointRange && cell.contains(pointRange.startContainer)) {
+              range.setStart(pointRange.startContainer, pointRange.startOffset);
+              range.collapse(true);
+            } else {
+              range.selectNodeContents(cell);
+              range.collapse(false);
+            }
+            const selection = doc.getSelection();
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+            savedRange.current = range.cloneRange();
+            setSelectedFigure(null);
+            return;
+          }
+
           setSelectedFigure(null);
           saveSelection();
         }}
