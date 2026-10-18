@@ -26,14 +26,19 @@ const tools = [
 
 function closestImageFigure(target: EventTarget | null, editor: HTMLElement): HTMLElement | null {
   if (!(target instanceof Element)) return null;
-  const figure = target.closest("figure.articleInlineFigure");
-  return figure && editor.contains(figure) ? figure as HTMLElement : null;
+  // Do not depend on a CSS class surviving HTML normalization. An image figure
+  // is any figure inside this editor that still contains an image.
+  const figure = target.closest("figure");
+  return figure && editor.contains(figure) && figure.querySelector("img")
+    ? figure as HTMLElement
+    : null;
 }
 
 export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const savedRange = useRef<Range | null>(null);
+  const draggedFigure = useRef<HTMLElement | null>(null);
   // Parent state echoes must not replace live contentEditable DOM or selection.
   const lastEmittedHtml = useRef<string | null>(null);
   const [selectedFigure, setSelectedFigure] = useState<HTMLElement | null>(null);
@@ -45,9 +50,14 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     // Ignore the value echoed back from our own onChange call.
     if (lastEmittedHtml.current === value) return;
     if (el.innerHTML !== value) {
+      // If the parent normalizes the HTML, remember which image was selected and
+      // rebind selection to the corresponding live DOM node after replacement.
+      const figures = Array.from(el.querySelectorAll("figure")).filter((node) => node.querySelector("img"));
+      const selectedIndex = selectedFigure ? figures.indexOf(selectedFigure) : -1;
       el.innerHTML = value;
+      const nextFigures = Array.from(el.querySelectorAll("figure")).filter((node) => node.querySelector("img"));
+      setSelectedFigure(selectedIndex >= 0 ? (nextFigures[selectedIndex] as HTMLElement | undefined) ?? null : null);
       savedRange.current = null;
-      setSelectedFigure(null);
     }
     lastEmittedHtml.current = value;
   }, [value]);
@@ -123,6 +133,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       if (!range) return;
       const figure = document.createElement("figure");
       figure.className = "articleInlineFigure articleImageSizeLarge articleImageAlignCenter";
+      figure.draggable = true;
       const image = document.createElement("img");
       image.src = url;
       image.alt = file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
@@ -296,6 +307,54 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       <div ref={editorRef} className="richEditorSurface" style={{ textTransform: "none", letterSpacing: "normal" }} contentEditable suppressContentEditableWarning
         role="textbox" aria-label="Article body" aria-multiline="true"
         onInput={(event) => handleEditorInput(event.currentTarget)}
+        onDragStart={(event) => {
+          const figure = closestImageFigure(event.target, event.currentTarget);
+          if (!figure) {
+            event.preventDefault();
+            return;
+          }
+          draggedFigure.current = figure;
+          figure.draggable = true;
+          setSelectedFigure(figure);
+          if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", "dweep-tulika-inline-image");
+          }
+        }}
+        onDragOver={(event) => {
+          if (draggedFigure.current && event.currentTarget.contains(draggedFigure.current)) {
+            // Prevent the browser from inserting the image into a text caret,
+            // which is what can split words or sentences during native drop.
+            event.preventDefault();
+            if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+          }
+        }}
+        onDrop={(event) => {
+          const dragged = draggedFigure.current;
+          const editor = event.currentTarget;
+          if (!dragged || !editor.contains(dragged)) return;
+          event.preventDefault();
+          event.stopPropagation();
+          const targetFigure = closestImageFigure(event.target, editor);
+          if (targetFigure && targetFigure !== dragged) {
+            const rect = targetFigure.getBoundingClientRect();
+            const insertAfter = event.clientY > rect.top + rect.height / 2;
+            targetFigure.parentNode?.insertBefore(dragged, insertAfter ? targetFigure.nextSibling : targetFigure);
+          } else if (!targetFigure) {
+            // Reposition only against a block boundary; never drop into a text node.
+            const target = event.target instanceof Element ? event.target.closest("p,h2,h3,blockquote,ul,ol,figure") : null;
+            if (target && editor.contains(target) && target !== dragged) {
+              const rect = target.getBoundingClientRect();
+              target.parentNode?.insertBefore(dragged, event.clientY > rect.top + rect.height / 2 ? target.nextSibling : target);
+            }
+          }
+          draggedFigure.current = null;
+          setSelectedFigure(dragged);
+          syncEditor();
+        }}
+        onDragEnd={() => {
+          draggedFigure.current = null;
+        }}
         onMouseDown={(event) => {
           const figure = closestImageFigure(event.target, event.currentTarget);
           if (figure) {
