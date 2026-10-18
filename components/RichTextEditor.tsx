@@ -231,9 +231,9 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         {onUploadImage && <>
           <button type="button" title="Insert image into article"
             onMouseDown={(event) => { event.preventDefault(); saveSelection(); }}
-            onClick={() => imageInputRef.current?.click()}>+ Image</button>
+            onClick={() => imageInputRef.current?.click()}>Insert image</button>
           <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp"
-            onChange={(event) => void addInlineImage(event)} hidden />
+            onChange={(event) => void addInlineImage(event)} style={{ display: "none" }} aria-hidden="true" tabIndex={-1} />
         </>}
         <button type="button" title="Undo" onMouseDown={(event) => event.preventDefault()} onClick={() => run("undo")}>↶ Undo</button>
         <button type="button" title="Redo" onMouseDown={(event) => event.preventDefault()} onClick={() => run("redo")}>↷ Redo</button>
