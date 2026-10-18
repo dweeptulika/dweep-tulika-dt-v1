@@ -42,6 +42,8 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   // Parent state echoes must not replace live contentEditable DOM or selection.
   const lastEmittedHtml = useRef<string | null>(null);
   const [selectedFigure, setSelectedFigure] = useState<HTMLElement | null>(null);
+  const [selectedTableCell, setSelectedTableCell] = useState<HTMLTableCellElement | null>(null);
+  const [selectedTable, setSelectedTable] = useState<HTMLTableElement | null>(null);
   const [imageStatus, setImageStatus] = useState("");
 
   useEffect(() => {
@@ -114,6 +116,105 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   function addLink() {
     const url = window.prompt("Enter a full link starting with https://");
     if (url && /^https?:\/\//i.test(url.trim())) run("createLink", url.trim());
+  }
+
+  function insertTable() {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const rowsInput = window.prompt("Number of table rows (including the header row):", "3");
+    if (rowsInput === null) return;
+    const columnsInput = window.prompt("Number of table columns:", "3");
+    if (columnsInput === null) return;
+    const rows = Number.parseInt(rowsInput, 10);
+    const columns = Number.parseInt(columnsInput, 10);
+    if (!Number.isInteger(rows) || !Number.isInteger(columns) || rows < 1 || rows > 20 || columns < 1 || columns > 10) {
+      window.alert("Use 1–20 rows and 1–10 columns."); return;
+    }
+    const title = window.prompt("Optional table title (leave blank for no title):", "")?.trim() ?? "";
+    const includeHeader = window.confirm("Use the first row as column headings?");
+    const range = restoreSelection();
+    if (!range) return;
+    const figure = document.createElement("figure");
+    figure.className = "dtTableFigure";
+    if (title) {
+      const bar = document.createElement("div"); bar.className = "dtTableTitle"; bar.textContent = title; figure.appendChild(bar);
+    }
+    const scroll = document.createElement("div"); scroll.className = "dtTableScroll";
+    const table = document.createElement("table"); table.className = "dtArticleTable";
+    if (includeHeader) {
+      const thead = document.createElement("thead"), row = document.createElement("tr");
+      for (let c = 0; c < columns; c++) { const cell = document.createElement("th"); cell.scope = "col"; cell.appendChild(document.createElement("br")); row.appendChild(cell); }
+      thead.appendChild(row); table.appendChild(thead);
+    }
+    const tbody = document.createElement("tbody");
+    for (let r = 0; r < Math.max(1, includeHeader ? rows - 1 : rows); r++) {
+      const row = document.createElement("tr");
+      for (let c = 0; c < columns; c++) { const cell = document.createElement("td"); cell.appendChild(document.createElement("br")); row.appendChild(cell); }
+      tbody.appendChild(row);
+    }
+    table.appendChild(tbody); scroll.appendChild(table); figure.appendChild(scroll);
+    range.deleteContents(); range.insertNode(figure);
+    const spacer = document.createElement("p"); spacer.appendChild(document.createElement("br")); figure.parentNode?.insertBefore(spacer, figure.nextSibling);
+    const firstCell = table.querySelector("th,td") as HTMLTableCellElement | null;
+    setSelectedFigure(null); setSelectedTable(table); setSelectedTableCell(firstCell);
+    if (firstCell) {
+      const nextRange = document.createRange(); nextRange.selectNodeContents(firstCell); nextRange.collapse(true);
+      const selection = window.getSelection(); selection?.removeAllRanges(); selection?.addRange(nextRange); savedRange.current = nextRange.cloneRange();
+    }
+    syncEditor();
+  }
+
+  function updateSelectedTable(mutator: (table: HTMLTableElement, cell: HTMLTableCellElement) => void) {
+    const editor = editorRef.current;
+    if (!editor || !selectedTable || !selectedTableCell || !editor.contains(selectedTable) || !selectedTable.contains(selectedTableCell)) {
+      setSelectedTable(null); setSelectedTableCell(null); return;
+    }
+    mutator(selectedTable, selectedTableCell); syncEditor();
+  }
+
+  function addTableRow() {
+    updateSelectedTable((_table, cell) => {
+      const row = cell.parentElement as HTMLTableRowElement | null; if (!row) return;
+      const newRow = document.createElement("tr");
+      Array.from(row.cells).forEach(() => { const next = document.createElement("td"); next.appendChild(document.createElement("br")); newRow.appendChild(next); });
+      row.parentNode?.insertBefore(newRow, row.nextSibling);
+      setSelectedTableCell(newRow.cells[Math.min(cell.cellIndex, newRow.cells.length - 1)] ?? null);
+    });
+  }
+
+  function addTableColumn() {
+    updateSelectedTable((table, cell) => {
+      const index = cell.cellIndex;
+      Array.from(table.rows).forEach((row) => {
+        const next = document.createElement(row.parentElement?.tagName === "THEAD" ? "th" : "td");
+        if (next.tagName === "TH") (next as HTMLTableCellElement).scope = "col";
+        next.appendChild(document.createElement("br")); row.insertBefore(next, row.cells[index + 1] ?? null);
+      });
+      const row = cell.parentElement as HTMLTableRowElement | null; setSelectedTableCell(row?.cells[index + 1] ?? cell);
+    });
+  }
+
+  function deleteTableRow() {
+    updateSelectedTable((table, cell) => {
+      const row = cell.parentElement as HTMLTableRowElement | null; if (!row || table.rows.length <= 1) return;
+      const nextRow = row.nextElementSibling ?? row.previousElementSibling; row.remove();
+      setSelectedTableCell(nextRow instanceof HTMLTableRowElement ? nextRow.cells[Math.min(cell.cellIndex, nextRow.cells.length - 1)] ?? null : null);
+    });
+  }
+
+  function deleteTableColumn() {
+    updateSelectedTable((table, cell) => {
+      if ((cell.parentElement as HTMLTableRowElement | null)?.cells.length === 1) return;
+      const index = cell.cellIndex; Array.from(table.rows).forEach((row) => row.cells[index]?.remove());
+      setSelectedTableCell(table.querySelector("th,td") as HTMLTableCellElement | null);
+    });
+  }
+
+  function deleteTable() {
+    if (!selectedTable || !editorRef.current?.contains(selectedTable)) return;
+    const figure = selectedTable.closest("figure.dtTableFigure");
+    const spacer = document.createElement("p"); spacer.appendChild(document.createElement("br"));
+    figure?.replaceWith(spacer); setSelectedTable(null); setSelectedTableCell(null); syncEditor();
   }
 
   async function addInlineImage(event: ChangeEvent<HTMLInputElement>) {
@@ -257,6 +358,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         <button type="button" title="Insert link"
           onMouseDown={(event) => { event.preventDefault(); saveSelection(); }}
           onClick={addLink}>Link</button>
+        <button type="button" title="Insert a formatted table" onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={insertTable}>Insert table</button>
         {onUploadImage && <>
           <button type="button" title="Insert image into article"
             onMouseDown={(event) => { event.preventDefault(); saveSelection(); }}
@@ -267,6 +369,19 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         <button type="button" title="Undo" onMouseDown={(event) => event.preventDefault()} onClick={() => run("undo")}>↶ Undo</button>
         <button type="button" title="Redo" onMouseDown={(event) => event.preventDefault()} onClick={() => run("redo")}>↷ Redo</button>
       </div>
+
+      {selectedTable && selectedTableCell && editorRef.current?.contains(selectedTable) && selectedTable.contains(selectedTableCell) && <>
+        <div className="richTableToolbar" role="group" aria-label="Selected table tools">
+          <strong>Table selected</strong>
+          <button type="button" onClick={addTableRow}>Add row below</button>
+          <button type="button" onClick={deleteTableRow}>Delete row</button>
+          <button type="button" onClick={addTableColumn}>Add column</button>
+          <button type="button" onClick={deleteTableColumn}>Delete column</button>
+          <button type="button" className="richTableRemove" onClick={deleteTable}>Delete table</button>
+          <button type="button" onClick={() => { setSelectedTable(null); setSelectedTableCell(null); editorRef.current?.focus(); }}>Done</button>
+        </div>
+        <p className="richEditorHint">Click a table cell to select the table. Use the formatting toolbar for text, lists, alignment and links inside cells. Insert image while the cursor is in a cell to keep it there.</p>
+      </>}
 
       {selectedFigure && editorRef.current?.contains(selectedFigure) && <>
         <div className="richImageToolbar" role="group" aria-label="Selected image tools">
@@ -390,10 +505,16 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         onClick={(event) => {
           const figure = closestImageFigure(event.target, event.currentTarget);
           if (figure) {
-            setSelectedFigure(figure);
+            setSelectedFigure(figure); setSelectedTable(null); setSelectedTableCell(null);
           } else {
-            setSelectedFigure(null);
-            saveSelection();
+            const target = event.target instanceof Element ? event.target : null;
+            const cell = target?.closest("td,th") as HTMLTableCellElement | null;
+            const table = cell?.closest("table.dtArticleTable") as HTMLTableElement | null;
+            if (cell && table && event.currentTarget.contains(table)) {
+              setSelectedFigure(null); setSelectedTable(table); setSelectedTableCell(cell); saveSelection();
+            } else {
+              setSelectedFigure(null); setSelectedTable(null); setSelectedTableCell(null); saveSelection();
+            }
           }
         }}
         data-placeholder="Write your article here. Select text and use the toolbar to format it." />
