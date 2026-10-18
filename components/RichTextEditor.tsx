@@ -368,6 +368,15 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
           setSelectedFigure(null);
           saveSelection();
         }}
+        onPointerUp={(event) => {
+          // Text selection is finalized on pointer-up. Save that range here,
+          // but never clear image selection merely because a mouse button was released.
+          const figure = closestImageFigure(event.target, event.currentTarget);
+          if (!figure) {
+            setSelectedFigure(null);
+            saveSelection();
+          }
+        }}
         onContextMenu={(event) => {
           const figure = closestImageFigure(event.target, event.currentTarget);
           if (figure) {
