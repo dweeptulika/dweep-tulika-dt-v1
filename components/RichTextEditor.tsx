@@ -355,20 +355,18 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         onDragEnd={() => {
           draggedFigure.current = null;
         }}
-        onMouseDown={(event) => {
+        onPointerDown={(event) => {
           const figure = closestImageFigure(event.target, event.currentTarget);
           if (figure) {
+            // Select the image before the browser moves its caret/selection.
+            // Preventing the native image selection avoids a mouse-up event
+            // replacing this state with a text selection.
+            event.preventDefault();
             setSelectedFigure(figure);
-          } else {
-            setSelectedFigure(null);
-            saveSelection();
+            return;
           }
-        }}
-        onMouseUp={(event) => {
-          // Re-check after the browser completes its native click/selection handling.
-          const figure = closestImageFigure(event.target, event.currentTarget);
-          setSelectedFigure(figure);
-          if (!figure) saveSelection();
+          setSelectedFigure(null);
+          saveSelection();
         }}
         onContextMenu={(event) => {
           const figure = closestImageFigure(event.target, event.currentTarget);
@@ -382,8 +380,12 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         }}
         onClick={(event) => {
           const figure = closestImageFigure(event.target, event.currentTarget);
-          setSelectedFigure(figure);
-          if (!figure) saveSelection();
+          if (figure) {
+            setSelectedFigure(figure);
+          } else {
+            setSelectedFigure(null);
+            saveSelection();
+          }
         }}
         data-placeholder="Write your article here. Select text and use the toolbar to format it." />
       {imageStatus && <p className="richEditorHint" role="status">{imageStatus}</p>}
