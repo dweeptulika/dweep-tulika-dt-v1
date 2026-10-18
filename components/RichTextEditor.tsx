@@ -34,7 +34,6 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const savedRange = useRef<Range | null>(null);
-  const draggedFigure = useRef<HTMLElement | null>(null);
   // Parent state echoes must not replace live contentEditable DOM or selection.
   const lastEmittedHtml = useRef<string | null>(null);
   const [selectedFigure, setSelectedFigure] = useState<HTMLElement | null>(null);
@@ -124,7 +123,6 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       if (!range) return;
       const figure = document.createElement("figure");
       figure.className = "articleInlineFigure articleImageSizeLarge articleImageAlignCenter";
-      figure.draggable = true;
       const image = document.createElement("img");
       image.src = url;
       image.alt = file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
@@ -180,6 +178,25 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       figure.classList.remove("articleImageWrapNone", "articleImageWrapLeft", "articleImageWrapRight");
       figure.classList.add(`articleImageWrap${wrap[0].toUpperCase()}${wrap.slice(1)}`);
     });
+  }
+
+  function moveImage(direction: "earlier" | "later") {
+    const figure = selectedFigure;
+    const editor = editorRef.current;
+    if (!figure || !editor || !editor.contains(figure)) return;
+    const isEmptySpacer = (node: Element) =>
+      node.tagName === "P" && !(node.textContent ?? "").trim() && !node.querySelector("img,video,iframe");
+    if (direction === "earlier") {
+      let previous = figure.previousElementSibling;
+      while (previous && isEmptySpacer(previous)) previous = previous.previousElementSibling;
+      if (previous) previous.parentNode?.insertBefore(figure, previous);
+    } else {
+      let next = figure.nextElementSibling;
+      while (next && isEmptySpacer(next)) next = next.nextElementSibling;
+      if (next) next.parentNode?.insertBefore(figure, next.nextElementSibling);
+    }
+    setSelectedFigure(figure);
+    syncEditor();
   }
 
   function editAltText() {
@@ -257,13 +274,15 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
               <option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option>
             </select>
           </label>
-          <label>Text wrap
-            <select aria-label="Image text wrap" value={selectedFigure.classList.contains("articleImageWrapLeft") ? "left" : selectedFigure.classList.contains("articleImageWrapRight") ? "right" : "none"}
+          <label>Text wrapping
+            <select aria-label="Image text wrapping" value={selectedFigure.classList.contains("articleImageWrapLeft") ? "left" : selectedFigure.classList.contains("articleImageWrapRight") ? "right" : "none"}
               onChange={(event) => setImageWrap(event.target.value as "none" | "left" | "right")}>
-              <option value="none">No wrap</option><option value="left">Text on right</option><option value="right">Text on left</option>
+              <option value="none">No wrap</option><option value="left">Wrap text to the right</option><option value="right">Wrap text to the left</option>
             </select>
           </label>
           <button type="button" onClick={editAltText}>Edit alt text</button>
+          <button type="button" onClick={() => moveImage("earlier")}>Move earlier</button>
+          <button type="button" onClick={() => moveImage("later")}>Move later</button>
           <button type="button" onClick={editCaption}>Edit caption</button>
           <button type="button" className="richImageRemove" onClick={removeImage}>Remove image</button>
           <button type="button" onClick={() => {
@@ -278,82 +297,21 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         role="textbox" aria-label="Article body" aria-multiline="true"
         onInput={(event) => handleEditorInput(event.currentTarget)}
         onMouseDown={(event) => {
-          // Select the whole figure before the browser moves focus/selection to its caption.
+          const figure = closestImageFigure(event.target, event.currentTarget);
+          if (figure) setSelectedFigure(figure);
+        }}
+        onContextMenu={(event) => {
           const figure = closestImageFigure(event.target, event.currentTarget);
           if (figure) {
-            figure.draggable = true;
+            event.preventDefault();
             setSelectedFigure(figure);
           }
         }}
         onClick={(event) => {
           const figure = closestImageFigure(event.target, event.currentTarget);
-          if (figure) {
-            figure.draggable = true;
-            setSelectedFigure(figure);
-          } else {
-            setSelectedFigure(null);
-            saveSelection();
-          }
+          if (figure) setSelectedFigure(figure);
+          else saveSelection();
         }}
-        onDragStart={(event) => {
-          const figure = closestImageFigure(event.target, event.currentTarget);
-          if (!figure) return;
-          figure.draggable = true;
-          draggedFigure.current = figure;
-          event.dataTransfer.effectAllowed = "move";
-          event.dataTransfer.setData("text/plain", "dweep-tulika-inline-image");
-          setSelectedFigure(figure);
-        }}
-        onDragOver={(event) => {
-          if (!draggedFigure.current || !event.currentTarget.contains(draggedFigure.current)) return;
-          event.preventDefault();
-          event.dataTransfer.dropEffect = "move";
-        }}
-        onDrop={(event) => {
-          const figure = draggedFigure.current;
-          const editor = event.currentTarget;
-          if (!figure || !editor.contains(figure)) return;
-          event.preventDefault();
-          // Reject drops outside the editor's visible rectangle.
-          const bounds = editor.getBoundingClientRect();
-          if (event.clientX < bounds.left || event.clientX > bounds.right ||
-              event.clientY < bounds.top || event.clientY > bounds.bottom) {
-            draggedFigure.current = null;
-            return;
-          }
-          const doc = document as Document & {
-            caretRangeFromPoint?: (x: number, y: number) => Range | null;
-            caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
-          };
-          let range = doc.caretRangeFromPoint?.(event.clientX, event.clientY) ?? null;
-          if (!range && doc.caretPositionFromPoint) {
-            const position = doc.caretPositionFromPoint(event.clientX, event.clientY);
-            if (position) {
-              range = document.createRange();
-              range.setStart(position.offsetNode, position.offset);
-              range.collapse(true);
-            }
-          }
-          if (!range || !editor.contains(range.startContainer) || figure.contains(range.startContainer)) {
-            draggedFigure.current = null;
-            return;
-          }
-          // Pin the destination before removing the dragged node; otherwise a live Range
-          // can collapse or retarget and unexpectedly move the image outside the editor.
-          const marker = document.createComment("image-drop-target");
-          range.insertNode(marker);
-          figure.remove();
-          marker.parentNode?.insertBefore(figure, marker);
-          marker.remove();
-          const spacer = document.createElement("p");
-          spacer.appendChild(document.createElement("br"));
-          if (!figure.nextSibling) figure.parentNode?.appendChild(spacer);
-          draggedFigure.current = null;
-          setSelectedFigure(figure);
-          syncEditor();
-        }}
-        onDragEnd={() => { draggedFigure.current = null; }}
-        onKeyUp={saveSelection} onMouseUp={saveSelection} onBlur={saveSelection}
         data-placeholder="Write your article here. Select text and use the toolbar to format it." />
       {imageStatus && <p className="richEditorHint" role="status">{imageStatus}</p>}
       <p className="richEditorHint">Tip: click an image to open its editing tools. Select text to format it. Press Enter to start a new paragraph.</p>
