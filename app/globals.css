@@ -39,3 +39,36 @@ html{overflow-x:hidden}body{overflow-x:hidden}.masthead{background:#111;padding:
 .articlebody figure.articleInlineFigure{margin:24px 0;text-align:center}
 .articlebody figure.articleInlineFigure img{margin:0 auto}
 .articlebody figure.articleInlineFigure figcaption{margin-top:8px;color:#625c54;font:italic 14px/1.5 Arial,sans-serif}
+
+
+/* Accessible inline-image editing controls in the newsroom editor. */
+.richImageToolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #cfc8bc;background:#fff8e8;font:13px/1.4 Arial,sans-serif}
+.richImageToolbar>strong{font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.richImageToolbar label{display:flex;align-items:center;gap:6px;font-weight:700}
+.richImageToolbar select{max-width:150px;padding:7px;border:1px solid #999;background:#fff;font:13px Arial}
+.richImageToolbar button{min-height:34px;padding:7px 10px;border:1px solid #111;background:#fff;color:#111;font:700 12px Arial;cursor:pointer}
+.richImageToolbar button:hover,.richImageToolbar button:focus{background:#111;color:#fff}
+.richImageToolbar .richImageRemove{border-color:#b51e2a;color:#b51e2a}
+.richImageToolbar .richImageRemove:hover{background:#b51e2a;color:#fff}
+.richEditorSurface figure.articleInlineFigure{display:block;max-width:100%;margin:20px auto;text-align:center;outline:2px solid transparent;outline-offset:3px}
+.richEditorSurface figure.articleInlineFigure:focus,.richEditorSurface figure.articleInlineFigure:hover{outline-color:#d8c7a7}
+.richEditorSurface figure.articleInlineFigure img{display:block;width:100%;height:auto;max-width:100%;margin:0 auto;object-fit:contain}
+.richEditorSurface figure.articleInlineFigure.articleImageSizeSmall{width:25%}
+.richEditorSurface figure.articleInlineFigure.articleImageSizeMedium{width:50%}
+.richEditorSurface figure.articleInlineFigure.articleImageSizeLarge{width:75%}
+.richEditorSurface figure.articleInlineFigure.articleImageSizeFull{width:100%}
+.richEditorSurface figure.articleImageAlignLeft{margin-left:0;margin-right:auto;text-align:left}
+.richEditorSurface figure.articleImageAlignCenter{margin-left:auto;margin-right:auto;text-align:center}
+.richEditorSurface figure.articleImageAlignRight{margin-left:auto;margin-right:0;text-align:right}
+.richEditorSurface figure.articleInlineFigure figcaption{margin:8px auto 0;color:#625c54;font:italic 13px/1.5 Georgia,serif;text-align:center}
+.articlebody figure.articleInlineFigure{display:block;max-width:100%;margin:24px auto;text-align:center}
+.articlebody figure.articleInlineFigure img{display:block;width:100%;height:auto;max-width:100%;max-height:560px;object-fit:contain;margin:0 auto}
+.articlebody figure.articleInlineFigure.articleImageSizeSmall{width:25%}
+.articlebody figure.articleInlineFigure.articleImageSizeMedium{width:50%}
+.articlebody figure.articleInlineFigure.articleImageSizeLarge{width:75%}
+.articlebody figure.articleInlineFigure.articleImageSizeFull{width:100%}
+.articlebody figure.articleImageAlignLeft{margin-left:0;margin-right:auto}
+.articlebody figure.articleImageAlignCenter{margin-left:auto;margin-right:auto}
+.articlebody figure.articleImageAlignRight{margin-left:auto;margin-right:0}
+.articlebody figure.articleInlineFigure figcaption{margin:8px auto 0;color:#625c54;font:italic 14px/1.5 Georgia,serif;text-align:center}
+@media(max-width:600px){.richImageToolbar{align-items:stretch}.richImageToolbar label{justify-content:space-between}.richImageToolbar select{flex:1;max-width:none}.richEditorSurface figure.articleInlineFigure.articleImageSizeSmall{width:50%}.richEditorSurface figure.articleInlineFigure.articleImageSizeMedium{width:75%}.articlebody figure.articleInlineFigure.articleImageSizeSmall{width:50%}.articlebody figure.articleInlineFigure.articleImageSizeMedium{width:75%}}
