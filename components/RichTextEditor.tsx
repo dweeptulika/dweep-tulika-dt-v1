@@ -174,6 +174,13 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
     });
   }
 
+  function setImageWrap(wrap: "none" | "left" | "right") {
+    updateFigure((figure) => {
+      figure.classList.remove("articleImageWrapNone", "articleImageWrapLeft", "articleImageWrapRight");
+      figure.classList.add(`articleImageWrap${wrap[0].toUpperCase()}${wrap.slice(1)}`);
+    });
+  }
+
   function editAltText() {
     const image = selectedFigure?.querySelector("img");
     if (!image) return;
@@ -249,6 +256,12 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
               <option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option>
             </select>
           </label>
+          <label>Text wrap
+            <select aria-label="Image text wrap" value={selectedFigure.classList.contains("articleImageWrapLeft") ? "left" : selectedFigure.classList.contains("articleImageWrapRight") ? "right" : "none"}
+              onChange={(event) => setImageWrap(event.target.value as "none" | "left" | "right")}>
+              <option value="none">No wrap</option><option value="left">Text on right</option><option value="right">Text on left</option>
+            </select>
+          </label>
           <button type="button" onClick={editAltText}>Edit alt text</button>
           <button type="button" onClick={editCaption}>Edit caption</button>
           <button type="button" className="richImageRemove" onClick={removeImage}>Remove image</button>
@@ -260,7 +273,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         <p className="richEditorHint">Changes apply to the selected image. Click another image to edit it.</p>
       </>}
 
-      <div ref={editorRef} className="richEditorSurface" contentEditable suppressContentEditableWarning
+      <div ref={editorRef} className="richEditorSurface" style={{ textTransform: "none", letterSpacing: "normal" }} contentEditable suppressContentEditableWarning
         role="textbox" aria-label="Article body" aria-multiline="true"
         onInput={(event) => handleEditorInput(event.currentTarget)}
         onClick={(event) => {
