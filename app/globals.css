@@ -14,7 +14,7 @@ html{overflow-x:hidden}body{overflow-x:hidden}.masthead{background:#111;padding:
 .richToolbar{display:flex;flex-wrap:wrap;gap:5px;padding:8px;border-bottom:1px solid #cfc8bc;background:#f2eee6}
 .richToolbar button{min-width:34px;min-height:32px;padding:6px 9px;border:1px solid #aaa;background:#fff;color:#111;font:700 12px Arial;cursor:pointer}
 .richToolbar button:hover,.richToolbar button:focus{background:#111;color:#fff;border-color:#111}
-.richEditorSurface{min-height:380px;padding:18px;font:16px/1.7 Arial,sans-serif;color:#171717;outline:none;overflow-wrap:anywhere}
+.richEditorSurface{min-height:380px;padding:18px;font:16px/1.7 Arial,sans-serif;color:#171717;outline:none;overflow-wrap:anywhere;text-transform:none;letter-spacing:normal}
 .richEditorSurface:empty:before{content:attr(data-placeholder);color:#888;pointer-events:none}
 .richEditorSurface p{margin:0 0 1em}
 .richEditorSurface h2{font:700 25px/1.25 Georgia,serif;margin:1.2em 0 .55em}
@@ -31,3 +31,81 @@ html{overflow-x:hidden}body{overflow-x:hidden}.masthead{background:#111;padding:
 
 
 .adSlot{margin:24px 0}.adLabel{display:inline-block;margin-bottom:6px;padding:4px 8px;background:#111;color:#fff;font:800 9px Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase}.adSlot>a{display:block}.adSlot img{display:block;width:100%;height:auto}.adSlot small{display:block;margin-top:6px;font:11px Arial;color:#6b665e}
+
+/* Inline newsroom images: readable captions and predictable figure spacing. */
+.richEditorSurface figure.articleInlineFigure{margin:20px 0;text-align:center}
+.richEditorSurface figure.articleInlineFigure img{display:block;max-width:100%;height:auto;margin:0 auto}
+.richEditorSurface figure.articleInlineFigure figcaption{margin-top:8px;color:#625c54;font:italic 13px/1.5 Arial,sans-serif}
+.articlebody figure.articleInlineFigure{margin:24px 0;text-align:center}
+.articlebody figure.articleInlineFigure img{margin:0 auto}
+.articlebody figure.articleInlineFigure figcaption{margin-top:8px;color:#625c54;font:italic 14px/1.5 Arial,sans-serif}
+
+
+/* Accessible inline-image editing controls in the newsroom editor. */
+.richImageToolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #cfc8bc;background:#fff8e8;font:13px/1.4 Arial,sans-serif}
+.richImageToolbar>strong{font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.richImageToolbar label{display:flex;align-items:center;gap:6px;font-weight:700}
+.richImageToolbar select{max-width:150px;padding:7px;border:1px solid #999;background:#fff;font:13px Arial}
+.richImageToolbar button{min-height:34px;padding:7px 10px;border:1px solid #111;background:#fff;color:#111;font:700 12px Arial;cursor:pointer}
+.richImageToolbar button:hover,.richImageToolbar button:focus{background:#111;color:#fff}
+.richImageToolbar .richImageRemove{border-color:#b51e2a;color:#b51e2a}
+.richImageToolbar .richImageRemove:hover{background:#b51e2a;color:#fff}
+.richEditorSurface figure.articleInlineFigure{display:block;max-width:100%;margin:20px auto;text-align:center;outline:2px solid transparent;outline-offset:3px}
+.richEditorSurface figure.articleInlineFigure:focus,.richEditorSurface figure.articleInlineFigure:hover{outline-color:#d8c7a7}
+.richEditorSurface figure.articleInlineFigure img{display:block;width:100%;height:auto;max-width:100%;margin:0 auto;object-fit:contain}
+.richEditorSurface figure.articleInlineFigure.articleImageSizeSmall{width:25%}
+.richEditorSurface figure.articleInlineFigure.articleImageSizeMedium{width:50%}
+.richEditorSurface figure.articleInlineFigure.articleImageSizeLarge{width:75%}
+.richEditorSurface figure.articleInlineFigure.articleImageSizeFull{width:100%}
+.richEditorSurface figure.articleImageAlignLeft{margin-left:0;margin-right:auto;text-align:left}
+.richEditorSurface figure.articleImageAlignCenter{margin-left:auto;margin-right:auto;text-align:center}
+.richEditorSurface figure.articleImageAlignRight{margin-left:auto;margin-right:0;text-align:right}
+.richEditorSurface figure.articleInlineFigure figcaption{margin:8px auto 0;color:#625c54;font:italic 13px/1.5 Georgia,serif;text-align:center;text-transform:none;letter-spacing:normal}
+.articlebody figure.articleInlineFigure{display:block;max-width:100%;margin:24px auto;text-align:center}
+.articlebody figure.articleInlineFigure img{display:block;width:100%;height:auto;max-width:100%;max-height:560px;object-fit:contain;margin:0 auto}
+.articlebody figure.articleInlineFigure.articleImageSizeSmall{width:25%}
+.articlebody figure.articleInlineFigure.articleImageSizeMedium{width:50%}
+.articlebody figure.articleInlineFigure.articleImageSizeLarge{width:75%}
+.articlebody figure.articleInlineFigure.articleImageSizeFull{width:100%}
+.articlebody figure.articleImageAlignLeft{margin-left:0;margin-right:auto}
+.articlebody figure.articleImageAlignCenter{margin-left:auto;margin-right:auto}
+.articlebody figure.articleImageAlignRight{margin-left:auto;margin-right:0}
+.articlebody figure.articleInlineFigure figcaption{margin:8px auto 0;color:#625c54;font:italic 14px/1.5 Georgia,serif;text-align:center}
+@media(max-width:600px){.richImageToolbar{align-items:stretch}.richImageToolbar label{justify-content:space-between}.richImageToolbar select{flex:1;max-width:none}.richEditorSurface figure.articleInlineFigure.articleImageSizeSmall{width:50%}.richEditorSurface figure.articleInlineFigure.articleImageSizeMedium{width:75%}.articlebody figure.articleInlineFigure.articleImageSizeSmall{width:50%}.articlebody figure.articleInlineFigure.articleImageSizeMedium{width:75%}}
+
+
+/* Inline image text wrapping is opt-in; default images stay on their own line. */
+.richEditorSurface figure.articleInlineFigure.articleImageWrapNone{float:none}
+.richEditorSurface figure.articleInlineFigure.articleImageWrapLeft{float:left;width:40%;margin:4px 18px 12px 0;text-align:center}
+.richEditorSurface figure.articleInlineFigure.articleImageWrapRight{float:right;width:40%;margin:4px 0 12px 18px;text-align:center}
+.articlebody figure.articleInlineFigure.articleImageWrapNone{float:none}
+.articlebody figure.articleInlineFigure.articleImageWrapLeft{float:left;width:40%;margin:4px 18px 12px 0;text-align:center}
+.articlebody figure.articleInlineFigure.articleImageWrapRight{float:right;width:40%;margin:4px 0 12px 18px;text-align:center}
+.articlebody figure.articleInlineFigure.articleImageWrapLeft img,.articlebody figure.articleInlineFigure.articleImageWrapRight img{width:100%}
+.articlebody figure.articleInlineFigure.articleImageWrapLeft figcaption,.articlebody figure.articleInlineFigure.articleImageWrapRight figcaption{text-align:center}
+@media(max-width:600px){.richEditorSurface figure.articleInlineFigure.articleImageWrapLeft,.richEditorSurface figure.articleInlineFigure.articleImageWrapRight,.articlebody figure.articleInlineFigure.articleImageWrapLeft,.articlebody figure.articleInlineFigure.articleImageWrapRight{float:none;width:75%;margin:18px auto}}
+
+
+/* Branded, responsive tables in the newsroom editor and published articles. */
+.richTableToolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid #cfc8bc;background:#f8eeee;font:13px/1.4 Arial,sans-serif}
+.richTableToolbar>strong{font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.richTableToolbar button{min-height:34px;padding:7px 10px;border:1px solid #111;background:#fff;color:#111;font:700 12px Arial;cursor:pointer}
+.richTableToolbar button:hover,.richTableToolbar button:focus{background:#111;color:#fff}
+.richTableToolbar .richTableRemove{border-color:#b91c1c;color:#b91c1c}
+.richTableToolbar .richTableRemove:hover{background:#b91c1c;color:#fff}
+.richEditorSurface figure.dtTableFigure,.articlebody figure.dtTableFigure{display:block;width:100%;max-width:100%;margin:24px 0;clear:both}
+.dtTableTitle{padding:12px 14px;background:#b91c1c;color:#fff;font:700 15px/1.4 Arial,sans-serif;text-align:left;letter-spacing:normal;text-transform:none}
+.dtTableScroll{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;border:1px solid #d6d3d1}
+table.dtArticleTable{width:100%;min-width:480px;border-collapse:collapse;border-spacing:0;background:#fff;color:#171717;font:14px/1.55 Arial,sans-serif;text-align:left}
+table.dtArticleTable th,table.dtArticleTable td{min-width:90px;padding:10px 12px;border:1px solid #dedede;vertical-align:top;text-align:left;overflow-wrap:anywhere;white-space:normal}
+table.dtArticleTable thead th{background:#f8e7e7;color:#661b1b;font-weight:700}
+table.dtArticleTable tbody tr:nth-child(even){background:#f5f5f5}
+table.dtArticleTable p{margin:0 0 .7em}
+table.dtArticleTable p:last-child{margin-bottom:0}
+table.dtArticleTable img{display:inline-block;max-width:100%;height:auto;vertical-align:middle}
+.richEditorSurface table.dtArticleTable figure.articleInlineFigure,.articlebody table.dtArticleTable figure.articleInlineFigure{float:none!important;width:auto!important;max-width:100%;margin:8px 0!important}
+.richEditorSurface table.dtArticleTable figure.articleInlineFigure img,.articlebody table.dtArticleTable figure.articleInlineFigure img{width:auto;max-width:100%;max-height:260px;margin:0}
+.richEditorSurface table.dtArticleTable figure.articleInlineFigure figcaption,.articlebody table.dtArticleTable figure.articleInlineFigure figcaption{font-size:11px;text-align:left}
+.articlebody table.dtArticleTable{font-size:14px;line-height:1.55;text-align:left}
+.articlebody table.dtArticleTable th,.articlebody table.dtArticleTable td{padding:10px 12px;border:1px solid #dedede;vertical-align:top}
+@media(max-width:600px){.richTableToolbar{align-items:stretch}.richTableToolbar button{flex:1 1 auto}.dtTableTitle{font-size:14px;padding:10px 12px}table.dtArticleTable{min-width:460px;font-size:13px}table.dtArticleTable th,table.dtArticleTable td{padding:8px 9px}}
