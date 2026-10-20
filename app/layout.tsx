@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SITE_URL, websiteJsonLd } from "@/lib/seo";
-
-
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -16,10 +15,10 @@ export const metadata: Metadata = {
     "Dweep Tulika — island-centric news, public affairs, culture and stories from Andaman & Nicobar Islands.",
   alternates: { canonical: "/" },
   icons: {
-  icon: [{ url: "/favicon-logo-white.jpg", type: "image/jpeg" }],
-  shortcut: [{ url: "/favicon-logo-white.jpg", type: "image/jpeg" }],
-  apple: [{ url: "/favicon-logo-white.jpg", type: "image/jpeg" }],
-},
+    icon: [{ url: "/favicon-logo-white.jpg", type: "image/jpeg" }],
+    shortcut: [{ url: "/favicon-logo-white.jpg", type: "image/jpeg" }],
+    apple: [{ url: "/favicon-logo-white.jpg", type: "image/jpeg" }],
+  },
   openGraph: { siteName: "Dweep Tulika", type: "website", locale: "en_IN" },
   robots: {
     index: true,
@@ -47,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
         />
+        <GoogleAnalytics gaId="G-LJQ10J2V3X" />
       </body>
     </html>
   );
