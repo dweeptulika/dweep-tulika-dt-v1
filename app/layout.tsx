@@ -8,6 +8,11 @@ import { SITE_URL, websiteJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  icons: {
+    icon: [{ url: "/favicon-logo-white.jpg?v=1", type: "image/jpeg", sizes: "128x128" }],
+    shortcut: ["/favicon-logo-white.jpg?v=1"],
+    apple: [{ url: "/favicon-logo-white.jpg?v=1", type: "image/jpeg" }],
+  },
   title: {
     default: "Dweep Tulika — A Truthful & Unbiased Perspective",
     template: "%s | Dweep Tulika",

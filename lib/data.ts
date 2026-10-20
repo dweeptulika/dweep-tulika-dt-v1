@@ -37,6 +37,7 @@ export type PublishedStory = {
   title: string;
   slug: string;
   category: string;
+  categories?: string[];
   author: string;
   excerpt: string;
   bodyHtml: string;
@@ -55,15 +56,22 @@ type DbArticle = {
   title: string;
   slug: string;
   category: string;
+  categories?: string[];
+  source?: "blogger" | "newsroom";
+  legacy_id?: string | null;
+  legacy_url?: string | null;
+  public_path?: string | null;
   author: string;
   excerpt: string;
   body_html: string;
   featured_image: string | null;
   published_at: string;
   updated_at: string;
+  deleted_at?: string | null;
   seo_title: string | null;
   meta_description: string | null;
   social_image: string | null;
+  article_categories?: Array<{ categories?: { name?: string | null } | null }>;
 };
 
 function publicSupabase() {
@@ -75,7 +83,8 @@ function publicSupabase() {
   });
 }
 
-function newsroomUrl(article: Pick<DbArticle, "slug" | "published_at">) {
+function newsroomUrl(article: Pick<DbArticle, "slug" | "published_at"> & { public_path?: string | null }) {
+  if (article.public_path) return article.public_path;
   const date = new Date(article.published_at);
   const year = String(date.getUTCFullYear());
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -99,13 +108,22 @@ export function canonicalCategory(labels: string[], title = "") {
 }
 
 function mapDbArticle(article: DbArticle): PublishedStory {
-  const category = canonicalCategory([article.category], article.title);
+  const relationCategories = (article.article_categories || [])
+    .map((item) => item.categories?.name || "")
+    .map((name) => name.trim())
+    .filter(Boolean);
+  const categories = Array.from(new Set([
+    article.category?.trim() || canonicalCategory([], article.title),
+    ...relationCategories,
+  ]));
+  const category = categories[0];
   return {
     source: "newsroom",
     id: `newsroom-${article.id}`,
     title: article.title,
     slug: article.slug,
     category,
+    categories,
     author: article.author,
     excerpt: article.excerpt || "",
     bodyHtml: article.body_html || "",
@@ -113,7 +131,7 @@ function mapDbArticle(article: DbArticle): PublishedStory {
     publishedAt: article.published_at,
     updatedAt: article.updated_at,
     url: newsroomUrl(article),
-    labels: [category],
+    labels: categories,
     seoTitle: article.seo_title,
     metaDescription: article.meta_description,
     socialImage: article.social_image,
@@ -164,48 +182,132 @@ export async function getActiveAdvertisements(placement: Advertisement["placemen
   if (error || !data) return [];
   return data.map((ad) => ({ id: ad.id, name: ad.name, advertiser: ad.advertiser, imageUrl: ad.image_url, targetUrl: ad.target_url, placement: ad.placement }));
 }
+export async function getDeletedArticlePaths(): Promise<Set<string>> {
+  const supabase = publicSupabase();
+  if (!supabase) return new Set();
+  const { data, error } = await supabase
+    .from("articles")
+    .select("slug,public_path,legacy_url,published_at")
+    .not("deleted_at", "is", null);
+  if (error || !data) return new Set();
+  const paths = new Set<string>();
+  for (const article of data) {
+    if (article.public_path) paths.add(normalizePublicPath(article.public_path));
+    if (article.legacy_url) paths.add(normalizePublicPath(article.legacy_url));
+    if (article.published_at && article.slug) {
+      const date = new Date(article.published_at);
+      paths.add(normalizePublicPath(`/${date.getUTCFullYear()}/${String(date.getUTCMonth() + 1).padStart(2, "0")}/${article.slug}.html`));
+    }
+  }
+  return paths;
+}
+
+export async function isDeletedArticlePath(path: string): Promise<boolean> {
+  return (await getDeletedArticlePaths()).has(normalizePublicPath(path));
+}
+
 export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> {
   const supabase = publicSupabase();
   if (!supabase) return [];
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("articles")
-    .select("id,title,slug,category,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
+    .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,article_categories(categories(name))")
+    .is("deleted_at", null)
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
     .order("published_at", { ascending: false });
+  // Keep previews readable before the soft-delete migration is applied.
+  if (error?.message.includes("deleted_at")) {
+    const fallback = await supabase
+      .from("articles")
+      .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,article_categories(categories(name))")
+      .in("status", ["published", "scheduled"])
+      .not("published_at", "is", null)
+      .lte("published_at", new Date().toISOString())
+      .order("published_at", { ascending: false });
+    data = fallback.data as typeof data;
+    error = fallback.error;
+  }
   if (error || !data) return [];
   return (data as DbArticle[]).map(mapDbArticle);
 }
 
+export function normalizePublicPath(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = new URL(trimmed, "https://dweeptulika.in");
+    return parsed.pathname.replace(/\/+$/, "") || "/";
+  } catch {
+    return (trimmed.startsWith("/") ? trimmed : "/" + trimmed).replace(/\/+$/, "") || "/";
+  }
+}
+
 export async function getAllPublishedArticles(): Promise<PublishedStory[]> {
   const newsroom = await getPublishedNewsroomArticles();
-  const blogger = liveArticles.map(mapLegacyArticle);
-  return [...newsroom, ...blogger].sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
+  const newsroomByPath = new Map<string, PublishedStory>();
+  for (const article of newsroom) {
+    const path = normalizePublicPath(article.url);
+    const existing = newsroomByPath.get(path);
+    if (!existing || Date.parse(article.updatedAt) > Date.parse(existing.updatedAt)) {
+      newsroomByPath.set(path, article);
+    }
+  }
+
+  const adoptedPaths = new Set<string>();
+  for (const article of newsroomByPath.values()) {
+    adoptedPaths.add(normalizePublicPath(article.url));
+  }
+  const deletedPaths = await getDeletedArticlePaths();
+
+  const blogger = liveArticles
+    .map(mapLegacyArticle)
+    .filter((article) => !adoptedPaths.has(normalizePublicPath(article.url)))
+    .filter((article) => !deletedPaths.has(normalizePublicPath(article.url)));
+
+  return [...newsroomByPath.values(), ...blogger]
+    .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
 }
 
 export async function getPublishedNewsroomArticleByPath(year: string, month: string, slug: string): Promise<PublishedStory | null> {
   const normalizedSlug = slug.replace(/\.html$/, "");
   const supabase = publicSupabase();
   if (!supabase) return null;
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("articles")
-    .select("id,title,slug,category,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
+    .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,deleted_at")
     .eq("slug", normalizedSlug)
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
     .maybeSingle();
-  if (error || !data) return null;
+  // Older preview databases may not have the soft-delete column yet.
+  if (error?.message.includes("deleted_at")) {
+    const fallback = await supabase
+      .from("articles")
+      .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
+      .eq("slug", normalizedSlug)
+      .in("status", ["published", "scheduled"])
+      .not("published_at", "is", null)
+      .lte("published_at", new Date().toISOString())
+      .maybeSingle();
+    data = (fallback.data ? { ...fallback.data, deleted_at: null } : null) as typeof data;
+    error = fallback.error;
+  }
+  if (error || !data || data.deleted_at) return null;
   const article = mapDbArticle(data as DbArticle);
   if (article.url !== `/${year}/${month}/${normalizedSlug}.html`) return null;
   return article;
 }
 
 export async function findArticleByPath(year: string, month: string, slug: string): Promise<PublishedStory | null> {
+  const requestedPath = `/${year}/${month}/${slug.replace(/\.html$/, "")}.html`;
+  if (await isDeletedArticlePath(requestedPath)) return null;
+  const newsroom = await getPublishedNewsroomArticleByPath(year, month, slug);
+  if (newsroom) return newsroom;
   const legacy = articleFromPath(year, month, slug);
-  if (legacy) return mapLegacyArticle(legacy);
-  return getPublishedNewsroomArticleByPath(year, month, slug);
+  return legacy ? mapLegacyArticle(legacy) : null;
 }
 
 export async function allPublishedLabels(): Promise<string[]> {
