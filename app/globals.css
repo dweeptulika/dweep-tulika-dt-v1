@@ -38,3 +38,33 @@ html{overflow-x:hidden}body{overflow-x:hidden}.masthead{background:#111;padding:
 .articlebody figure{margin:28px auto;max-width:100%;text-align:center}
 .articlebody figure img{margin:0 auto;max-height:650px}
 .articlebody figcaption{margin-top:8px;color:#6b665e;font:italic 13px/1.5 Arial,sans-serif;text-align:center}
+
+
+/* Mobile-first article reading improvements: keep prose natural, legible, and within the viewport. */
+.article{width:min(100% - 32px,850px);min-width:0}
+.article h1{overflow-wrap:anywhere;text-wrap:pretty}
+.articlebody{min-width:0;overflow-wrap:break-word;word-break:normal;hyphens:auto}
+.articlebody p{max-width:72ch}
+.articlebody ul,.articlebody ol{padding-left:1.35em}
+.articlebody li{padding-left:.15em;margin:.35em 0}
+.articlebody blockquote{margin:1.25em 0;padding:14px 16px}
+.articlebody table{width:100%;font-size:.92em}
+.articlebody pre,.articlebody code{white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:600px){
+  .article{width:calc(100% - 32px);margin:24px auto 48px}
+  .article h1{font-size:clamp(30px,8.5vw,42px);line-height:1.12;letter-spacing:-.02em}
+  .articlebody{font-size:17px;line-height:1.78;text-align:left;text-justify:auto;hyphens:none}
+  .articlebody p,.articlebody div{margin:0 0 1.15em}
+  .articlebody h2{font-size:24px;line-height:1.28;margin:1.35em 0 .6em}
+  .articlebody h3{font-size:20px;line-height:1.3;margin:1.25em 0 .55em}
+  .articlebody img{max-width:100%;height:auto}
+  .articlebody figure{margin:22px auto}
+  .articlebody blockquote{margin:1.1em 0;padding:12px 14px}
+  .articlebody table{display:block;width:100%;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .articleFeaturedImage{margin:16px 0 22px}
+}
+@media(max-width:380px){
+  .article{width:calc(100% - 24px)}
+  .article h1{font-size:30px}
+  .articlebody{font-size:16.5px;line-height:1.75}
+}
