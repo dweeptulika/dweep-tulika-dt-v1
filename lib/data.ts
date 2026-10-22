@@ -214,7 +214,16 @@ export async function allPublishedLabels(): Promise<string[]> {
 }
 
 export function articleFromPath(year: string, month: string, slug: string) {
-  const normalizedSlug = slug.replace(/\.html$/, "");
+  // Next.js can pass percent-encoded path segments through to dynamic route params.
+  // Decode safely so legacy Blogger filenames containing spaces still match their
+  // original stored URL; retain the original value if it is malformed.
+  let decodedSlug = slug;
+  try {
+    decodedSlug = decodeURIComponent(slug);
+  } catch {
+    decodedSlug = slug;
+  }
+  const normalizedSlug = decodedSlug.replace(/\.html$/, "");
   const filename = `/${year}/${month}/${normalizedSlug}.html`;
   return liveArticles.find((a) => a.filename === filename);
 }

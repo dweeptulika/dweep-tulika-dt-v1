@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { SITE_URL } from "@/lib/seo";
 import { getAllPublishedArticles } from "@/lib/data";
 
 const aliases: Record<string, string> = {
@@ -12,6 +14,21 @@ const aliases: Record<string, string> = {
 };
 
 export const revalidate = 0;
+
+export async function generateMetadata({ params }: { params: Promise<{ category: string }> }): Promise<Metadata> {
+  const { category } = await params;
+  const label = aliases[category] || category.replaceAll("-", " ");
+  const categoryTitle = label === "Andaman News" ? "Andaman & Nicobar" : label;
+  const title = `${categoryTitle} News`;
+  const subject = label === "Andaman News" ? "Andaman & Nicobar" : label;
+  const description = `Latest ${subject.toLowerCase()} news, reports and updates from Dweep Tulika, covering the islands and beyond.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: `/category/${category}` },
+    openGraph: { type: "website", title, description, url: `${SITE_URL}/category/${category}`, siteName: "Dweep Tulika" },
+  };
+}
 export function generateStaticParams() { return Object.keys(aliases).map((category) => ({ category })); }
 
 export default async function Category({ params }: { params: Promise<{ category: string }> }) {

@@ -17,11 +17,36 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{year:string;month:string;slug:string}> }): Promise<Metadata> {
   const p=await params; const article=await findArticleByPath(p.year,p.month,p.slug);
   if(!article) return {};
-  return { title: article.seoTitle || article.title, description: article.metaDescription || article.excerpt || undefined, alternates:{canonical:article.url}, openGraph:{type:"article",title:article.title,description:article.metaDescription||article.excerpt||undefined,url:SITE_URL+article.url,publishedTime:article.publishedAt,modifiedTime:article.updatedAt,images:article.socialImage?[article.socialImage]:article.featuredImage?[article.featuredImage]:undefined}};
+  const description = article.metaDescription?.trim() || article.excerpt?.trim() || `Read ${article.title} on Dweep Tulika, covering news and public affairs from the Andaman & Nicobar Islands.`;
+  const title = article.seoTitle?.trim() || article.title;
+  const image = article.socialImage || article.featuredImage || undefined;
+  const url = new URL(article.url, SITE_URL).toString();
+  return {
+    title,
+    description,
+    alternates: { canonical: article.url },
+    openGraph: {
+      type: "article",
+      siteName: "Dweep Tulika",
+      title,
+      description,
+      url,
+      publishedTime: article.publishedAt,
+      modifiedTime: article.updatedAt || article.publishedAt,
+      authors: article.author ? [article.author] : ["Dweep Tulika"],
+      images: image ? [{ url: image, alt: article.title }] : undefined,
+    },
+    twitter: {
+      card: image ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: image ? [image] : undefined,
+    },
+  };
 }
 
 export default async function Article({params}:{params:Promise<{year:string;month:string;slug:string}>}) {
   const p=await params; const article=await findArticleByPath(p.year,p.month,p.slug); if(!article) notFound();
-  const url=SITE_URL+article.url;
+  const url=new URL(article.url, SITE_URL).toString();
   return <div className="container"><div className="breadcrumbs"><Link href="/">Home</Link> / <Link href={"/category/"+categoryPath(article.category)}>{article.category}</Link></div><article className="article"><div className="kicker">{article.labels.slice(0,4).join(" · ") || "News"}</div><h1>{article.title}</h1>{article.excerpt && <p className="dek">{article.excerpt}</p>}<div className="meta">By {article.author || "Dweep Tulika"} · {new Date(article.publishedAt).toLocaleDateString("en-IN",{dateStyle:"long",timeZone:"Asia/Kolkata"})}{article.source === "blogger" ? null : null}</div><AdSlot placement="article" />{article.source === "newsroom" && article.featuredImage && <div className="articleFeaturedImage"><Image src={article.featuredImage} alt="" fill sizes="(max-width: 900px) 100vw, 900px" /></div>}<div className="articlebody" dangerouslySetInnerHTML={{__html:sanitizeArticleHtml(article.bodyHtml)}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(articleJsonLd(article,url))}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbJsonLd(article,url))}} /></article></div>;
 }

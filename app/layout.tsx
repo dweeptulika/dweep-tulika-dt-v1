@@ -8,11 +8,11 @@ import { SITE_URL, websiteJsonLd } from "@/lib/seo";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Dweep Tulika — A Truthful & Unbiased Perspective",
+    default: "Dweep Tulika | Andaman & Nicobar News",
     template: "%s | Dweep Tulika",
   },
   description:
-    "Dweep Tulika — island-centric news, public affairs, culture and stories from Andaman & Nicobar Islands.",
+    "Latest news from the Andaman and Nicobar Islands, including local affairs, governance, culture, education, business and public-interest reporting from Dweep Tulika.",
   alternates: { canonical: "/" },
   icons: {
     icon: [{ url: "/favicon-logo-white.jpg", type: "image/jpeg" }],
