@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Advertise With Dweep Tulika | Digital Advertising", description: "Explore digital advertising and partnership opportunities with Dweep Tulika, reaching readers across the Andaman & Nicobar Islands.", alternates: { canonical: "/advertise" } };
+export const metadata: Metadata = { title: "Advertise With Dweep Tulika", description: "Explore digital advertising and partnership opportunities with Dweep Tulika, reaching readers across the Andaman & Nicobar Islands.", alternates: { canonical: "/advertise" } };
 
 const placements = [
   ["Homepage masthead", "High-visibility placement above the main news grid."],
