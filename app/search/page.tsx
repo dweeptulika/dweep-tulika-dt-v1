@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getAllPublishedArticles } from "@/lib/data";
+
+export const metadata: Metadata = { title: "Search Dweep Tulika", description: "Search Dweep Tulika news and reports.", alternates: { canonical: "/search" }, robots: { index: false, follow: true } };
 
 export const revalidate = 60;
 
