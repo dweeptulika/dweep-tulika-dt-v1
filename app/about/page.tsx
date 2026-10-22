@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     type: "website",
     title: "About Dweep Tulika — Bengali Newspaper in Andaman",
     description: "Meet the team behind Dweep Tulika and learn about our island-focused journalism and public-interest reporting.",
-    url: "https://www.dweeptulika.in/about",
+    url: "https://dweeptulika.in/about",
   },
 };
 
