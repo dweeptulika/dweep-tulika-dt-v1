@@ -1,6 +1,6 @@
 import { categoryPath, type PublishedStory } from "@/lib/data";
 
-export const SITE_URL = "https://www.dweeptulika.in";
+export const SITE_URL = "https://dweeptulika.in";
 export const SITE_NAME = "Dweep Tulika";
 export const SITE_LOGO =
   "https://blogger.googleusercontent.com/img/a/AVvXsEhJ3O2ALVPRaVh4xa5sjb5cak1NEUvqzGOAVMb6_pKdZtiafHPuuXuO4IJU13NasgeXor5zyzIWviKh8bZ5yAS4A36CoJ24lxyF8EsIubyouuUyCQIa9eIif8ggVe8Xkua8sg6Tn-KafGLP6ZcB2GSOtA_8uaHZcosg_WJXtm-FyJ2fVglkrqMTdqvnyqw=s676";
@@ -12,7 +12,7 @@ export function articleJsonLd(a: PublishedStory, url: string) {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
     headline: a.title,
-    description: a.excerpt || undefined,
+    description: a.metaDescription?.trim() || a.excerpt || undefined,
     ...(image ? { image: [image] } : {}),
     datePublished: a.publishedAt,
     dateModified: a.updatedAt || a.publishedAt,
