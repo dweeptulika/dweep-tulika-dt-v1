@@ -11,6 +11,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: "https://www.dweeptulika.in/search", priority: 0.7, changeFrequency: "weekly" },
     { url: "https://www.dweeptulika.in/about", priority: 0.5, changeFrequency: "monthly" },
     { url: "https://www.dweeptulika.in/advertise", priority: 0.4, changeFrequency: "monthly" },
+    ...["andaman-nicobar", "national", "politics", "editorial", "culture", "business", "sports"].map((category) => ({
+      url: `https://www.dweeptulika.in/category/${category}`,
+      priority: 0.7,
+      changeFrequency: "daily" as const,
+    })),
     ...articles.map((article) => ({
       url: "https://www.dweeptulika.in" + article.url,
       lastModified: new Date(article.updatedAt || article.publishedAt),
