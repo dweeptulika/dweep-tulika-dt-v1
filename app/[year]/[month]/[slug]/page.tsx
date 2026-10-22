@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{year:strin
   const description = article.metaDescription?.trim() || article.excerpt?.trim() || `Read ${article.title} on Dweep Tulika, covering news and public affairs from the Andaman & Nicobar Islands.`;
   const title = article.seoTitle?.trim() || article.title;
   const image = article.socialImage || article.featuredImage || undefined;
-  const url = SITE_URL + article.url;
+  const url = new URL(article.url, SITE_URL).toString();
   return {
     title,
     description,
@@ -47,6 +47,6 @@ export async function generateMetadata({ params }: { params: Promise<{year:strin
 
 export default async function Article({params}:{params:Promise<{year:string;month:string;slug:string}>}) {
   const p=await params; const article=await findArticleByPath(p.year,p.month,p.slug); if(!article) notFound();
-  const url=SITE_URL+article.url;
+  const url=new URL(article.url, SITE_URL).toString();
   return <div className="container"><div className="breadcrumbs"><Link href="/">Home</Link> / <Link href={"/category/"+categoryPath(article.category)}>{article.category}</Link></div><article className="article"><div className="kicker">{article.labels.slice(0,4).join(" · ") || "News"}</div><h1>{article.title}</h1>{article.excerpt && <p className="dek">{article.excerpt}</p>}<div className="meta">By {article.author || "Dweep Tulika"} · {new Date(article.publishedAt).toLocaleDateString("en-IN",{dateStyle:"long",timeZone:"Asia/Kolkata"})}{article.source === "blogger" ? null : null}</div><AdSlot placement="article" />{article.source === "newsroom" && article.featuredImage && <div className="articleFeaturedImage"><Image src={article.featuredImage} alt="" fill sizes="(max-width: 900px) 100vw, 900px" /></div>}<div className="articlebody" dangerouslySetInnerHTML={{__html:sanitizeArticleHtml(article.bodyHtml)}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(articleJsonLd(article,url))}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbJsonLd(article,url))}} /></article></div>;
 }
