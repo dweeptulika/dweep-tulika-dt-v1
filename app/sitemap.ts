@@ -5,10 +5,10 @@ export const revalidate = 300;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const articles = await getAllPublishedArticles();
+  const uniqueArticles = [...new Map(articles.map((article) => [article.url, article])).values()];
   return [
     { url: "https://www.dweeptulika.in/", priority: 1, changeFrequency: "daily" },
     { url: "https://www.dweeptulika.in/archive", priority: 0.9, changeFrequency: "daily" },
-    { url: "https://www.dweeptulika.in/search", priority: 0.7, changeFrequency: "weekly" },
     { url: "https://www.dweeptulika.in/about", priority: 0.5, changeFrequency: "monthly" },
     { url: "https://www.dweeptulika.in/advertise", priority: 0.4, changeFrequency: "monthly" },
     ...["andaman-nicobar", "national", "politics", "editorial", "culture", "business", "sports"].map((category) => ({
@@ -16,7 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
       changeFrequency: "daily" as const,
     })),
-    ...articles.map((article) => ({
+    ...uniqueArticles.map((article) => ({
       url: "https://www.dweeptulika.in" + article.url,
       lastModified: new Date(article.updatedAt || article.publishedAt),
       priority: 0.8,
