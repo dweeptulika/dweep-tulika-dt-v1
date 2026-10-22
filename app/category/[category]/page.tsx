@@ -20,8 +20,14 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   const label = aliases[category] || category.replaceAll("-", " ");
   const categoryTitle = label === "Andaman News" ? "Andaman & Nicobar" : label;
   const title = `${categoryTitle} News`;
-  const description = `Latest ${label.toLowerCase()} news, reports and updates from Dweep Tulika, covering the Andaman & Nicobar Islands and beyond.`;
-  return { title, description, alternates: { canonical: `/category/${category}` }, openGraph: { type: "website", title, description, url: `${SITE_URL}/category/${category}`, siteName: "Dweep Tulika" } };
+  const subject = label === "Andaman News" ? "Andaman & Nicobar" : label;
+  const description = `Latest ${subject.toLowerCase()} news, reports and updates from Dweep Tulika, covering the islands and beyond.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: `/category/${category}` },
+    openGraph: { type: "website", title, description, url: `${SITE_URL}/category/${category}`, siteName: "Dweep Tulika" },
+  };
 }
 export function generateStaticParams() { return Object.keys(aliases).map((category) => ({ category })); }
 
