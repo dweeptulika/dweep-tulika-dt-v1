@@ -18,7 +18,9 @@ export async function generateMetadata({ params }: { params: Promise<{year:strin
   const p=await params; const article=await findArticleByPath(p.year,p.month,p.slug);
   if(!article) return {};
   const description = article.metaDescription?.trim() || article.excerpt?.trim() || `Read ${article.title} on Dweep Tulika, covering news and public affairs from the Andaman & Nicobar Islands.`;
-  const title = article.seoTitle?.trim() || article.title;
+  const rawTitle = article.seoTitle?.trim() || article.title;
+  // The root metadata template appends "| Dweep Tulika"; avoid repeating it when an SEO title already includes it.
+  const title = rawTitle.replace(/\s*\|\s*Dweep Tulika\s*$/i, "").trim() || article.title;
   const image = article.socialImage || article.featuredImage || undefined;
   const url = new URL(article.url, SITE_URL).toString();
   return {
