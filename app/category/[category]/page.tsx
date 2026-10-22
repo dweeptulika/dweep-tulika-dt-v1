@@ -18,7 +18,8 @@ export const revalidate = 0;
 export async function generateMetadata({ params }: { params: Promise<{ category: string }> }): Promise<Metadata> {
   const { category } = await params;
   const label = aliases[category] || category.replaceAll("-", " ");
-  const title = `${label} News | Dweep Tulika`;
+  const categoryTitle = label === "Andaman News" ? "Andaman & Nicobar" : label;
+  const title = `${categoryTitle} News`;
   const description = `Latest ${label.toLowerCase()} news, reports and updates from Dweep Tulika, covering the Andaman & Nicobar Islands and beyond.`;
   return { title, description, alternates: { canonical: `/category/${category}` }, openGraph: { type: "website", title, description, url: `${SITE_URL}/category/${category}`, siteName: "Dweep Tulika" } };
 }
