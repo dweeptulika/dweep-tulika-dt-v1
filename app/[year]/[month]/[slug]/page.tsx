@@ -17,7 +17,32 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{year:string;month:string;slug:string}> }): Promise<Metadata> {
   const p=await params; const article=await findArticleByPath(p.year,p.month,p.slug);
   if(!article) return {};
-  return { title: article.seoTitle || article.title, description: article.metaDescription || article.excerpt || undefined, alternates:{canonical:article.url}, openGraph:{type:"article",title:article.title,description:article.metaDescription||article.excerpt||undefined,url:SITE_URL+article.url,publishedTime:article.publishedAt,modifiedTime:article.updatedAt,images:article.socialImage?[article.socialImage]:article.featuredImage?[article.featuredImage]:undefined}};
+  const description = article.metaDescription?.trim() || article.excerpt?.trim() || `Read ${article.title} on Dweep Tulika, covering news and public affairs from the Andaman & Nicobar Islands.`;
+  const title = article.seoTitle?.trim() || `${article.title} | Dweep Tulika`;
+  const image = article.socialImage || article.featuredImage || undefined;
+  const url = SITE_URL + article.url;
+  return {
+    title,
+    description,
+    alternates: { canonical: article.url },
+    openGraph: {
+      type: "article",
+      siteName: "Dweep Tulika",
+      title,
+      description,
+      url,
+      publishedTime: article.publishedAt,
+      modifiedTime: article.updatedAt || article.publishedAt,
+      authors: article.author ? [article.author] : ["Dweep Tulika"],
+      images: image ? [{ url: image, alt: article.title }] : undefined,
+    },
+    twitter: {
+      card: image ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: image ? [image] : undefined,
+    },
+  };
 }
 
 export default async function Article({params}:{params:Promise<{year:string;month:string;slug:string}>}) {
