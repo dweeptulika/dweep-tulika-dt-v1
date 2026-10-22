@@ -1,5 +1,18 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "About Dweep Tulika | Bengali Newspaper in Andaman",
+  description: "Learn about Dweep Tulika, its editorial team, and its work covering news, public affairs, culture and community issues in the Andaman & Nicobar Islands.",
+  alternates: { canonical: "/about" },
+  openGraph: {
+    type: "website",
+    title: "About Dweep Tulika | Bengali Newspaper in Andaman",
+    description: "Meet the team behind Dweep Tulika and learn about our island-focused journalism and public-interest reporting.",
+    url: "https://www.dweeptulika.in/about",
+  },
+};
 
 const profiles = [
   {
