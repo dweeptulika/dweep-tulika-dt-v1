@@ -16,8 +16,8 @@ export const metadata: Metadata = {
     "Latest news from the Andaman and Nicobar Islands, including local affairs, governance, culture, education, business and public-interest reporting from Dweep Tulika.",
   alternates: { canonical: "/" },
   icons: {
-    icon: [{ url: "/favicon-logo-white.jpg", type: "image/jpeg" }],
-    shortcut: [{ url: "/favicon-logo-white.jpg", type: "image/jpeg" }],
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: [{ url: "/favicon.svg", type: "image/svg+xml" }],
     apple: [{ url: "/favicon-logo-white.jpg", type: "image/jpeg" }],
   },
   openGraph: { siteName: "Dweep Tulika", type: "website", locale: "en_IN" },
