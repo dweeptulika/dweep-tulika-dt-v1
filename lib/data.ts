@@ -55,6 +55,10 @@ type DbArticle = {
   title: string;
   slug: string;
   category: string;
+  source?: "blogger" | "newsroom";
+  legacy_id?: string | null;
+  legacy_url?: string | null;
+  public_path?: string | null;
   author: string;
   excerpt: string;
   body_html: string;
@@ -75,7 +79,8 @@ function publicSupabase() {
   });
 }
 
-function newsroomUrl(article: Pick<DbArticle, "slug" | "published_at">) {
+function newsroomUrl(article: Pick<DbArticle, "slug" | "published_at"> & { public_path?: string | null }) {
+  if (article.public_path) return article.public_path;
   const date = new Date(article.published_at);
   const year = String(date.getUTCFullYear());
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -169,7 +174,7 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("articles")
-    .select("id,title,slug,category,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
+    .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
@@ -178,19 +183,49 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
   return (data as DbArticle[]).map(mapDbArticle);
 }
 
+export function normalizePublicPath(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  try {
+    const parsed = new URL(trimmed, "https://dweeptulika.in");
+    return parsed.pathname.replace(/\/+$/, "") || "/";
+  } catch {
+    return (trimmed.startsWith("/") ? trimmed : "/" + trimmed).replace(/\/+$/, "") || "/";
+  }
+}
+
 export async function getAllPublishedArticles(): Promise<PublishedStory[]> {
   const newsroom = await getPublishedNewsroomArticles();
-  const blogger = liveArticles.map(mapLegacyArticle);
-  return [...newsroom, ...blogger].sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
+  const newsroomByPath = new Map<string, PublishedStory>();
+  for (const article of newsroom) {
+    const path = normalizePublicPath(article.url);
+    if (!newsroomByPath.has(path)) newsroomByPath.set(path, article);
+  }
+  const adoptedPaths = new Set(newsroomByPath.keys());
+  const blogger = liveArticles
+    .map(mapLegacyArticle)
+    .filter(article => !adoptedPaths.has(normalizePublicPath(article.url)));
+  return [...newsroomByPath.values(), ...blogger]
+    .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
 }
 
 export async function getPublishedNewsroomArticleByPath(year: string, month: string, slug: string): Promise<PublishedStory | null> {
   const normalizedSlug = slug.replace(/\.html$/, "");
+  const requestedPath = `/${year}/${month}/${normalizedSlug}.html`;
   const supabase = publicSupabase();
   if (!supabase) return null;
+  const selectFields = "id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at";
+  const { data: pathMatch } = await supabase
+    .from("articles").select(selectFields)
+    .eq("public_path", requestedPath)
+    .in("status", ["published", "scheduled"])
+    .not("published_at", "is", null)
+    .lte("published_at", new Date().toISOString())
+    .maybeSingle();
+  if (pathMatch) return mapDbArticle(pathMatch as DbArticle);
+
   const { data, error } = await supabase
-    .from("articles")
-    .select("id,title,slug,category,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
+    .from("articles").select(selectFields)
     .eq("slug", normalizedSlug)
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
@@ -198,14 +233,15 @@ export async function getPublishedNewsroomArticleByPath(year: string, month: str
     .maybeSingle();
   if (error || !data) return null;
   const article = mapDbArticle(data as DbArticle);
-  if (article.url !== `/${year}/${month}/${normalizedSlug}.html`) return null;
+  if (normalizePublicPath(article.url) !== normalizePublicPath(requestedPath)) return null;
   return article;
 }
 
 export async function findArticleByPath(year: string, month: string, slug: string): Promise<PublishedStory | null> {
+  const newsroom = await getPublishedNewsroomArticleByPath(year, month, slug);
+  if (newsroom) return newsroom;
   const legacy = articleFromPath(year, month, slug);
-  if (legacy) return mapLegacyArticle(legacy);
-  return getPublishedNewsroomArticleByPath(year, month, slug);
+  return legacy ? mapLegacyArticle(legacy) : null;
 }
 
 export async function allPublishedLabels(): Promise<string[]> {
