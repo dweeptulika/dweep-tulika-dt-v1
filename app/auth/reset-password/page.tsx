@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
-  const supabase = createClient();
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -27,6 +26,7 @@ export default function ResetPasswordPage() {
     }
 
     setBusy(true);
+    const supabase = createClient();
     const { error: updateError } = await supabase.auth.updateUser({ password });
     if (updateError) {
       setError("This recovery link may have expired or already been used. Request a new one and try again.");
