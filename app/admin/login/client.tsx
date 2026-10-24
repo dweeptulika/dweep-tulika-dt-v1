@@ -33,6 +33,7 @@ export default function AdminLoginPage() {
         {error && <p className="adminError">{error}</p>}
         <button disabled={busy}>{busy ? "Signing in…" : "Sign In"}</button>
       </form>
+      <Link href="/admin/forgot-password">Forgot password?</Link>
       <Link href="/">Return to website</Link>
     </div>
   </main>;
