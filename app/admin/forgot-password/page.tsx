@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/client";
 const RECOVERY_REDIRECT = "https://dweeptulika.in/auth/callback?next=/auth/reset-password";
 
 export default function ForgotPasswordPage() {
-  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -19,6 +18,7 @@ export default function ForgotPasswordPage() {
     setMessage("");
     setError("");
 
+    const supabase = createClient();
     const { error: requestError } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: RECOVERY_REDIRECT,
     });
