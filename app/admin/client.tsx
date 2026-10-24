@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -45,7 +45,11 @@ export default function AdminPage() {
   const [legacyArticles, setLegacyArticles] = useState<LegacyArticle[]>([]);
   const [legacyLoadError, setLegacyLoadError] = useState(false);
   const [legacyPage, setLegacyPage] = useState(1);
-  const [adoptionDisabledForPreview, setAdoptionDisabledForPreview] = useState(true);
+  const adoptionDisabledForPreview = useSyncExternalStore(
+    () => () => {},
+    () => window.location.hostname.endsWith(".vercel.app"),
+    () => true,
+  );
   const [librarySource, setLibrarySource] = useState<"all" | "newsroom" | "blogger">("all");
   const [librarySearch, setLibrarySearch] = useState("");
   const [libraryStatus, setLibraryStatus] = useState<"all" | ArticleStatus>("all");
@@ -100,15 +104,6 @@ export default function AdminPage() {
   const [originalPublishedAt, setOriginalPublishedAt] = useState<string | null>(null);
   const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false); const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
-    setLegacyPage(1);
-  }, [librarySearch, libraryStatus, libraryCategory, librarySource]);
-
-  useEffect(() => {
-    // Vercel preview deployments share production Supabase settings in this project.
-    // Keep adoption disabled on *.vercel.app until a separate test database is configured.
-    setAdoptionDisabledForPreview(window.location.hostname.endsWith(".vercel.app"));
-  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -383,11 +378,11 @@ export default function AdminPage() {
       <section className="adminEditor">
         <div className="adminEditorHead"><div><div className="adminLabel">Newsroom Library</div><h2>Drafts &amp; published stories</h2></div></div>
         <div className="adminLibraryControls">
-          <label>Search articles<input type="search" value={librarySearch} onChange={e => { setLibrarySearch(e.target.value); setLibraryPage(1); }} placeholder="Headline, keyword, slug, author…" /></label>
+          <label>Search articles<input type="search" value={librarySearch} onChange={e => { setLibrarySearch(e.target.value); setLibraryPage(1); setLegacyPage(1); }} placeholder="Headline, keyword, slug, author…" /></label>
           <div className="adminFormGrid">
             <label>Status<select value={libraryStatus} onChange={e => { setLibraryStatus(e.target.value as "all" | ArticleStatus); setLibraryPage(1); setLegacyPage(1); }}><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Drafts</option><option value="scheduled">Scheduled</option></select></label>
             <label>Source<select value={librarySource} onChange={e => { setLibrarySource(e.target.value as "all" | "newsroom" | "blogger"); setLibraryPage(1); setLegacyPage(1); }}><option value="all">All sources</option><option value="newsroom">Newsroom</option><option value="blogger">Legacy Blogger</option></select></label>
-            <label>Category / Blogger label<select value={libraryCategory} onChange={e => { setLibraryCategory(e.target.value); setLibraryPage(1); }}><option value="all">All categories</option>{Array.from(new Set([...articles.map(article => article.category), ...legacyArticles.map(article => article.category), ...legacyArticles.flatMap(article => article.labels)])).sort().map(item => <option key={item} value={item}>{item}</option>)}</select></label>
+            <label>Category / Blogger label<select value={libraryCategory} onChange={e => { setLibraryCategory(e.target.value); setLibraryPage(1); setLegacyPage(1); }}><option value="all">All categories</option>{Array.from(new Set([...articles.map(article => article.category), ...legacyArticles.map(article => article.category), ...legacyArticles.flatMap(article => article.labels)])).sort().map(item => <option key={item} value={item}>{item}</option>)}</select></label>
             <label>Sort by<select value={librarySort} onChange={e => { setLibrarySort(e.target.value as "updated" | "published" | "title"); setLibraryPage(1); }}><option value="updated">Recently updated</option><option value="published">Publication date</option><option value="title">Headline A–Z</option></select></label>
           </div>
           <p className="adminNote">{filteredArticles.length} article{filteredArticles.length === 1 ? "" : "s"} found · Showing page {Math.min(libraryPage, libraryPageCount)} of {libraryPageCount}</p>
