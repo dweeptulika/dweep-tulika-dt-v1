@@ -64,6 +64,8 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
       el.innerHTML = value;
       const nextFigures = Array.from(el.querySelectorAll("figure")).filter((node) => node.querySelector("img"));
       setSelectedFigure(selectedIndex >= 0 ? (nextFigures[selectedIndex] as HTMLElement | undefined) ?? null : null);
+      setSelectedTable(null);
+      setSelectedTableCell(null);
       savedRange.current = null;
     }
     lastEmittedHtml.current = value;
