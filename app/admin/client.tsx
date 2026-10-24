@@ -45,6 +45,7 @@ export default function AdminPage() {
   const [legacyArticles, setLegacyArticles] = useState<LegacyArticle[]>([]);
   const [legacyLoadError, setLegacyLoadError] = useState(false);
   const [legacyPage, setLegacyPage] = useState(1);
+  const [adoptionDisabledForPreview, setAdoptionDisabledForPreview] = useState(true);
   const [librarySource, setLibrarySource] = useState<"all" | "newsroom" | "blogger">("all");
   const [librarySearch, setLibrarySearch] = useState("");
   const [libraryStatus, setLibraryStatus] = useState<"all" | ArticleStatus>("all");
@@ -104,6 +105,12 @@ export default function AdminPage() {
   }, [librarySearch, libraryStatus, libraryCategory, librarySource]);
 
   useEffect(() => {
+    // Vercel preview deployments share production Supabase settings in this project.
+    // Keep adoption disabled on *.vercel.app until a separate test database is configured.
+    setAdoptionDisabledForPreview(window.location.hostname.endsWith(".vercel.app"));
+  }, []);
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) router.replace("/admin/login");
       else { setSessionReady(true); void loadArticles(); }
@@ -129,6 +136,10 @@ export default function AdminPage() {
   }
 
   async function adoptLegacyArticle(summary: LegacyArticle) {
+    if (adoptionDisabledForPreview) {
+      setMessage("Adoption is disabled on preview domains because they share production data. Test the archive here; adopt only from the production domain or after a safe test database is configured.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -400,11 +411,12 @@ export default function AdminPage() {
       <section className="adminEditor">
         <div className="adminEditorHead"><div><div className="adminLabel">Legacy Archive</div><h2>Blogger stories</h2></div><span className="adminStatus">Legacy source</span></div>
         <p className="adminNote">These stories are read from the original archive. Viewing or searching does not modify them. Use “Adopt &amp; Edit” only when you want to create a newsroom-managed copy while retaining the original public URL.</p>
+        {adoptionDisabledForPreview && <p className="adminNote">Preview safety is enabled: adoption is disabled on Vercel preview domains because this project shares production Supabase settings.</p>}
         <div className="adminStoryList">
           {pagedLegacyArticles.map(legacy => (
             <article className="adminStoryRow" key={"legacy-" + legacy.id}>
               <div><span className="adminStatus">blogger</span><h3>{legacy.title}</h3><p>{legacy.category} · {legacy.publicPath} · {new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(legacy.publishedAt))}</p></div>
-              <button type="button" disabled={busy} onClick={() => void adoptLegacyArticle(legacy)}>Adopt &amp; Edit</button>
+              <button type="button" disabled={busy || adoptionDisabledForPreview} onClick={() => void adoptLegacyArticle(legacy)}>Adopt &amp; Edit</button>
             </article>
           ))}
           {legacyLoadError && <p className="adminNote">The legacy archive could not be loaded. Refresh the page to retry; newsroom stories remain available.</p>}
