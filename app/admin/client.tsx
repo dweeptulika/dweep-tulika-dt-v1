@@ -10,11 +10,21 @@ import { AdvertisementPanel } from "@/components/AdvertisementPanel";
 const categories = ["Andaman News", "National", "Politics", "Editorial", "Culture", "Business", "Sports"];
 type ArticleStatus = "draft" | "published" | "scheduled";
 type ArticleRow = {
-  id: string; title: string; slug: string; category: string; author: string; excerpt: string;
+  id: string; title: string; slug: string; category: string; source?: "blogger" | "newsroom"; public_path?: string | null; author: string; excerpt: string;
   body_html: string; featured_image: string | null; seo_title: string | null;
   meta_description: string | null; social_image: string | null; status: ArticleStatus;
   scheduled_for: string | null; published_at: string | null; updated_at: string;
 };
+type LegacyArticle = {
+  id: string; title: string; slug: string; publicPath: string; category: string;
+  author: string; excerpt: string; featuredImage: string | null;
+  publishedAt: string; updatedAt: string; labels: string[];
+};
+
+function normalizePublicPath(value: string) {
+  try { return new URL(value, "https://dweeptulika.in").pathname.replace(/\/+$/, "") || "/"; }
+  catch { return (value.startsWith("/") ? value : "/" + value).replace(/\/+$/, "") || "/"; }
+}
 
 function makeSlug(value: string) {
   return value.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
@@ -32,6 +42,10 @@ export default function AdminPage() {
   const supabase = useMemo(() => createClient(), []);
   const [sessionReady, setSessionReady] = useState(false);
   const [articles, setArticles] = useState<ArticleRow[]>([]);
+  const [legacyArticles, setLegacyArticles] = useState<LegacyArticle[]>([]);
+  const [legacyLoadError, setLegacyLoadError] = useState(false);
+  const [legacyPage, setLegacyPage] = useState(1);
+  const [librarySource, setLibrarySource] = useState<"all" | "newsroom" | "blogger">("all");
   const [librarySearch, setLibrarySearch] = useState("");
   const [libraryStatus, setLibraryStatus] = useState<"all" | ArticleStatus>("all");
   const [libraryCategory, setLibraryCategory] = useState("all");
@@ -45,7 +59,9 @@ export default function AdminPage() {
         .some(value => (value || "").toLowerCase().includes(query));
       const effectiveStatus = article.scheduled_for && new Date(article.scheduled_for).getTime() > Date.now()
         ? "scheduled" : article.status;
+      const matchesSource = librarySource === "all" || (librarySource === "blogger" ? article.source === "blogger" : article.source !== "blogger");
       return matchesQuery
+        && matchesSource
         && (libraryStatus === "all" || effectiveStatus === libraryStatus)
         && (libraryCategory === "all" || article.category === libraryCategory);
     }).sort((a, b) => {
@@ -53,9 +69,26 @@ export default function AdminPage() {
       if (librarySort === "published") return new Date(b.published_at || b.updated_at).getTime() - new Date(a.published_at || a.updated_at).getTime();
       return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
     });
-  }, [articles, librarySearch, libraryStatus, libraryCategory, librarySort]);
+  }, [articles, librarySearch, libraryStatus, libraryCategory, librarySort, librarySource]);
   const libraryPageCount = Math.max(1, Math.ceil(filteredArticles.length / libraryPageSize));
   const pagedArticles = filteredArticles.slice((libraryPage - 1) * libraryPageSize, libraryPage * libraryPageSize);
+  const availableLegacyArticles = useMemo(() => legacyArticles.filter(legacy =>
+    !articles.some(article => Boolean(article.public_path) && normalizePublicPath(article.public_path || "") === normalizePublicPath(legacy.publicPath))
+  ), [legacyArticles, articles]);
+  const filteredLegacyArticles = useMemo(() => {
+    const query = librarySearch.trim().toLowerCase();
+    return availableLegacyArticles.filter(legacy => {
+      const matchesQuery = !query || [legacy.title, legacy.slug, legacy.excerpt, legacy.author, legacy.category, legacy.publicPath]
+        .some(value => (value || "").toLowerCase().includes(query));
+      const matchesStatus = libraryStatus === "all" || libraryStatus === "published";
+      const matchesCategory = libraryCategory === "all" || legacy.category === libraryCategory;
+      const matchesSource = librarySource === "all" || librarySource === "blogger";
+      return matchesQuery && matchesStatus && matchesCategory && matchesSource;
+    }).sort((a, b) => Date.parse(b.updatedAt || b.publishedAt) - Date.parse(a.updatedAt || a.publishedAt));
+  }, [availableLegacyArticles, librarySearch, libraryStatus, libraryCategory, librarySource]);
+  const legacyPageSize = 20;
+  const legacyPageCount = Math.max(1, Math.ceil(filteredLegacyArticles.length / legacyPageSize));
+  const pagedLegacyArticles = filteredLegacyArticles.slice((legacyPage - 1) * legacyPageSize, legacyPage * legacyPageSize);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState(""); const [slug, setSlug] = useState("");
   const [category, setCategory] = useState(categories[0]); const [author, setAuthor] = useState("Dweep Tulika");
@@ -67,6 +100,10 @@ export default function AdminPage() {
   const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false); const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
+    setLegacyPage(1);
+  }, [librarySearch, libraryStatus, libraryCategory, librarySource]);
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) router.replace("/admin/login");
       else { setSessionReady(true); void loadArticles(); }
@@ -75,9 +112,81 @@ export default function AdminPage() {
 
   async function loadArticles() {
     const { data } = await supabase.from("articles")
-      .select("id,title,slug,category,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
+      .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
       .order("updated_at", { ascending: false });
     if (data) setArticles(data as ArticleRow[]);
+    try {
+      const response = await fetch("/api/admin/legacy-articles", { cache: "no-store" });
+      if (!response.ok) throw new Error("Legacy archive request failed");
+      const result = await response.json();
+      if (!Array.isArray(result)) throw new Error("Unexpected legacy archive response");
+      setLegacyArticles(result as LegacyArticle[]);
+      setLegacyLoadError(false);
+    } catch {
+      setLegacyArticles([]);
+      setLegacyLoadError(true);
+    }
+  }
+
+  async function adoptLegacyArticle(summary: LegacyArticle) {
+    setBusy(true);
+    setMessage("");
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        router.replace("/admin/login");
+        return;
+      }
+      const detailResponse = await fetch("/api/admin/legacy-articles?path=" + encodeURIComponent(summary.publicPath), { cache: "no-store" });
+      if (!detailResponse.ok) {
+        setMessage(detailResponse.status === 404 ? "This legacy story could not be found in the source archive." : "Could not load the legacy story. Please retry.");
+        return;
+      }
+      const article = await detailResponse.json() as LegacyArticle & { bodyHtml: string };
+      const { data: existing, error: duplicateCheckError } = await supabase.from("articles")
+        .select("id").eq("public_path", article.publicPath).maybeSingle();
+      if (duplicateCheckError) {
+        setMessage("Could not verify whether this story was already adopted: " + duplicateCheckError.message);
+        return;
+      }
+      if (existing) {
+        setMessage("This Blogger article has already been adopted. Refresh the library to see it under newsroom stories.");
+        await loadArticles();
+        return;
+      }
+      const publishedAt = new Date(article.publishedAt);
+      if (!Number.isFinite(publishedAt.getTime())) {
+        setMessage("The legacy story has no valid publication date, so it was not adopted.");
+        return;
+      }
+      const { data: inserted, error } = await supabase.from("articles").insert({
+        title: article.title, slug: article.slug, category: article.category,
+        source: "blogger", legacy_id: article.id, legacy_url: article.publicPath,
+        public_path: article.publicPath, author: article.author || "Dweep Tulika",
+        excerpt: article.excerpt || "", body_html: article.bodyHtml || "",
+        featured_image: article.featuredImage, seo_title: article.title,
+        meta_description: article.excerpt || null, status: "published",
+        published_at: publishedAt.toISOString(), created_by: userData.user.id, updated_by: userData.user.id,
+      }).select("id").single();
+      if (error || !inserted) {
+        setMessage(error?.message || "The story could not be adopted. No existing story was overwritten.");
+        return;
+      }
+      setEditingId(inserted.id);
+      setTitle(article.title); setSlug(article.slug); setCategory(article.category);
+      setAuthor(article.author || "Dweep Tulika"); setExcerpt(article.excerpt || ""); setBody(article.bodyHtml || "");
+      setFeaturedImage(article.featuredImage || ""); setSeoTitle(article.title);
+      setMetaDescription(article.excerpt || ""); setSocialImage(""); setScheduledFor("");
+      setPublicationDate(toLocalDateTimeInput(publishedAt.toISOString()));
+      setOriginalPublishedAt(publishedAt.toISOString()); setStatus("published");
+      setMessage("Legacy Blogger story adopted into the newsroom. Its original public URL and publication date are preserved; the source archive remains unchanged.");
+      await loadArticles();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {
+      setMessage("The legacy story could not be adopted. The source archive remains unchanged.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function resetEditor() {
@@ -265,7 +374,8 @@ export default function AdminPage() {
         <div className="adminLibraryControls">
           <label>Search articles<input type="search" value={librarySearch} onChange={e => { setLibrarySearch(e.target.value); setLibraryPage(1); }} placeholder="Headline, keyword, slug, author…" /></label>
           <div className="adminFormGrid">
-            <label>Status<select value={libraryStatus} onChange={e => { setLibraryStatus(e.target.value as "all" | ArticleStatus); setLibraryPage(1); }}><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Drafts</option><option value="scheduled">Scheduled</option></select></label>
+            <label>Status<select value={libraryStatus} onChange={e => { setLibraryStatus(e.target.value as "all" | ArticleStatus); setLibraryPage(1); setLegacyPage(1); }}><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Drafts</option><option value="scheduled">Scheduled</option></select></label>
+            <label>Source<select value={librarySource} onChange={e => { setLibrarySource(e.target.value as "all" | "newsroom" | "blogger"); setLibraryPage(1); setLegacyPage(1); }}><option value="all">All sources</option><option value="newsroom">Newsroom</option><option value="blogger">Legacy Blogger</option></select></label>
             <label>Category<select value={libraryCategory} onChange={e => { setLibraryCategory(e.target.value); setLibraryPage(1); }}><option value="all">All categories</option>{Array.from(new Set(articles.map(article => article.category))).sort().map(item => <option key={item} value={item}>{item}</option>)}</select></label>
             <label>Sort by<select value={librarySort} onChange={e => { setLibrarySort(e.target.value as "updated" | "published" | "title"); setLibraryPage(1); }}><option value="updated">Recently updated</option><option value="published">Publication date</option><option value="title">Headline A–Z</option></select></label>
           </div>
@@ -284,6 +394,26 @@ export default function AdminPage() {
         {filteredArticles.length > libraryPageSize && <div className="adminActions">
           <button type="button" disabled={libraryPage <= 1} onClick={() => setLibraryPage(page => Math.max(1, page - 1))}>Previous</button>
           <button type="button" disabled={libraryPage >= libraryPageCount} onClick={() => setLibraryPage(page => Math.min(libraryPageCount, page + 1))}>Next</button>
+        </div>}
+      </section>
+
+      <section className="adminEditor">
+        <div className="adminEditorHead"><div><div className="adminLabel">Legacy Archive</div><h2>Blogger stories</h2></div><span className="adminStatus">Legacy source</span></div>
+        <p className="adminNote">These stories are read from the original archive. Viewing or searching does not modify them. Use “Adopt &amp; Edit” only when you want to create a newsroom-managed copy while retaining the original public URL.</p>
+        <div className="adminStoryList">
+          {pagedLegacyArticles.map(legacy => (
+            <article className="adminStoryRow" key={"legacy-" + legacy.id}>
+              <div><span className="adminStatus">blogger</span><h3>{legacy.title}</h3><p>{legacy.category} · {legacy.publicPath} · {new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(legacy.publishedAt))}</p></div>
+              <button type="button" disabled={busy} onClick={() => void adoptLegacyArticle(legacy)}>Adopt &amp; Edit</button>
+            </article>
+          ))}
+          {legacyLoadError && <p className="adminNote">The legacy archive could not be loaded. Refresh the page to retry; newsroom stories remain available.</p>}
+          {!legacyLoadError && filteredLegacyArticles.length === 0 && <p className="adminNote">No legacy stories match these filters, or all matching stories have already been adopted.</p>}
+        </div>
+        {filteredLegacyArticles.length > legacyPageSize && <div className="adminActions">
+          <button type="button" disabled={legacyPage <= 1} onClick={() => setLegacyPage(page => Math.max(1, page - 1))}>Previous</button>
+          <span>Page {Math.min(legacyPage, legacyPageCount)} of {legacyPageCount} · {filteredLegacyArticles.length} legacy stories</span>
+          <button type="button" disabled={legacyPage >= legacyPageCount} onClick={() => setLegacyPage(page => Math.min(legacyPageCount, page + 1))}>Next</button>
         </div>}
       </section>
     </main>
