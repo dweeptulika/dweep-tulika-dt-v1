@@ -32,6 +32,30 @@ export default function AdminPage() {
   const supabase = useMemo(() => createClient(), []);
   const [sessionReady, setSessionReady] = useState(false);
   const [articles, setArticles] = useState<ArticleRow[]>([]);
+  const [librarySearch, setLibrarySearch] = useState("");
+  const [libraryStatus, setLibraryStatus] = useState<"all" | ArticleStatus>("all");
+  const [libraryCategory, setLibraryCategory] = useState("all");
+  const [librarySort, setLibrarySort] = useState<"updated" | "published" | "title">("updated");
+  const [libraryPage, setLibraryPage] = useState(1);
+  const libraryPageSize = 20;
+  const filteredArticles = useMemo(() => {
+    const query = librarySearch.trim().toLowerCase();
+    return articles.filter(article => {
+      const matchesQuery = !query || [article.title, article.slug, article.excerpt, article.author]
+        .some(value => (value || "").toLowerCase().includes(query));
+      const effectiveStatus = article.scheduled_for && new Date(article.scheduled_for).getTime() > Date.now()
+        ? "scheduled" : article.status;
+      return matchesQuery
+        && (libraryStatus === "all" || effectiveStatus === libraryStatus)
+        && (libraryCategory === "all" || article.category === libraryCategory);
+    }).sort((a, b) => {
+      if (librarySort === "title") return a.title.localeCompare(b.title);
+      if (librarySort === "published") return new Date(b.published_at || b.updated_at).getTime() - new Date(a.published_at || a.updated_at).getTime();
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+  }, [articles, librarySearch, libraryStatus, libraryCategory, librarySort]);
+  const libraryPageCount = Math.max(1, Math.ceil(filteredArticles.length / libraryPageSize));
+  const pagedArticles = filteredArticles.slice((libraryPage - 1) * libraryPageSize, libraryPage * libraryPageSize);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState(""); const [slug, setSlug] = useState("");
   const [category, setCategory] = useState(categories[0]); const [author, setAuthor] = useState("Dweep Tulika");
@@ -238,15 +262,29 @@ export default function AdminPage() {
 
       <section className="adminEditor">
         <div className="adminEditorHead"><div><div className="adminLabel">Newsroom Library</div><h2>Drafts &amp; published stories</h2></div></div>
+        <div className="adminLibraryControls">
+          <label>Search articles<input type="search" value={librarySearch} onChange={e => { setLibrarySearch(e.target.value); setLibraryPage(1); }} placeholder="Headline, keyword, slug, author…" /></label>
+          <div className="adminFormGrid">
+            <label>Status<select value={libraryStatus} onChange={e => { setLibraryStatus(e.target.value as "all" | ArticleStatus); setLibraryPage(1); }}><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Drafts</option><option value="scheduled">Scheduled</option></select></label>
+            <label>Category<select value={libraryCategory} onChange={e => { setLibraryCategory(e.target.value); setLibraryPage(1); }}><option value="all">All categories</option>{Array.from(new Set(articles.map(article => article.category))).sort().map(item => <option key={item} value={item}>{item}</option>)}</select></label>
+            <label>Sort by<select value={librarySort} onChange={e => { setLibrarySort(e.target.value as "updated" | "published" | "title"); setLibraryPage(1); }}><option value="updated">Recently updated</option><option value="published">Publication date</option><option value="title">Headline A–Z</option></select></label>
+          </div>
+          <p className="adminNote">{filteredArticles.length} article{filteredArticles.length === 1 ? "" : "s"} found · Showing page {Math.min(libraryPage, libraryPageCount)} of {libraryPageCount}</p>
+        </div>
         <div className="adminStoryList">
-          {articles.map(article => (
+          {pagedArticles.map(article => (
             <article className="adminStoryRow" key={article.id}>
               <div><span className="adminStatus">{article.status}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(article.published_at || article.updated_at))}</p></div>
               <button type="button" onClick={() => editArticle(article)}>Edit</button>
             </article>
           ))}
           {articles.length === 0 && <p className="adminNote">No newsroom articles yet.</p>}
+          {articles.length > 0 && filteredArticles.length === 0 && <p className="adminNote">No articles match these filters. Try a different keyword or status.</p>}
         </div>
+        {filteredArticles.length > libraryPageSize && <div className="adminActions">
+          <button type="button" disabled={libraryPage <= 1} onClick={() => setLibraryPage(page => Math.max(1, page - 1))}>Previous</button>
+          <button type="button" disabled={libraryPage >= libraryPageCount} onClick={() => setLibraryPage(page => Math.min(libraryPageCount, page + 1))}>Next</button>
+        </div>}
       </section>
     </main>
   );
