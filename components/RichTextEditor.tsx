@@ -440,7 +440,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         <button type="button" title="Redo" onMouseDown={(event) => event.preventDefault()} onClick={() => run("redo")}>↷ Redo</button>
       </div>
 
-      {selectedTable && selectedTableCell && editorRef.current?.contains(selectedTable) && selectedTable.contains(selectedTableCell) && <>
+      {selectedTable && selectedTableCell && <>
         <div className="richTableToolbar" role="group" aria-label="Selected table tools">
           <strong>Table selected</strong>
           <button type="button" onClick={addTableRow}>Add row below</button>
@@ -453,7 +453,7 @@ export function RichTextEditor({ value, onChange, onUploadImage }: Props) {
         <p className="richEditorHint">Click a table cell to select the table. Use the formatting toolbar for text, lists, alignment and links inside cells. Insert image while the cursor is in a cell to keep it there.</p>
       </>}
 
-      {selectedFigure && editorRef.current?.contains(selectedFigure) && <>
+      {selectedFigure && <>
         <div className="richImageToolbar" role="group" aria-label="Selected image tools">
           <strong>Image selected</strong>
           <label>Size
