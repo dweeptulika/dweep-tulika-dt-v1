@@ -79,10 +79,10 @@ export default function AdminPage() {
   const filteredLegacyArticles = useMemo(() => {
     const query = librarySearch.trim().toLowerCase();
     return availableLegacyArticles.filter(legacy => {
-      const matchesQuery = !query || [legacy.title, legacy.slug, legacy.excerpt, legacy.author, legacy.category, legacy.publicPath]
+      const matchesQuery = !query || [legacy.title, legacy.slug, legacy.excerpt, legacy.author, legacy.category, legacy.publicPath, ...legacy.labels]
         .some(value => (value || "").toLowerCase().includes(query));
       const matchesStatus = libraryStatus === "all" || libraryStatus === "published";
-      const matchesCategory = libraryCategory === "all" || legacy.category === libraryCategory;
+      const matchesCategory = libraryCategory === "all" || legacy.category === libraryCategory || legacy.labels.includes(libraryCategory);
       const matchesSource = librarySource === "all" || librarySource === "blogger";
       return matchesQuery && matchesStatus && matchesCategory && matchesSource;
     }).sort((a, b) => Date.parse(b.updatedAt || b.publishedAt) - Date.parse(a.updatedAt || a.publishedAt));
@@ -387,7 +387,7 @@ export default function AdminPage() {
           <div className="adminFormGrid">
             <label>Status<select value={libraryStatus} onChange={e => { setLibraryStatus(e.target.value as "all" | ArticleStatus); setLibraryPage(1); setLegacyPage(1); }}><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Drafts</option><option value="scheduled">Scheduled</option></select></label>
             <label>Source<select value={librarySource} onChange={e => { setLibrarySource(e.target.value as "all" | "newsroom" | "blogger"); setLibraryPage(1); setLegacyPage(1); }}><option value="all">All sources</option><option value="newsroom">Newsroom</option><option value="blogger">Legacy Blogger</option></select></label>
-            <label>Category<select value={libraryCategory} onChange={e => { setLibraryCategory(e.target.value); setLibraryPage(1); }}><option value="all">All categories</option>{Array.from(new Set([...articles.map(article => article.category), ...legacyArticles.map(article => article.category)])).sort().map(item => <option key={item} value={item}>{item}</option>)}</select></label>
+            <label>Category / Blogger label<select value={libraryCategory} onChange={e => { setLibraryCategory(e.target.value); setLibraryPage(1); }}><option value="all">All categories</option>{Array.from(new Set([...articles.map(article => article.category), ...legacyArticles.map(article => article.category), ...legacyArticles.flatMap(article => article.labels)])).sort().map(item => <option key={item} value={item}>{item}</option>)}</select></label>
             <label>Sort by<select value={librarySort} onChange={e => { setLibrarySort(e.target.value as "updated" | "published" | "title"); setLibraryPage(1); }}><option value="updated">Recently updated</option><option value="published">Publication date</option><option value="title">Headline A–Z</option></select></label>
           </div>
           <p className="adminNote">{filteredArticles.length} article{filteredArticles.length === 1 ? "" : "s"} found · Showing page {Math.min(libraryPage, libraryPageCount)} of {libraryPageCount}</p>
@@ -415,7 +415,7 @@ export default function AdminPage() {
         <div className="adminStoryList">
           {pagedLegacyArticles.map(legacy => (
             <article className="adminStoryRow" key={"legacy-" + legacy.id}>
-              <div><span className="adminStatus">blogger</span><h3>{legacy.title}</h3><p>{legacy.category} · {legacy.publicPath} · {new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(legacy.publishedAt))}</p></div>
+              <div><span className="adminStatus">blogger</span><h3>{legacy.title}</h3><p>{legacy.category}{legacy.labels.length ? ` · Labels: ${legacy.labels.join(", ")}` : ""} · {legacy.publicPath} · {new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(legacy.publishedAt))}</p></div>
               <button type="button" disabled={busy || adoptionDisabledForPreview} onClick={() => void adoptLegacyArticle(legacy)}>Adopt &amp; Edit</button>
             </article>
           ))}
