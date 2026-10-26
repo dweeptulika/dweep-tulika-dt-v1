@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -7,31 +6,26 @@ export async function GET(request: NextRequest) {
   const tokenHash = requestUrl.searchParams.get("token_hash");
   const type = requestUrl.searchParams.get("type");
   const requestedNext = requestUrl.searchParams.get("next") ?? "/admin/login";
-  const next = requestedNext.startsWith("/") && !requestedNext.startsWith("//")
-    ? requestedNext
-    : "/admin/login";
-  const failureUrl = new URL("/admin/login?error=recovery_link_invalid", requestUrl.origin);
+  const next =
+    requestedNext.startsWith("/") && !requestedNext.startsWith("//")
+      ? requestedNext
+      : "/admin/login";
+  const failureUrl = new URL(
+    "/admin/login?error=recovery_link_invalid",
+    requestUrl.origin,
+  );
 
-  const supabase = await createClient();
-
-  // Supabase can deliver recovery links as PKCE codes or token_hash links,
-  // depending on the email template and the project's auth configuration.
-  if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) {
-      return NextResponse.redirect(failureUrl);
-    }
-  } else if (tokenHash && type === "recovery") {
-    const { error } = await supabase.auth.verifyOtp({
-      token_hash: tokenHash,
-      type: "recovery",
-    });
-    if (error) {
-      return NextResponse.redirect(failureUrl);
-    }
-  } else {
-    return NextResponse.redirect(failureUrl);
+  // Complete the exchange in the browser. Supabase PKCE stores its verifier
+  // in the browser's cookie storage; exchanging here on the server can fail
+  // when that verifier is not present in the request cookies.
+  if (code || (tokenHash && type === "recovery")) {
+    const completionUrl = new URL("/auth/complete", requestUrl.origin);
+    if (code) completionUrl.searchParams.set("code", code);
+    if (tokenHash) completionUrl.searchParams.set("token_hash", tokenHash);
+    if (type) completionUrl.searchParams.set("type", type);
+    completionUrl.searchParams.set("next", next);
+    return NextResponse.redirect(completionUrl);
   }
 
-  return NextResponse.redirect(new URL(next, requestUrl.origin));
+  return NextResponse.redirect(failureUrl);
 }
