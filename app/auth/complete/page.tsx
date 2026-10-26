@@ -3,8 +3,31 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+function recoveryFailureMessage(detail?: string) {
+  const normalized = (detail ?? "").toLowerCase();
+
+  if (
+    normalized.includes("code verifier") ||
+    normalized.includes("verifier") ||
+    normalized.includes("pkce")
+  ) {
+    return "This browser could not find the secure verification data for the recovery link. Open the newest recovery email in the same browser profile where you requested it. If you already did that, contact the site administrator; do not keep requesting new links.";
+  }
+
+  if (
+    normalized.includes("expired") ||
+    normalized.includes("already") ||
+    normalized.includes("invalid")
+  ) {
+    return "This recovery link is expired, invalid, or has already been used. Contact the site administrator before requesting another email.";
+  }
+
+  return "We couldn't verify this recovery link. Please keep this page open and contact the site administrator with the diagnostic detail below; don't repeatedly request new emails.";
+}
+
 export default function AuthCompletePage() {
   const [message, setMessage] = useState("Verifying your secure recovery link…");
+  const [diagnostic, setDiagnostic] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -33,27 +56,28 @@ export default function AuthCompletePage() {
         });
         error = result.error;
       } else {
-        error = { message: "The recovery link is missing required parameters." };
+        error = { message: "Recovery URL is missing code or recovery token parameters." };
       }
 
       if (cancelled) return;
 
       if (error) {
-        setMessage(
-          "This recovery link could not be verified or has expired. Return to Editorial Login and contact the site administrator before requesting another email.",
-        );
+        setMessage(recoveryFailureMessage(error.message));
+        // Supabase SDK error messages describe the failure category and do not
+        // contain the recovery URL or its token. Never render query parameters.
+        setDiagnostic(error.message);
         return;
       }
 
       window.location.replace(next);
     }
 
-    void completeAuth().catch(() => {
-      if (!cancelled) {
-        setMessage(
-          "We couldn't verify this link. Return to Editorial Login and contact the site administrator.",
-        );
-      }
+    void completeAuth().catch((cause: unknown) => {
+      if (cancelled) return;
+      const detail =
+        cause instanceof Error ? cause.message : "Unknown error during recovery verification";
+      setMessage(recoveryFailureMessage(detail));
+      setDiagnostic(detail);
     });
 
     return () => {
@@ -67,6 +91,13 @@ export default function AuthCompletePage() {
         <div className="kicker">Dweep Tulika Newsroom</div>
         <h1>Verifying recovery link</h1>
         <p role="status">{message}</p>
+        {diagnostic && (
+          <details>
+            <summary>Technical diagnostic</summary>
+            <p role="note">{diagnostic}</p>
+            <p>Do not share the full recovery URL or its code/token.</p>
+          </details>
+        )}
       </div>
     </main>
   );
