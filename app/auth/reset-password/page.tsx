@@ -26,16 +26,25 @@ export default function ResetPasswordPage() {
     }
 
     setBusy(true);
-    const supabase = createClient();
-    const { error: updateError } = await supabase.auth.updateUser({ password });
-    if (updateError) {
-      setError("This recovery link may have expired or already been used. Request a new one and try again.");
-      setBusy(false);
-      return;
-    }
+    try {
+      const supabase = createClient();
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) {
+        setError(
+          "We couldn't update the password from this link. It may have expired or already been used. Please contact the site administrator so the recovery setup can be checked; don't keep requesting new emails.",
+        );
+        setBusy(false);
+        return;
+      }
 
-    router.replace("/admin/login?reset=success");
-    router.refresh();
+      router.replace("/admin/login?reset=success");
+      router.refresh();
+    } catch {
+      setError(
+        "A connection problem prevented the password update. Please try again once. If it continues, contact the site administrator rather than requesting another recovery email.",
+      );
+      setBusy(false);
+    }
   }
 
   return (
@@ -45,8 +54,28 @@ export default function ResetPasswordPage() {
         <h1>Choose a password</h1>
         <p>Set a new password for your newsroom account.</p>
         <form onSubmit={submit}>
-          <label>New password<input type="password" autoComplete="new-password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} /></label>
-          <label>Confirm new password<input type="password" autoComplete="new-password" minLength={8} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></label>
+          <label>
+            New password
+            <input
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </label>
+          <label>
+            Confirm new password
+            <input
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              required
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+            />
+          </label>
           {error && <p className="adminError" role="alert">{error}</p>}
           <button disabled={busy}>{busy ? "Updating…" : "Update password"}</button>
         </form>
