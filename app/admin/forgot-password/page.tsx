@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
-const RECOVERY_REDIRECT = "https://dweeptulika.in/auth/callback?next=/auth/reset-password";
+const RECOVERY_REDIRECT = "https://dweeptulika.in/auth/reset-password";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
