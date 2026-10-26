@@ -31,7 +31,7 @@ export default function ResetPasswordPage() {
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) {
         setError(
-          "We couldn't update the password from this link. It may have expired or already been used. Please contact the site administrator so the recovery setup can be checked; don't keep requesting new emails.",
+          `Password update failed: ${updateError.message}`,
         );
         setBusy(false);
         return;
