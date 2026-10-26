@@ -24,7 +24,7 @@ export default function ForgotPasswordPage() {
     });
 
     if (requestError) {
-      setError("We could not send the recovery email. Please check the address and try again.");
+      setError(`Recovery email failed: ${requestError.message}`);
     } else {
       setMessage("If an account exists for that email, a password-recovery link has been sent. Check your inbox and spam folder.");
     }
