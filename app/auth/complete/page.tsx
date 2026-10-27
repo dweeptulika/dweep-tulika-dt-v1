@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { createRecoveryClient } from "@/lib/supabase/recovery-client";
+import type { Session } from "@supabase/supabase-js";
 
 function recoveryFailureMessage(detail?: string) {
   const normalized = (detail ?? "").toLowerCase();
@@ -43,18 +45,24 @@ export default function AuthCompletePage() {
           ? requestedNext
           : "/admin/login";
 
-      const supabase = createClient();
+      // Remove the one-time code from the address bar/history immediately.
+      window.history.replaceState(window.history.state, "", window.location.pathname);
+
+      const recovery = createRecoveryClient();
       let error: { message: string } | null = null;
+      let session: Session | null = null;
 
       if (code) {
-        const result = await supabase.auth.exchangeCodeForSession(code);
+        const result = await recovery.auth.exchangeCodeForSession(code);
         error = result.error;
+        session = result.data.session;
       } else if (tokenHash && type === "recovery") {
-        const result = await supabase.auth.verifyOtp({
+        const result = await recovery.auth.verifyOtp({
           token_hash: tokenHash,
           type: "recovery",
         });
         error = result.error;
+        session = result.data.session;
       } else {
         error = { message: "Recovery URL is missing code or recovery token parameters." };
       }
@@ -63,21 +71,51 @@ export default function AuthCompletePage() {
 
       if (error) {
         setMessage(recoveryFailureMessage(error.message));
-        // Supabase SDK error messages describe the failure category and do not
-        // contain the recovery URL or its token. Never render query parameters.
+        // SDK error messages describe the failure category and do not contain
+        // the recovery URL or its token. Never render query parameters.
         setDiagnostic(error.message);
         return;
       }
 
-      // Confirm the exchanged session is actually available before navigating.
-      const { data, error: sessionError } = await supabase.auth.getSession();
+      if (!session) {
+        const { data, error: sessionError } = await recovery.auth.getSession();
+        if (cancelled) return;
+        if (sessionError || !data.session) {
+          const detail = sessionError?.message ?? "Code exchange completed without an active recovery session.";
+          setMessage("The recovery link was processed, but this browser could not establish a session for the password update. Keep this page open and contact the site administrator with the technical diagnostic; do not repeatedly request new emails.");
+          setDiagnostic(detail);
+          return;
+        }
+        session = data.session;
+      }
+
+      // Transfer the verified session from the dedicated PKCE client into the
+      // application's cookie-backed SSR client before opening the reset form.
+      const appClient = createClient();
+      const { error: transferError } = await appClient.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+      });
       if (cancelled) return;
-      if (sessionError || !data.session) {
-        const detail = sessionError?.message ?? "Exchange completed but no active browser session was found.";
-        setMessage("The recovery link was processed, but this browser could not establish a session for the password update. Keep this page open and contact the site administrator with the technical diagnostic; do not repeatedly request new emails.");
+
+      if (transferError) {
+        setMessage("The recovery link was verified, but the newsroom session could not be saved for the password update. Keep this page open and contact the site administrator.");
+        setDiagnostic(transferError.message);
+        return;
+      }
+
+      const { data: appSessionData, error: appSessionError } = await appClient.auth.getSession();
+      if (cancelled) return;
+      if (appSessionError || !appSessionData.session) {
+        const detail = appSessionError?.message ?? "Session transfer completed but no cookie-backed session was found.";
+        setMessage("The recovery link was verified, but this browser could not establish the newsroom session for the password update. Keep this page open and contact the site administrator.");
         setDiagnostic(detail);
         return;
       }
+
+      // Do not leave a second, temporary recovery session in localStorage.
+      await recovery.auth.signOut({ scope: "local" });
+      if (cancelled) return;
 
       window.location.replace(next);
     }
