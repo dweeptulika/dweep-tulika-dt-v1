@@ -69,6 +69,16 @@ export default function AuthCompletePage() {
         return;
       }
 
+      // Confirm the exchanged session is actually available before navigating.
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (sessionError || !data.session) {
+        const detail = sessionError?.message ?? "Exchange completed but no active browser session was found.";
+        setMessage("The recovery link was processed, but this browser could not establish a session for the password update. Keep this page open and contact the site administrator with the technical diagnostic; do not repeatedly request new emails.");
+        setDiagnostic(detail);
+        return;
+      }
+
       window.location.replace(next);
     }
 
