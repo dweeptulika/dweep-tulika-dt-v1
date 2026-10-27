@@ -2,10 +2,10 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { createRecoveryClient } from "@/lib/supabase/recovery-client";
 
-// Supabase PKCE recovery links return a one-time code. The browser callback
-// exchanges that code for a session before sending the user to the reset form.
+// The dedicated recovery client stores the PKCE verifier in localStorage so
+// the callback can retrieve it even though the app's normal client uses cookies.
 const RECOVERY_REDIRECT =
   "https://dweeptulika.in/auth/callback?next=%2Fauth%2Freset-password";
 
@@ -21,17 +21,26 @@ export default function ForgotPasswordPage() {
     setMessage("");
     setError("");
 
-    const supabase = createClient();
-    const { error: requestError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: RECOVERY_REDIRECT,
-    });
+    try {
+      const supabase = createRecoveryClient();
+      const { error: requestError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: RECOVERY_REDIRECT,
+      });
 
-    if (requestError) {
-      setError(`Recovery email failed: ${requestError.message}`);
-    } else {
-      setMessage("If an account exists for that email, a password-recovery link has been sent. Check your inbox and spam folder.");
+      if (requestError) {
+        setError(`Recovery email failed: ${requestError.message}`);
+      } else {
+        setMessage("If an account exists for that email, a password-recovery link has been sent. Check your inbox and spam folder.");
+      }
+    } catch (cause: unknown) {
+      setError(
+        cause instanceof Error
+          ? `Recovery email could not be requested: ${cause.message}`
+          : "Recovery email could not be requested because of an unexpected error.",
+      );
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   return (
