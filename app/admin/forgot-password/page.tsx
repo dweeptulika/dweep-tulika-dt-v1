@@ -4,7 +4,10 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
-const RECOVERY_REDIRECT = "https://dweeptulika.in/auth/reset-password";
+// Supabase PKCE recovery links return a one-time code. The browser callback
+// exchanges that code for a session before sending the user to the reset form.
+const RECOVERY_REDIRECT =
+  "https://dweeptulika.in/auth/callback?next=%2Fauth%2Freset-password";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
