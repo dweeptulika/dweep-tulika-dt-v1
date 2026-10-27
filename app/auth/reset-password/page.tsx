@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -11,6 +11,75 @@ export default function ResetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function prepareRecoverySession() {
+      const supabase = createClient();
+      const hash = window.location.hash.startsWith("#")
+        ? window.location.hash.slice(1)
+        : window.location.hash;
+      const hashParams = new URLSearchParams(hash);
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+      const recoveryType = hashParams.get("type");
+
+      // Some Supabase email templates use the implicit token flow and return
+      // the session in the URL fragment. Explicitly establish that session
+      // before allowing a password update.
+      if (accessToken && refreshToken && (!recoveryType || recoveryType === "recovery")) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (cancelled) return;
+        window.history.replaceState(
+          window.history.state,
+          "",
+          window.location.pathname + window.location.search,
+        );
+        if (sessionError) {
+          setError(`Recovery session could not be established: ${sessionError.message}`);
+          setSessionReady(false);
+          return;
+        }
+      }
+
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (sessionError) {
+        setError(`Could not check the recovery session: ${sessionError.message}`);
+        setSessionReady(false);
+        return;
+      }
+      if (!data.session) {
+        setError(
+          "No active recovery session was found. Open the newest recovery email link in the same browser where you requested it. If the link has already been used or this message persists, contact the site administrator before requesting another email.",
+        );
+        setSessionReady(false);
+        return;
+      }
+
+      setError("");
+      setSessionReady(true);
+    }
+
+    void prepareRecoverySession().catch((cause: unknown) => {
+      if (cancelled) return;
+      setError(
+        cause instanceof Error
+          ? `Could not prepare the recovery session: ${cause.message}`
+          : "Could not prepare the recovery session. Please contact the site administrator.",
+      );
+      setSessionReady(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,20 +97,32 @@ export default function ResetPasswordPage() {
     setBusy(true);
     try {
       const supabase = createClient();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session) {
+        setError(
+          sessionError
+            ? `Recovery session check failed: ${sessionError.message}`
+            : "No active recovery session was found. Open the newest recovery email link in this browser before updating the password.",
+        );
+        setSessionReady(false);
+        setBusy(false);
+        return;
+      }
+
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) {
-        setError(
-          `Password update failed: ${updateError.message}`,
-        );
+        setError(`Password update failed: ${updateError.message}`);
         setBusy(false);
         return;
       }
 
       router.replace("/admin/login?reset=success");
       router.refresh();
-    } catch {
+    } catch (cause: unknown) {
       setError(
-        "A connection problem prevented the password update. Please try again once. If it continues, contact the site administrator rather than requesting another recovery email.",
+        cause instanceof Error
+          ? `Password update could not be completed: ${cause.message}`
+          : "A connection problem prevented the password update. Please try again once. If it continues, contact the site administrator rather than requesting another recovery email.",
       );
       setBusy(false);
     }
@@ -77,7 +158,7 @@ export default function ResetPasswordPage() {
             />
           </label>
           {error && <p className="adminError" role="alert">{error}</p>}
-          <button disabled={busy}>{busy ? "Updating…" : "Update password"}</button>
+          <button disabled={busy || !sessionReady}>{busy ? "Updating…" : "Update password"}</button>
         </form>
         <Link href="/admin/login">Back to editorial login</Link>
       </div>
