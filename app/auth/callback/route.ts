@@ -1,4 +1,3 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -18,49 +17,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(failureUrl);
   }
 
-  // Exchange the one-time recovery code on the server using incoming Supabase
-  // SSR cookies, then persist the resulting session cookies on the redirect.
-  const cookiesToSet: Array<{
-    name: string;
-    value: string;
-    options?: Parameters<NextResponse["cookies"]["set"]>[2];
-  }> = [];
+  // The dedicated recovery client stores the PKCE verifier in browser localStorage.
+  // Forward the one-time code to the browser completion page so it can exchange
+  // the code in the same browser context that created the verifier.
+  const completionUrl = new URL("/auth/complete", requestUrl.origin);
+  if (code) completionUrl.searchParams.set("code", code);
+  if (tokenHash) completionUrl.searchParams.set("token_hash", tokenHash);
+  if (type) completionUrl.searchParams.set("type", type);
+  completionUrl.searchParams.set("next", next);
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookies) {
-          cookiesToSet.push(...cookies);
-        },
-      },
-    },
-  );
-
-  let error: { message: string } | null = null;
-  if (code) {
-    const result = await supabase.auth.exchangeCodeForSession(code);
-    error = result.error;
-  } else if (tokenHash && type === "recovery") {
-    const result = await supabase.auth.verifyOtp({
-      token_hash: tokenHash,
-      type: "recovery",
-    });
-    error = result.error;
-  }
-
-  if (error) {
-    return NextResponse.redirect(failureUrl);
-  }
-
-  const response = NextResponse.redirect(new URL(next, requestUrl.origin));
-  for (const cookie of cookiesToSet) {
-    response.cookies.set(cookie.name, cookie.value, cookie.options);
-  }
+  const response = NextResponse.redirect(completionUrl);
   response.headers.set("Cache-Control", "private, no-store");
   return response;
 }
