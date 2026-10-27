@@ -18,10 +18,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(failureUrl);
   }
 
-  // Exchange the one-time recovery code on the server using the incoming
-  // Supabase SSR cookies, then persist any rotated session cookies on the
-  // redirect response. This avoids relying on a client-side PKCE verifier
-  // that may not be available to the browser callback.
+  // Exchange the one-time recovery code on the server using incoming Supabase
+  // SSR cookies, then persist the resulting session cookies on the redirect.
   const cookiesToSet: Array<{
     name: string;
     value: string;
@@ -56,9 +54,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (error) {
-    const url = new URL("/auth/recovery-error", requestUrl.origin);
-    url.searchParams.set("reason", "verification_failed");
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(failureUrl);
   }
 
   const response = NextResponse.redirect(new URL(next, requestUrl.origin));
