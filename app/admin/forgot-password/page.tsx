@@ -4,11 +4,6 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { createRecoveryClient } from "@/lib/supabase/recovery-client";
 
-// The dedicated recovery client stores the PKCE verifier in localStorage so
-// the callback can retrieve it even though the app's normal client uses cookies.
-const RECOVERY_REDIRECT =
-  "https://dweeptulika.in/auth/callback?next=%2Fauth%2Freset-password";
-
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -23,8 +18,15 @@ export default function ForgotPasswordPage() {
 
     try {
       const supabase = createRecoveryClient();
+      // PKCE verification data is browser-origin scoped. Send the recovery
+      // email back to the exact origin where the request was initiated, rather
+      // than hard-coding the apex domain and breaking requests made on www.
+      const redirectTo = new URL(
+        "/auth/callback?next=%2Fauth%2Freset-password",
+        window.location.origin,
+      ).toString();
       const { error: requestError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: RECOVERY_REDIRECT,
+        redirectTo,
       });
 
       if (requestError) {
