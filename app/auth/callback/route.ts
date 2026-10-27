@@ -1,4 +1,5 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -10,22 +11,60 @@ export async function GET(request: NextRequest) {
     requestedNext.startsWith("/") && !requestedNext.startsWith("//")
       ? requestedNext
       : "/admin/login";
-  const failureUrl = new URL(
-    "/admin/login?error=recovery_link_invalid",
-    requestUrl.origin,
-  );
 
-  // Complete the exchange in the browser. Supabase PKCE stores its verifier
-  // in the browser's cookie storage; exchanging here on the server can fail
-  // when that verifier is not present in the request cookies.
-  if (code || (tokenHash && type === "recovery")) {
-    const completionUrl = new URL("/auth/complete", requestUrl.origin);
-    if (code) completionUrl.searchParams.set("code", code);
-    if (tokenHash) completionUrl.searchParams.set("token_hash", tokenHash);
-    if (type) completionUrl.searchParams.set("type", type);
-    completionUrl.searchParams.set("next", next);
-    return NextResponse.redirect(completionUrl);
+  const failureUrl = new URL("/admin/login?error=recovery_link_invalid", requestUrl.origin);
+
+  if (!code && !(tokenHash && type === "recovery")) {
+    return NextResponse.redirect(failureUrl);
   }
 
-  return NextResponse.redirect(failureUrl);
+  // Exchange the one-time recovery code on the server using the incoming
+  // Supabase SSR cookies, then persist any rotated session cookies on the
+  // redirect response. This avoids relying on a client-side PKCE verifier
+  // that may not be available to the browser callback.
+  const cookiesToSet: Array<{
+    name: string;
+    value: string;
+    options?: Parameters<NextResponse["cookies"]["set"]>[2];
+  }> = [];
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookies) {
+          cookiesToSet.push(...cookies);
+        },
+      },
+    },
+  );
+
+  let error: { message: string } | null = null;
+  if (code) {
+    const result = await supabase.auth.exchangeCodeForSession(code);
+    error = result.error;
+  } else if (tokenHash && type === "recovery") {
+    const result = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: "recovery",
+    });
+    error = result.error;
+  }
+
+  if (error) {
+    const url = new URL("/auth/recovery-error", requestUrl.origin);
+    url.searchParams.set("reason", "verification_failed");
+    return NextResponse.redirect(url);
+  }
+
+  const response = NextResponse.redirect(new URL(next, requestUrl.origin));
+  for (const cookie of cookiesToSet) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options);
+  }
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
 }
