@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { createRecoveryClient } from "@/lib/supabase/recovery-client";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -17,10 +17,10 @@ export default function ForgotPasswordPage() {
     setError("");
 
     try {
-      const supabase = createRecoveryClient();
-      // PKCE verification data is browser-origin scoped. Send the recovery
-      // email back to the exact origin where the request was initiated, rather
-      // than hard-coding the apex domain and breaking requests made on www.
+      // Use the same @supabase/ssr browser client as the rest of the app.
+      // Its PKCE verifier is stored using the app's cookie-based auth flow,
+      // which the server callback can read.
+      const supabase = createClient();
       const redirectTo = new URL(
         "/auth/callback?next=%2Fauth%2Freset-password",
         window.location.origin,
