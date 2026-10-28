@@ -37,8 +37,8 @@ export default async function Search({ searchParams }: { searchParams: Promise<{
   const query = q.trim().toLowerCase();
   const articles = await getAllPublishedArticles();
   const newest = articles[0]?.publishedAt || new Date().toISOString();
-  const selectedMonth = /^\\d{4}-\\d{2}$/.test(month || "") ? month! : monthKey(newest);
-  const selectedDate = /^\\d{4}-\\d{2}-\\d{2}$/.test(date) ? date : "";
+  const selectedMonth = /^\d{4}-\d{2}$/.test(month || "") ? month! : monthKey(newest);
+  const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : "";
 
   const matching = articles.filter((article) => {
     const text = [article.title, article.excerpt, article.author, article.category, ...article.labels].join(" ").toLowerCase();
