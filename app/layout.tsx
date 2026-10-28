@@ -4,13 +4,13 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { SITE_URL, websiteJsonLd } from "@/lib/seo";
+import { SITE_NAME, SITE_URL, websiteJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Dweep Tulika | Andaman & Nicobar News",
-    template: "%s | Dweep Tulika",
+    default: "DWEEP TULIKA | Andaman & Nicobar News",
+    template: "%s | DWEEP TULIKA",
   },
   description:
     "Latest news from the Andaman and Nicobar Islands, including local affairs, governance, culture, education, business and public-interest reporting from Dweep Tulika.",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     shortcut: [{ url: "/favicon-logo-white.jpg", type: "image/jpeg" }],
     apple: [{ url: "/favicon-logo-white.jpg", type: "image/jpeg" }],
   },
-  openGraph: { siteName: "Dweep Tulika", type: "website", locale: "en_IN" },
+  openGraph: { siteName: SITE_NAME, type: "website", locale: "en_IN" },
   robots: {
     index: true,
     follow: true,

@@ -1,7 +1,7 @@
 import { categoryPath, type PublishedStory } from "@/lib/data";
 
 export const SITE_URL = "https://dweeptulika.in";
-export const SITE_NAME = "Dweep Tulika";
+export const SITE_NAME = "DWEEP TULIKA";
 export const SITE_LOGO =
   "https://blogger.googleusercontent.com/img/a/AVvXsEhJ3O2ALVPRaVh4xa5sjb5cak1NEUvqzGOAVMb6_pKdZtiafHPuuXuO4IJU13NasgeXor5zyzIWviKh8bZ5yAS4A36CoJ24lxyF8EsIubyouuUyCQIa9eIif8ggVe8Xkua8sg6Tn-KafGLP6ZcB2GSOtA_8uaHZcosg_WJXtm-FyJ2fVglkrqMTdqvnyqw=s676";
 
@@ -45,6 +45,7 @@ export function websiteJsonLd() {
         "@type": "WebSite",
         "@id": SITE_URL + "/#website",
         name: SITE_NAME,
+        alternateName: ["Dweep Tulika", "dweeptulika.in"],
         url: SITE_URL,
         inLanguage: "en-IN",
         publisher: { "@id": SITE_URL + "/#organization" },
