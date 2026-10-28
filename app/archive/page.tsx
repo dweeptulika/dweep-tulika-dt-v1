@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { getAllPublishedArticles } from "@/lib/data";
 
 export const metadata: Metadata = { title: "News Archive", description: "Browse Dweep Tulika’s news archive by month, including reporting on the Andaman & Nicobar Islands, national affairs, culture and public issues.", alternates: { canonical: "/archive" } };
 
 export const revalidate = 0;
+
+function ArticleImage({ src, title }: { src: string | null; title: string }) {
+  if (!src) return null;
+  return <div className="storyImage"><Image src={src} alt={title} fill sizes="(max-width: 800px) 100vw, 400px" /></div>;
+}
 
 function monthLabel(value: string) {
   return new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(new Date(value));
@@ -28,6 +34,7 @@ export default async function Archive() {
           <div className="grid">
             {items.map((article) => (
               <article className="card" key={article.id}>
+                <ArticleImage src={article.featuredImage} title={article.title} />
                 <div className="kicker">{article.category || "News"}</div>
                 <div className="meta">{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(article.publishedAt))}</div>
                 <h3><Link href={article.url}>{article.title}</Link></h3>
