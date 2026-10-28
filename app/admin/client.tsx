@@ -32,6 +32,10 @@ export default function AdminPage() {
   const supabase = useMemo(() => createClient(), []);
   const [sessionReady, setSessionReady] = useState(false);
   const [articles, setArticles] = useState<ArticleRow[]>([]);
+  const [articleSearch, setArticleSearch] = useState("");
+  const [articleStatusFilter, setArticleStatusFilter] = useState<"all" | ArticleStatus>("all");
+  const [articleCategoryFilter, setArticleCategoryFilter] = useState("all");
+  const [articlePage, setArticlePage] = useState(1);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState(""); const [slug, setSlug] = useState("");
   const [category, setCategory] = useState(categories[0]); const [author, setAuthor] = useState("Dweep Tulika");
@@ -41,6 +45,39 @@ export default function AdminPage() {
   const [scheduledFor, setScheduledFor] = useState(""); const [publicationDate, setPublicationDate] = useState(""); const [status, setStatus] = useState<ArticleStatus>("draft");
   const [originalPublishedAt, setOriginalPublishedAt] = useState<string | null>(null);
   const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false); const [uploading, setUploading] = useState(false);
+
+  const categoryOptions = useMemo(() => Array.from(new Set([
+    ...categories,
+    ...articles.map(article => article.category).filter(Boolean),
+  ])).sort((a, b) => a.localeCompare(b)), [articles]);
+
+  function effectiveArticleStatus(article: ArticleRow): ArticleStatus {
+    if (article.scheduled_for && new Date(article.scheduled_for).getTime() > Date.now()) return "scheduled";
+    return article.status;
+  }
+
+  const filteredArticles = useMemo(() => {
+    const query = articleSearch.trim().toLocaleLowerCase();
+    return articles.filter((article) => {
+      const matchesQuery = !query || [article.title, article.slug, article.excerpt]
+        .some((field) => (field || "").toLocaleLowerCase().includes(query));
+      const matchesStatus = articleStatusFilter === "all" || effectiveArticleStatus(article) === articleStatusFilter;
+      const matchesCategory = articleCategoryFilter === "all" || article.category === articleCategoryFilter;
+      return matchesQuery && matchesStatus && matchesCategory;
+    });
+  }, [articles, articleSearch, articleStatusFilter, articleCategoryFilter]);
+
+  const articlesPerPage = 20;
+  const totalArticlePages = Math.max(1, Math.ceil(filteredArticles.length / articlesPerPage));
+  const visibleArticles = filteredArticles.slice((articlePage - 1) * articlesPerPage, articlePage * articlesPerPage);
+
+  useEffect(() => {
+    setArticlePage(1);
+  }, [articleSearch, articleStatusFilter, articleCategoryFilter]);
+
+  useEffect(() => {
+    if (articlePage > totalArticlePages) setArticlePage(totalArticlePages);
+  }, [articlePage, totalArticlePages]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -237,16 +274,31 @@ export default function AdminPage() {
       <AdvertisementPanel />
 
       <section className="adminEditor">
-        <div className="adminEditorHead"><div><div className="adminLabel">Newsroom Library</div><h2>Drafts &amp; published stories</h2></div></div>
+        <div className="adminEditorHead"><div><div className="adminLabel">Newsroom Library</div><h2>Manage articles</h2><p>Search by headline, URL slug or summary, then open the article directly for editing.</p></div><span className="adminStatus">{filteredArticles.length} of {articles.length} articles</span></div>
+        <div className="adminArticleFilters" role="search" aria-label="Filter newsroom articles">
+          <label>Search articles<input type="search" value={articleSearch} onChange={event => setArticleSearch(event.target.value)} placeholder="Search headlines, slugs or summaries…" /></label>
+          <label>Status<select value={articleStatusFilter} onChange={event => setArticleStatusFilter(event.target.value as "all" | ArticleStatus)}><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Drafts</option><option value="scheduled">Scheduled</option></select></label>
+          <label>Category<select value={articleCategoryFilter} onChange={event => setArticleCategoryFilter(event.target.value)}><option value="all">All categories</option>{categoryOptions.map(item => <option key={item} value={item}>{item}</option>)}</select></label>
+          {(articleSearch || articleStatusFilter !== "all" || articleCategoryFilter !== "all") && <button type="button" className="adminBack" onClick={() => { setArticleSearch(""); setArticleStatusFilter("all"); setArticleCategoryFilter("all"); }}>Clear filters</button>}
+        </div>
         <div className="adminStoryList">
-          {articles.map(article => (
+          {visibleArticles.map(article => (
             <article className="adminStoryRow" key={article.id}>
-              <div><span className="adminStatus">{article.status}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(article.published_at || article.updated_at))}</p></div>
+              <div><span className="adminStatus">{effectiveArticleStatus(article)}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(article.published_at || article.updated_at))}</p></div>
               <button type="button" onClick={() => editArticle(article)}>Edit</button>
             </article>
           ))}
           {articles.length === 0 && <p className="adminNote">No newsroom articles yet.</p>}
+          {articles.length > 0 && filteredArticles.length === 0 && <p className="adminNote">No articles match these filters. Try a different search or clear the filters.</p>}
         </div>
+        {filteredArticles.length > 0 && <nav className="adminArticlePagination" aria-label="Article list pages">
+          <span>Showing {(articlePage - 1) * articlesPerPage + 1}–{Math.min(articlePage * articlesPerPage, filteredArticles.length)} of {filteredArticles.length}</span>
+          <div>
+            <button type="button" className="adminBack" disabled={articlePage <= 1} onClick={() => setArticlePage(page => Math.max(1, page - 1))}>Previous</button>
+            <span>Page {articlePage} of {totalArticlePages}</span>
+            <button type="button" className="adminBack" disabled={articlePage >= totalArticlePages} onClick={() => setArticlePage(page => Math.min(totalArticlePages, page + 1))}>Next</button>
+          </div>
+        </nav>}
       </section>
     </main>
   );

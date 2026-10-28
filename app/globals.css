@@ -139,3 +139,14 @@ table.dtArticleTable img{display:inline-block;max-width:100%;height:auto;vertica
   .article h1{font-size:30px}
   .articlebody{font-size:16.5px;line-height:1.75}
 }
+
+
+/* Search, filter and paginate the newsroom article library. */
+.adminArticleFilters{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) minmax(170px,1fr) auto;gap:12px;align-items:end;margin:18px 0;padding:16px;background:#f7f4ee;border:1px solid #e0d9ce;border-radius:10px}
+.adminArticleFilters label{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:13px}
+.adminArticleFilters input,.adminArticleFilters select{width:100%;min-width:0;min-height:42px;padding:9px 11px;border:1px solid #bdb5a9;border-radius:6px;background:#fff;color:#171717;font:14px Arial,sans-serif}
+.adminArticlePagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid #ddd5c9;font-size:13px;color:#514b43}
+.adminArticlePagination>div{display:flex;align-items:center;gap:12px}
+.adminArticlePagination button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:800px){.adminArticleFilters{grid-template-columns:1fr 1fr}.adminArticleFilters label:first-child{grid-column:1/-1}.adminArticleFilters>.adminBack{justify-self:start}.adminArticlePagination{align-items:flex-start;flex-direction:column}.adminArticlePagination>div{flex-wrap:wrap}}
+@media(max-width:480px){.adminArticleFilters{grid-template-columns:1fr}.adminArticleFilters label:first-child{grid-column:auto}.adminArticlePagination>div{width:100%;justify-content:space-between}}
