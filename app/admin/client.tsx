@@ -363,7 +363,9 @@ export default function AdminPage() {
             <label>Featured image<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => uploadImage(e, "featured")} disabled={uploading || busy} /></label>
             <label>Social image<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => uploadImage(e, "social")} disabled={uploading || busy} /></label>
           </div>
-          {featuredImage && <div className="adminImagePreview"><img src={featuredImage} alt="Selected featured image" /><button type="button" onClick={() => setFeaturedImage("")}>Remove featured image</button></div>}
+          {featuredImage && (body.includes(featuredImage)
+            ? <div className="adminNote">The featured image is already embedded in the article body, so its duplicate preview is hidden. The featured-image metadata is preserved. <button type="button" onClick={() => setFeaturedImage("")}>Remove featured image</button></div>
+            : <div className="adminImagePreview"><img src={featuredImage} alt="Selected featured image" /><button type="button" onClick={() => setFeaturedImage("")}>Remove featured image</button></div>)}
           {socialImage && <div className="adminImagePreview"><img src={socialImage} alt="Selected social image" /><button type="button" onClick={() => setSocialImage("")}>Remove social image</button></div>}
           <label>Article body
             <RichTextEditor value={body} onChange={setBody} onUploadImage={uploadInlineImage} />
