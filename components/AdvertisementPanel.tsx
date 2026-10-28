@@ -36,16 +36,36 @@ export function AdvertisementPanel() {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
+  const [loadingAds, setLoadingAds] = useState(true);
+  const [adsLoadError, setAdsLoadError] = useState<string | null>(null);
 
   async function loadAds() {
-    const { data, error } = await supabase.from("advertisements")
-      .select("id,name,advertiser,image_url,target_url,placement,active,starts_at,ends_at")
-      .order("created_at", { ascending: false });
-    if (error) setMessage(error.message);
-    else setAds((data || []) as AdRow[]);
+    setLoadingAds(true);
+    setAdsLoadError(null);
+    try {
+      const { data, error } = await supabase.from("advertisements")
+        .select("id,name,advertiser,image_url,target_url,placement,active,starts_at,ends_at,created_at")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setAds((data || []) as AdRow[]);
+    } catch (error) {
+      setAdsLoadError(error instanceof Error ? error.message : "Could not load advertisements.");
+      setAds([]);
+    } finally {
+      setLoadingAds(false);
+    }
   }
 
-  // The initial data load intentionally happens after mount; keep this effect isolated from the form state updates.\n  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps\n  useEffect(() => { void loadAds(); }, []);
+  // Load on mount and refresh when the user returns to the dashboard tab.
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+  useEffect(() => {
+    void loadAds();
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void loadAds();
+    };
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => document.removeEventListener("visibilitychange", refreshWhenVisible);
+  }, []);
 
   function reset() {
     setEditingId(null); setName(""); setAdvertiser(""); setImageUrl(""); setTargetUrl("");
@@ -117,7 +137,10 @@ export function AdvertisementPanel() {
   return <section className="adminEditor">
     <div className="adminEditorHead">
       <div><div className="adminLabel">Advertising</div><h2>Advertisement Control Panel</h2></div>
-      <span className="adminStatus">{ads.filter(a => a.active).length} active</span>
+      <div className="adminActions">
+        <span className="adminStatus">{loadingAds ? "Loading ads…" : adsLoadError ? "Ads unavailable" : `${ads.filter(a => a.active).length} active`}</span>
+        <button type="button" disabled={loadingAds} onClick={() => void loadAds()}>{loadingAds ? "Refreshing…" : "Refresh ads"}</button>
+      </div>
     </div>
     <div className="adminFormGrid">
       <label>Advertisement name<input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. ABC Traders — Diwali Offer" /></label>
@@ -134,6 +157,7 @@ export function AdvertisementPanel() {
       <label>End date &amp; time<input type="datetime-local" value={endsAt} onChange={e => setEndsAt(e.target.value)} /><small>Leave blank for no automatic end date.</small></label>
     </div>
     <label><input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} /> Active <small>Uncheck to keep this advertisement hidden without deleting it.</small></label>
+    {adsLoadError && <p className="adminMessage">Could not load advertisements: {adsLoadError}. Use “Refresh ads” to retry.</p>}
     {message && <p className="adminMessage">{message}</p>}
     <div className="adminActions">
       <button type="button" disabled={busy || uploading} onClick={() => void saveAd()}>{busy ? "Saving…" : editingId ? "Save Advertisement" : "Add Advertisement"}</button>
@@ -152,7 +176,9 @@ export function AdvertisementPanel() {
           <button type="button" onClick={() => void deleteAd(ad)}>Delete</button>
         </div>
       </article>)}
-      {ads.length === 0 && <p className="adminNote">No advertisements added yet.</p>}
+      {!loadingAds && !adsLoadError && ads.length === 0 && <p className="adminNote">No advertisements added yet.</p>}
+      {loadingAds && <p className="adminNote">Loading saved advertisements…</p>}
+      {adsLoadError && <p className="adminNote">The saved advertisement list could not be confirmed. The active count is not being reported as zero.</p>}
     </div>
   </section>;
 }
