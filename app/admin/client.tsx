@@ -41,6 +41,7 @@ export default function AdminPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [sessionReady, setSessionReady] = useState(false);
+  const [activeTab, setActiveTab] = useState<"write" | "ads" | "stories">("write");
   const [articles, setArticles] = useState<ArticleRow[]>([]);
   const [articlesLoading, setArticlesLoading] = useState(true);
   const [articleLoadError, setArticleLoadError] = useState<string | null>(null);
@@ -345,6 +346,13 @@ export default function AdminPage() {
         <div className="adminHeaderActions"><Link className="adminBack" href="/">View Website</Link><Link className="adminBack" href="/admin/logout">Sign Out</Link></div>
       </div>
 
+      <nav className="adminTabs" role="tablist" aria-label="Editorial dashboard sections">
+        <button type="button" role="tab" aria-selected={activeTab === "write"} className={activeTab === "write" ? "adminTabButton isActive" : "adminTabButton"} onClick={() => setActiveTab("write")}>Write and publish</button>
+        <button type="button" role="tab" aria-selected={activeTab === "ads"} className={activeTab === "ads" ? "adminTabButton isActive" : "adminTabButton"} onClick={() => setActiveTab("ads")}>Advertisement Control Panel</button>
+        <button type="button" role="tab" aria-selected={activeTab === "stories"} className={activeTab === "stories" ? "adminTabButton isActive" : "adminTabButton"} onClick={() => setActiveTab("stories")}>Drafts &amp; published stories</button>
+      </nav>
+
+      {activeTab === "write" && (
       <section className="adminEditor">
         <div className="adminEditorHead"><div><div className="adminLabel">{editingId ? "Edit Article" : "New Article"}</div><h2>{editingId ? "Update newsroom story" : "Write and publish"}</h2></div><span className="adminStatus">{status}</span></div>
         <form onSubmit={submit}>
@@ -386,9 +394,11 @@ export default function AdminPage() {
           <p className="adminNote">Published URLs retain the newsroom date/slug format. Media is stored in the Dweep Tulika newsroom library.</p>
         </form>
       </section>
+      )}
 
-      <AdvertisementPanel />
+      {activeTab === "ads" && <AdvertisementPanel />}
 
+      {activeTab === "stories" && <>
       <section className="adminEditor">
         <div className="adminEditorHead"><div><div className="adminLabel">Newsroom Library</div><h2>Drafts &amp; published stories</h2></div></div>
         <div className="adminLibraryControls">
@@ -439,6 +449,7 @@ export default function AdminPage() {
           <button type="button" disabled={legacyPage >= legacyPageCount} onClick={() => setLegacyPage(page => Math.min(legacyPageCount, page + 1))}>Next</button>
         </div>}
       </section>
+      </>}
     </main>
   );
 }
