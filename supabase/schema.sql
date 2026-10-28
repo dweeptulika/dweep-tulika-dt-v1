@@ -17,6 +17,10 @@ create table if not exists public.articles (
   title text not null,
   slug text not null unique,
   category text not null,
+  source text not null default 'newsroom',
+  legacy_id text,
+  legacy_url text,
+  public_path text,
   author text not null default 'Dweep Tulika',
   excerpt text not null default '',
   body_html text not null default '',
@@ -32,6 +36,10 @@ create table if not exists public.articles (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create unique index if not exists articles_public_path_idx
+  on public.articles(public_path)
+  where public_path is not null;
 
 create index if not exists articles_status_published_idx
   on public.articles(status, published_at desc);
