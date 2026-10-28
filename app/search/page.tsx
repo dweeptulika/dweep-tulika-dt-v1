@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { getAllPublishedArticles } from "@/lib/data";
 
@@ -6,6 +7,10 @@ export const metadata: Metadata = { title: "Search", description: "Search Dweep 
 
 export const revalidate = 60;
 
+function ArticleImage({ src, title }: { src: string | null; title: string }) {
+  if (!src) return null;
+  return <div className="storyImage"><Image src={src} alt={title} fill sizes="(max-width: 800px) 100vw, 400px" /></div>;
+}
 function isoDate(value: string) { const d = new Date(value); return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10); }
 function monthKey(value: string) { return isoDate(value).slice(0, 7); }
 function monthLabel(month: string) {
@@ -32,8 +37,8 @@ export default async function Search({ searchParams }: { searchParams: Promise<{
   const query = q.trim().toLowerCase();
   const articles = await getAllPublishedArticles();
   const newest = articles[0]?.publishedAt || new Date().toISOString();
-  const selectedMonth = /^\d{4}-\d{2}$/.test(month || "") ? month! : monthKey(newest);
-  const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : "";
+  const selectedMonth = /^\\d{4}-\\d{2}$/.test(month || "") ? month! : monthKey(newest);
+  const selectedDate = /^\\d{4}-\\d{2}-\\d{2}$/.test(date) ? date : "";
 
   const matching = articles.filter((article) => {
     const text = [article.title, article.excerpt, article.author, article.category, ...article.labels].join(" ").toLowerCase();
@@ -71,6 +76,7 @@ export default async function Search({ searchParams }: { searchParams: Promise<{
       <div className="grid">
         {matching.map((article) => (
           <article className="card" key={article.id}>
+            <ArticleImage src={article.featuredImage} title={article.title} />
             <div className="kicker">{article.category || "News"}</div>
             <div className="meta">{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(article.publishedAt))}</div>
             <h2><Link href={article.url}>{article.title}</Link></h2>
