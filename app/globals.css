@@ -150,3 +150,17 @@ table.dtArticleTable img{display:inline-block;max-width:100%;height:auto;vertica
 .adminArticlePagination button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:800px){.adminArticleFilters{grid-template-columns:1fr 1fr}.adminArticleFilters label:first-child{grid-column:1/-1}.adminArticleFilters>.adminBack{justify-self:start}.adminArticlePagination{align-items:flex-start;flex-direction:column}.adminArticlePagination>div{flex-wrap:wrap}}
 @media(max-width:480px){.adminArticleFilters{grid-template-columns:1fr}.adminArticleFilters label:first-child{grid-column:auto}.adminArticlePagination>div{width:100%;justify-content:space-between}}
+
+
+/* Unified newsroom and legacy Blogger library controls. */
+.adminLibraryControls{display:grid;grid-template-columns:minmax(240px,2fr) minmax(0,3fr);gap:14px;align-items:end;margin:18px 0;padding:16px;background:#f7f4ee;border:1px solid #e0d9ce;border-radius:10px}
+.adminLibraryControls>label{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:13px}
+.adminLibraryControls input,.adminLibraryControls select{width:100%;min-width:0;min-height:42px;padding:9px 11px;border:1px solid #bdb5a9;border-radius:6px;background:#fff;color:#171717;font:14px Arial,sans-serif}
+.adminLibraryControls .adminFormGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.adminLibraryControls .adminFormGrid label{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:13px}
+.adminStoryRow{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid #e0d9ce}
+.adminStoryRow h3{margin:8px 0;font-size:18px;line-height:1.35}
+.adminStoryRow p{margin:0;color:#514b43;font-size:14px}
+.adminStoryRow>button{flex-shrink:0}
+@media(max-width:900px){.adminLibraryControls{grid-template-columns:1fr}.adminLibraryControls .adminFormGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.adminLibraryControls .adminFormGrid{grid-template-columns:1fr}.adminStoryRow{align-items:flex-start}}
