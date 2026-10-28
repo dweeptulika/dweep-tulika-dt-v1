@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SITE_URL } from "@/lib/seo";
 import { getAllPublishedArticles } from "@/lib/data";
@@ -14,6 +15,11 @@ const aliases: Record<string, string> = {
 };
 
 export const revalidate = 0;
+
+function ArticleImage({ src, title }: { src: string | null; title: string }) {
+  if (!src) return null;
+  return <div className="storyImage"><Image src={src} alt={title} fill sizes="(max-width: 800px) 100vw, 400px" /></div>;
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ category: string }> }): Promise<Metadata> {
   const { category } = await params;
@@ -44,6 +50,7 @@ export default async function Category({ params }: { params: Promise<{ category:
       <div className="grid">
         {items.map((article) => (
           <article className="card" key={article.id}>
+            <ArticleImage src={article.featuredImage} title={article.title} />
             <div className="kicker">{article.category || "News"}</div>
             <div className="meta">{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(article.publishedAt))}</div>
             <h2><Link href={article.url}>{article.title}</Link></h2>
