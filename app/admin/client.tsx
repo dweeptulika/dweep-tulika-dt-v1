@@ -402,7 +402,7 @@ export default function AdminPage() {
         <div className="adminStoryList">
           {pagedArticles.map(article => (
             <article className="adminStoryRow" key={article.id}>
-              <div><span className="adminStatus">{article.status}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(article.published_at || article.updated_at))}</p></div>
+              <div><span className="adminStatus">{article.scheduled_for && new Date(article.scheduled_for).getTime() > Date.now() ? "scheduled" : article.status}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(article.published_at || article.updated_at))}</p></div>
               <button type="button" onClick={() => editArticle(article)}>Edit</button>
             </article>
           ))}
