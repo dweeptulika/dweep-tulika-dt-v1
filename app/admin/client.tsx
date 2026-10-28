@@ -42,6 +42,8 @@ export default function AdminPage() {
   const supabase = useMemo(() => createClient(), []);
   const [sessionReady, setSessionReady] = useState(false);
   const [articles, setArticles] = useState<ArticleRow[]>([]);
+  const [articlesLoading, setArticlesLoading] = useState(true);
+  const [articleLoadError, setArticleLoadError] = useState<string | null>(null);
   const [legacyArticles, setLegacyArticles] = useState<LegacyArticle[]>([]);
   const [legacyLoadError, setLegacyLoadError] = useState(false);
   const [legacyPage, setLegacyPage] = useState(1);
@@ -113,10 +115,20 @@ export default function AdminPage() {
   }, [router, supabase]);
 
   async function loadArticles() {
-    const { data } = await supabase.from("articles")
-      .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
-      .order("updated_at", { ascending: false });
-    if (data) setArticles(data as ArticleRow[]);
+    setArticlesLoading(true);
+    setArticleLoadError(null);
+    try {
+      const { data, error } = await supabase.from("articles")
+        .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      setArticles((data || []) as ArticleRow[]);
+    } catch (error) {
+      setArticleLoadError(error instanceof Error ? error.message : "Could not load newsroom articles.");
+      setArticles([]);
+    } finally {
+      setArticlesLoading(false);
+    }
     try {
       const response = await fetch("/api/admin/legacy-articles", { cache: "no-store" });
       if (!response.ok) throw new Error("Legacy archive request failed");
@@ -394,8 +406,10 @@ export default function AdminPage() {
               <button type="button" onClick={() => editArticle(article)}>Edit</button>
             </article>
           ))}
-          {articles.length === 0 && <p className="adminNote">No newsroom articles yet.</p>}
-          {articles.length > 0 && filteredArticles.length === 0 && <p className="adminNote">No articles match these filters. Try a different keyword or status.</p>}
+          {articlesLoading && <p className="adminNote" role="status">Loading newsroom articles…</p>}
+          {!articlesLoading && articleLoadError && <div className="adminNote" role="alert"><p>Newsroom articles could not be loaded. This is a loading error, not an empty library.</p><p>{articleLoadError}</p><button type="button" onClick={() => void loadArticles()}>Retry loading articles</button></div>}
+          {!articlesLoading && !articleLoadError && articles.length === 0 && <p className="adminNote">No newsroom articles yet.</p>}
+          {!articlesLoading && !articleLoadError && articles.length > 0 && filteredArticles.length === 0 && <p className="adminNote">No articles match these filters. Try a different keyword or clear the filters.</p>}
         </div>
         {filteredArticles.length > libraryPageSize && <div className="adminActions">
           <button type="button" disabled={libraryPage <= 1} onClick={() => setLibraryPage(page => Math.max(1, page - 1))}>Previous</button>
