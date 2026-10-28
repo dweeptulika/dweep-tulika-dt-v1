@@ -106,8 +106,8 @@ export function canonicalCategory(labels: string[], title = "") {
 function mapDbArticle(article: DbArticle): PublishedStory {
   const category = canonicalCategory([article.category], article.title);
   return {
-    source: "newsroom",
-    id: `newsroom-${article.id}`,
+    source: article.source === "blogger" ? "blogger" : "newsroom",
+    id: `${article.source === "blogger" ? "blogger" : "newsroom"}-${article.id}`,
     title: article.title,
     slug: article.slug,
     category,
