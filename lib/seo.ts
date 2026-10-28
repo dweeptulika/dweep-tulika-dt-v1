@@ -7,7 +7,7 @@ export const SITE_LOGO =
 
 export function articleJsonLd(a: PublishedStory, url: string) {
   const image = a.socialImage || a.featuredImage || undefined;
-  const authorName = a.author || SITE_NAME;
+  const authorName = a.author || "Dweep Tulika";
   return {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
