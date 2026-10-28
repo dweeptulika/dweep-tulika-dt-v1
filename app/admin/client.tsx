@@ -183,7 +183,7 @@ export default function AdminPage() {
         public_path: article.publicPath, author: article.author || "Dweep Tulika",
         excerpt: article.excerpt || "", body_html: article.bodyHtml || "",
         featured_image: article.featuredImage, seo_title: article.title,
-        meta_description: article.excerpt || null, status: "published",
+        meta_description: article.excerpt || null, status: "draft",
         published_at: publishedAt.toISOString(), created_by: userData.user.id, updated_by: userData.user.id,
       }).select("id").single();
       if (error || !inserted) {
@@ -196,8 +196,8 @@ export default function AdminPage() {
       setFeaturedImage(article.featuredImage || ""); setSeoTitle(article.title);
       setMetaDescription(article.excerpt || ""); setSocialImage(""); setScheduledFor("");
       setPublicationDate(toLocalDateTimeInput(publishedAt.toISOString()));
-      setOriginalPublishedAt(publishedAt.toISOString()); setStatus("published");
-      setMessage("Legacy Blogger story adopted into the newsroom. Its original public URL and publication date are preserved; the source archive remains unchanged.");
+      setOriginalPublishedAt(publishedAt.toISOString()); setStatus("draft");
+      setMessage("Legacy Blogger story adopted as a draft. Its original public URL and publication date are preserved; the source archive remains unchanged. Review the story, then publish it explicitly when ready.");
       await loadArticles();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
