@@ -9,8 +9,8 @@ import { SITE_NAME, SITE_URL, websiteJsonLd } from "@/lib/seo";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "DWEEP TULIKA | Andaman & Nicobar News",
-    template: "%s | DWEEP TULIKA",
+    default: "Dweep Tulika | Andaman & Nicobar News",
+    template: "%s | Dweep Tulika",
   },
   description:
     "Latest news from the Andaman and Nicobar Islands, including local affairs, governance, culture, education, business and public-interest reporting from Dweep Tulika.",
