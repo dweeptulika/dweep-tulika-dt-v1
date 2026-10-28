@@ -42,6 +42,7 @@ export default function AdminPage() {
   const supabase = useMemo(() => createClient(), []);
   const [sessionReady, setSessionReady] = useState(false);
   const [articles, setArticles] = useState<ArticleRow[]>([]);
+  const [articleLoadError, setArticleLoadError] = useState<string | null>(null);
   const [legacyArticles, setLegacyArticles] = useState<LegacyArticle[]>([]);
   const [legacyLoadError, setLegacyLoadError] = useState(false);
   const [legacyPage, setLegacyPage] = useState(1);
@@ -113,10 +114,16 @@ export default function AdminPage() {
   }, [router, supabase]);
 
   async function loadArticles() {
-    const { data } = await supabase.from("articles")
+    const { data, error } = await supabase.from("articles")
       .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
       .order("updated_at", { ascending: false });
-    if (data) setArticles(data as ArticleRow[]);
+    if (error) {
+      setArticles([]);
+      setArticleLoadError(error.message);
+    } else {
+      setArticles((data || []) as ArticleRow[]);
+      setArticleLoadError(null);
+    }
     try {
       const response = await fetch("/api/admin/legacy-articles", { cache: "no-store" });
       if (!response.ok) throw new Error("Legacy archive request failed");
@@ -377,6 +384,8 @@ export default function AdminPage() {
 
       <section className="adminEditor">
         <div className="adminEditorHead"><div><div className="adminLabel">Newsroom Library</div><h2>Drafts &amp; published stories</h2></div></div>
+        {articleLoadError && <p className="adminMessage" role="alert">Newsroom articles could not be loaded: {articleLoadError}</p>}
+        {legacyLoadError && <p className="adminMessage" role="alert">The legacy Blogger archive could not be loaded. Check the protected archive endpoint and try refreshing.</p>}
         <div className="adminLibraryControls">
           <label>Search articles<input type="search" value={librarySearch} onChange={e => { setLibrarySearch(e.target.value); setLibraryPage(1); setLegacyPage(1); }} placeholder="Headline, keyword, slug, author…" /></label>
           <div className="adminFormGrid">
@@ -390,7 +399,7 @@ export default function AdminPage() {
         <div className="adminStoryList">
           {pagedArticles.map(article => (
             <article className="adminStoryRow" key={article.id}>
-              <div><span className="adminStatus">{article.status}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(article.published_at || article.updated_at))}</p></div>
+              <div><span className="adminStatus">{article.scheduled_for && new Date(article.scheduled_for).getTime() > Date.now() ? "scheduled" : article.status}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(article.published_at || article.updated_at))}</p></div>
               <button type="button" onClick={() => editArticle(article)}>Edit</button>
             </article>
           ))}
