@@ -46,12 +46,22 @@ export default function AdminPage() {
   const [originalPublishedAt, setOriginalPublishedAt] = useState<string | null>(null);
   const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false); const [uploading, setUploading] = useState(false);
 
+  const categoryOptions = useMemo(() => Array.from(new Set([
+    ...categories,
+    ...articles.map(article => article.category).filter(Boolean),
+  ])).sort((a, b) => a.localeCompare(b)), [articles]);
+
+  function effectiveArticleStatus(article: ArticleRow): ArticleStatus {
+    if (article.scheduled_for && new Date(article.scheduled_for).getTime() > Date.now()) return "scheduled";
+    return article.status;
+  }
+
   const filteredArticles = useMemo(() => {
     const query = articleSearch.trim().toLocaleLowerCase();
     return articles.filter((article) => {
       const matchesQuery = !query || [article.title, article.slug, article.excerpt]
         .some((field) => (field || "").toLocaleLowerCase().includes(query));
-      const matchesStatus = articleStatusFilter === "all" || article.status === articleStatusFilter;
+      const matchesStatus = articleStatusFilter === "all" || effectiveArticleStatus(article) === articleStatusFilter;
       const matchesCategory = articleCategoryFilter === "all" || article.category === articleCategoryFilter;
       return matchesQuery && matchesStatus && matchesCategory;
     });
@@ -268,13 +278,13 @@ export default function AdminPage() {
         <div className="adminArticleFilters" role="search" aria-label="Filter newsroom articles">
           <label>Search articles<input type="search" value={articleSearch} onChange={event => setArticleSearch(event.target.value)} placeholder="Search headlines, slugs or summaries…" /></label>
           <label>Status<select value={articleStatusFilter} onChange={event => setArticleStatusFilter(event.target.value as "all" | ArticleStatus)}><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Drafts</option><option value="scheduled">Scheduled</option></select></label>
-          <label>Category<select value={articleCategoryFilter} onChange={event => setArticleCategoryFilter(event.target.value)}><option value="all">All categories</option>{categories.map(item => <option key={item} value={item}>{item}</option>)}</select></label>
+          <label>Category<select value={articleCategoryFilter} onChange={event => setArticleCategoryFilter(event.target.value)}><option value="all">All categories</option>{categoryOptions.map(item => <option key={item} value={item}>{item}</option>)}</select></label>
           {(articleSearch || articleStatusFilter !== "all" || articleCategoryFilter !== "all") && <button type="button" className="adminBack" onClick={() => { setArticleSearch(""); setArticleStatusFilter("all"); setArticleCategoryFilter("all"); }}>Clear filters</button>}
         </div>
         <div className="adminStoryList">
           {visibleArticles.map(article => (
             <article className="adminStoryRow" key={article.id}>
-              <div><span className="adminStatus">{article.status}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(article.published_at || article.updated_at))}</p></div>
+              <div><span className="adminStatus">{effectiveArticleStatus(article)}</span><h3>{article.title}</h3><p>{article.category} · {article.published_at ? "Published " : "Updated "}{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(article.published_at || article.updated_at))}</p></div>
               <button type="button" onClick={() => editArticle(article)}>Edit</button>
             </article>
           ))}
