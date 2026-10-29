@@ -531,7 +531,10 @@ export default function AdminPage() {
                 setCategory(e.target.value);
                 setSelectedCategories(current => current.includes(e.target.value) ? current : [...current, e.target.value]);
               }}>{(selectedCategories.length ? selectedCategories : [category]).map(item => <option key={item}>{item}</option>)}</select></label>
-              <label>Article type<select value={articleType} onChange={e => setArticleType(e.target.value)}>{articleTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+              <label>Article type<select value={articleType} disabled={!articleTypeReady} onChange={e => setArticleType(e.target.value)}>{articleTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+              {!articleTypeReady && <p className="adminNote">Article types become editable after the taxonomy migration is applied.</p>}
+              <label>Series (optional)<input value={seriesName} disabled={!seriesReady} onChange={e => setSeriesName(e.target.value)} placeholder="e.g. Rajneeti Ke Chehre" /></label>
+              {!seriesReady && <p className="adminNote">Series assignment becomes available after the series migration is applied.</p>}
               <label>Author<input value={author} onChange={e => setAuthor(e.target.value)} /></label>
             </div>
           </div>
