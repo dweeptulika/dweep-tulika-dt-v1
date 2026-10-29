@@ -416,6 +416,38 @@ export default function AdminPage() {
         return;
       }
     }
+    if (seriesReady) {
+      const trimmedSeries = seriesName.trim();
+      if (trimmedSeries) {
+        const seriesSlug = makeSlug(trimmedSeries);
+        if (!seriesSlug) {
+          setMessage("Article saved, but the series name is invalid.");
+          setEditingId(saved.id);
+          setBusy(false);
+          return;
+        }
+        const seriesResult = await supabase.from("series")
+          .upsert({ name: trimmedSeries, slug: seriesSlug }, { onConflict: "slug" })
+          .select("id").single();
+        if (seriesResult.error || !seriesResult.data) {
+          setMessage("Article saved, but series could not be saved: " + (seriesResult.error?.message || "Unknown error"));
+          setEditingId(saved.id);
+          setBusy(false);
+          return;
+        }
+        const assignResult = await supabase.from("article_series")
+          .upsert({ article_id: saved.id, series_id: seriesResult.data.id }, { onConflict: "article_id,series_id" });
+        if (assignResult.error) {
+          setMessage("Article saved, but series assignment failed: " + assignResult.error.message);
+          setEditingId(saved.id);
+          setBusy(false);
+          return;
+        }
+        await supabase.from("article_series").delete().eq("article_id", saved.id).neq("series_id", seriesResult.data.id);
+      } else {
+        await supabase.from("article_series").delete().eq("article_id", saved.id);
+      }
+    }
     setMessage(requestedStatus === "published" ? "Article published successfully." : requestedStatus === "scheduled" ? "Article scheduled successfully." : "Draft saved successfully.");
     resetEditor();
     await loadArticles();
