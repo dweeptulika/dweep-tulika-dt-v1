@@ -282,3 +282,44 @@ grant select on public.series to anon, authenticated;
 grant select, insert, update, delete on public.series to authenticated;
 grant select on public.article_series to anon, authenticated;
 grant select, insert, update, delete on public.article_series to authenticated;
+
+
+drop policy if exists "public can read categories" on public.categories;
+create policy "public can read categories" on public.categories
+  for select to anon, authenticated using (true);
+drop policy if exists "editors can manage categories" on public.categories;
+create policy "editors can manage categories" on public.categories
+  for all to authenticated
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()))
+  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+
+drop policy if exists "public can read categories for published articles" on public.article_categories;
+create policy "public can read categories for published articles" on public.article_categories
+  for select to anon, authenticated
+  using (exists (select 1 from public.articles a where a.id = article_categories.article_id
+    and a.status in ('published','scheduled') and a.published_at is not null and a.published_at <= now()));
+drop policy if exists "editors can manage article categories" on public.article_categories;
+create policy "editors can manage article categories" on public.article_categories
+  for all to authenticated
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()))
+  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+
+drop policy if exists "public can read series" on public.series;
+create policy "public can read series" on public.series
+  for select to anon, authenticated using (true);
+drop policy if exists "editors can manage series" on public.series;
+create policy "editors can manage series" on public.series
+  for all to authenticated
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()))
+  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+
+drop policy if exists "public can read series for published articles" on public.article_series;
+create policy "public can read series for published articles" on public.article_series
+  for select to anon, authenticated
+  using (exists (select 1 from public.articles a where a.id = article_series.article_id
+    and a.status in ('published','scheduled') and a.published_at is not null and a.published_at <= now()));
+drop policy if exists "editors can manage article series" on public.article_series;
+create policy "editors can manage article series" on public.article_series
+  for all to authenticated
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()))
+  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
