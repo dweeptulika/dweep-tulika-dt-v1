@@ -290,8 +290,8 @@ create policy "public can read categories" on public.categories
 drop policy if exists "editors can manage categories" on public.categories;
 create policy "editors can manage categories" on public.categories
   for all to authenticated
-  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()))
-  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')))
+  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')));
 
 drop policy if exists "public can read categories for published articles" on public.article_categories;
 create policy "public can read categories for published articles" on public.article_categories
@@ -301,8 +301,8 @@ create policy "public can read categories for published articles" on public.arti
 drop policy if exists "editors can manage article categories" on public.article_categories;
 create policy "editors can manage article categories" on public.article_categories
   for all to authenticated
-  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()))
-  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')))
+  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')));
 
 drop policy if exists "public can read series" on public.series;
 create policy "public can read series" on public.series
@@ -310,8 +310,8 @@ create policy "public can read series" on public.series
 drop policy if exists "editors can manage series" on public.series;
 create policy "editors can manage series" on public.series
   for all to authenticated
-  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()))
-  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')))
+  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')));
 
 drop policy if exists "public can read series for published articles" on public.article_series;
 create policy "public can read series for published articles" on public.article_series
@@ -321,5 +321,5 @@ create policy "public can read series for published articles" on public.article_
 drop policy if exists "editors can manage article series" on public.article_series;
 create policy "editors can manage article series" on public.article_series
   for all to authenticated
-  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()))
-  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')))
+  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')));
