@@ -96,8 +96,8 @@ create policy "public can read categories"
 drop policy if exists "editors can manage categories" on public.categories;
 create policy "editors can manage categories"
   on public.categories for all to authenticated
-  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()))
-  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')))
+  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')));
 
 drop policy if exists "public can read categories for published articles" on public.article_categories;
 create policy "public can read categories for published articles"
@@ -113,8 +113,8 @@ create policy "public can read categories for published articles"
 drop policy if exists "editors can manage article categories" on public.article_categories;
 create policy "editors can manage article categories"
   on public.article_categories for all to authenticated
-  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()))
-  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+  using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')))
+  with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid() and p.role in ('editor', 'admin')));
 
 
 -- Normalize each article to exactly one primary category without removing links.
