@@ -10,7 +10,7 @@ import { AdvertisementPanel } from "@/components/AdvertisementPanel";
 const categories = ["Andaman News", "National", "Politics", "Editorial", "Culture", "Business", "Sports"];
 type ArticleStatus = "draft" | "published" | "scheduled";
 type ArticleRow = {
-  id: string; title: string; slug: string; category: string; source?: "blogger" | "newsroom"; public_path?: string | null; author: string; excerpt: string;
+  id: string; title: string; slug: string; category: string; category_names?: string[]; primary_category?: string; article_type?: string; source?: "blogger" | "newsroom"; public_path?: string | null; author: string; excerpt: string;
   body_html: string; featured_image: string | null; seo_title: string | null;
   meta_description: string | null; social_image: string | null; status: ArticleStatus;
   scheduled_for: string | null; published_at: string | null; updated_at: string;
@@ -344,6 +344,7 @@ export default function AdminPage() {
     if (!user) { router.replace("/admin/login"); return; }
     const finalSlug = slug || makeSlug(title);
     if (!title.trim() || !finalSlug || !body.trim()) { setMessage("Headline, slug and article body are required."); setBusy(false); return; }
+    if (categoryLinksReady && selectedCategories.length === 0) { setMessage("Choose at least one category."); setBusy(false); return; }
     if (requestedStatus === "scheduled" && !scheduledFor) { setMessage("Choose a date and time for scheduled publication."); setBusy(false); return; }
     const normalizedSlug = finalSlug.toLowerCase();
     const { data: slugMatch } = await supabase.from("articles").select("id").eq("slug", normalizedSlug).maybeSingle();
@@ -363,13 +364,46 @@ export default function AdminPage() {
       status: requestedStatus === "scheduled" ? "published" : requestedStatus, scheduled_for: scheduledAt,
       published_at: publishedAt,
       updated_by: user.id,
+      ...(articleTypeReady ? { article_type: articleType } : {}),
     };
     const query = editingId
-      ? supabase.from("articles").update(payload).eq("id", editingId)
-      : supabase.from("articles").insert({ ...payload, created_by: user.id });
-    const { error } = await query;
-    if (error) setMessage(error.message);
-    else { setMessage(requestedStatus === "published" ? "Article published successfully." : requestedStatus === "scheduled" ? "Article scheduled successfully." : "Draft saved successfully."); resetEditor(); await loadArticles(); }
+      ? supabase.from("articles").update(payload).eq("id", editingId).select("id").single()
+      : supabase.from("articles").insert({ ...payload, created_by: user.id }).select("id").single();
+    const { data: saved, error } = await query;
+    if (error || !saved) {
+      setMessage(error?.message || "The article could not be saved.");
+      setBusy(false);
+      return;
+    }
+    if (categoryLinksReady) {
+      const chosen = categoryOptions.filter(item => selectedCategories.includes(item.name));
+      if (!chosen.length) {
+        setMessage("Article saved, but no valid category IDs were available. Keep the editor open and retry after refreshing the category list.");
+        setEditingId(saved.id);
+        setBusy(false);
+        return;
+      }
+      const links = chosen.map(item => ({ article_id: saved.id, category_id: item.id, is_primary: item.name === category }));
+      const { error: linkSaveError } = await supabase.from("article_categories").upsert(links, { onConflict: "article_id,category_id" });
+      if (linkSaveError) {
+        setMessage("Article saved, but category assignments failed: " + linkSaveError.message);
+        setEditingId(saved.id);
+        setBusy(false);
+        return;
+      }
+      const keepIds = chosen.map(item => '"' + item.id + '"').join(",");
+      const { error: removeError } = await supabase.from("article_categories")
+        .delete().eq("article_id", saved.id).not("category_id", "in", "(" + keepIds + ")");
+      if (removeError) {
+        setMessage("Article saved and selected categories assigned, but old category links could not be cleared: " + removeError.message);
+        setEditingId(saved.id);
+        setBusy(false);
+        return;
+      }
+    }
+    setMessage(requestedStatus === "published" ? "Article published successfully." : requestedStatus === "scheduled" ? "Article scheduled successfully." : "Draft saved successfully.");
+    resetEditor();
+    await loadArticles();
     setBusy(false);
   }
 
