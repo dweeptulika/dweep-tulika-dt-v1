@@ -129,17 +129,19 @@ export default function AdminPage() {
     setArticlesLoading(true);
     setArticleLoadError(null);
     try {
-      let result = await supabase.from("articles")
+      const withType = await supabase.from("articles")
         .select("id,title,slug,category,article_type,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
         .order("updated_at", { ascending: false });
-      if (result.error) {
-        result = await supabase.from("articles")
+      let baseRows: ArticleRow[];
+      if (withType.error) {
+        const fallback = await supabase.from("articles")
           .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
           .order("updated_at", { ascending: false });
+        if (fallback.error) throw fallback.error;
+        baseRows = (fallback.data || []) as ArticleRow[];
+      } else {
+        baseRows = (withType.data || []) as ArticleRow[];
       }
-      const { data, error } = result;
-      if (error) throw error;
-      const baseRows = (data || []) as ArticleRow[];
       let rows = baseRows.map(article => ({ ...article, category_names: [article.category], primary_category: article.category, article_type: article.article_type || "news" }));
       const { data: categoryData, error: categoryError } = await supabase.from("categories").select("id,name,slug").order("name");
       if (!categoryError && categoryData) {
