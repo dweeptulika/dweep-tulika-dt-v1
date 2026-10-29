@@ -9,6 +9,9 @@ create table if not exists public.categories (
   created_at timestamptz not null default now()
 );
 
+create unique index if not exists categories_slug_unique_idx on public.categories(slug);
+create unique index if not exists categories_name_unique_idx on public.categories(name);
+
 insert into public.categories (slug, name) values
   ('andaman-nicobar', 'Andaman News'),
   ('national', 'National'),
