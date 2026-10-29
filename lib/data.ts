@@ -107,8 +107,9 @@ export function canonicalCategory(labels: string[], title = "") {
 
 function mapDbArticle(article: DbArticle): PublishedStory {
   const linkedCategories = (article.category_links || []).map((link) => link.category?.name).filter((name): name is string => Boolean(name));
-  const labels = linkedCategories.length ? [...new Set(linkedCategories)] : [canonicalCategory([article.category], article.title)];
   const primaryLink = (article.category_links || []).find((link) => link.is_primary)?.category?.name;
+  const uniqueCategories = linkedCategories.length ? [...new Set(linkedCategories)] : [canonicalCategory([article.category], article.title)];
+  const labels = primaryLink ? [primaryLink, ...uniqueCategories.filter((name) => name !== primaryLink)] : uniqueCategories;
   const category = primaryLink || labels[0] || canonicalCategory([article.category], article.title);
   return {
     source: article.source === "blogger" ? "blogger" : "newsroom",
