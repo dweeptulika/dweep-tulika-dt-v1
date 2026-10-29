@@ -164,6 +164,7 @@ export default function AdminPage() {
               ...article,
               category_names: assigned.length ? assigned.map(item => item.name) : [article.category],
               primary_category: assigned.find(item => item.primary)?.name || article.category,
+              article_type: article.article_type || "news",
             };
           });
           setCategoryLinksReady(true);
