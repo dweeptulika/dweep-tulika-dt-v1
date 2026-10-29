@@ -177,15 +177,25 @@ export async function getActiveAdvertisements(placement: Advertisement["placemen
 export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> {
   const supabase = publicSupabase();
   if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("articles")
-    .select("id,title,slug,category,article_type,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,category_links:article_categories(is_primary,category:categories(name,slug))")
+  const withCategories = "id,title,slug,category,article_type,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,category_links:article_categories(is_primary,category:categories(name,slug))";
+  const legacyFields = "id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at";
+  let result = await supabase.from("articles")
+    .select(withCategories)
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
     .order("published_at", { ascending: false });
-  if (error || !data) return [];
-  return (data as DbArticle[]).map(mapDbArticle);
+  if (result.error) {
+    // Preview deployments may run before the category migration is applied.
+    result = await supabase.from("articles")
+      .select(legacyFields)
+      .in("status", ["published", "scheduled"])
+      .not("published_at", "is", null)
+      .lte("published_at", new Date().toISOString())
+      .order("published_at", { ascending: false });
+  }
+  if (result.error || !result.data) return [];
+  return (result.data as DbArticle[]).map(mapDbArticle);
 }
 
 export function normalizePublicPath(value: string) {
