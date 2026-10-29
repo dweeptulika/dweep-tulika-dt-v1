@@ -71,7 +71,7 @@ export default function AdminPage() {
       return matchesQuery
         && matchesSource
         && (libraryStatus === "all" || effectiveStatus === libraryStatus)
-        && (libraryCategory === "all" || article.category === libraryCategory);
+        && (libraryCategory === "all" || article.category === libraryCategory || (article.category_names || []).includes(libraryCategory));
     }).sort((a, b) => {
       if (librarySort === "title") return a.title.localeCompare(b.title);
       if (librarySort === "published") return new Date(b.published_at || b.updated_at).getTime() - new Date(a.published_at || a.updated_at).getTime();
@@ -228,6 +228,9 @@ export default function AdminPage() {
       }
       setEditingId(inserted.id);
       setTitle(article.title); setSlug(article.slug); setCategory(article.category);
+      const legacyCategoryNames = defaultCategories.filter(name => [article.category, ...article.labels].some(label => label.toLowerCase() === name.toLowerCase()));
+      setSelectedCategories(legacyCategoryNames.length ? legacyCategoryNames : [article.category]);
+      setArticleType("news");
       setAuthor(article.author || "Dweep Tulika"); setExcerpt(article.excerpt || ""); setBody(article.bodyHtml || "");
       setFeaturedImage(article.featuredImage || ""); setSeoTitle(article.title);
       setMetaDescription(article.excerpt || ""); setSocialImage(""); setScheduledFor("");
@@ -244,13 +247,13 @@ export default function AdminPage() {
   }
 
   function resetEditor() {
-    setEditingId(null); setTitle(""); setSlug(""); setCategory(categories[0]); setAuthor("Dweep Tulika");
+    setEditingId(null); setTitle(""); setSlug(""); setCategory(defaultCategories[0]); setSelectedCategories([defaultCategories[0]]); setArticleType("news"); setAuthor("Dweep Tulika");
     setExcerpt(""); setBody(""); setFeaturedImage(""); setSeoTitle(""); setMetaDescription("");
     setSocialImage(""); setScheduledFor(""); setPublicationDate(""); setStatus("draft"); setOriginalPublishedAt(null); setMessage("");
   }
 
   function editArticle(article: ArticleRow) {
-    setEditingId(article.id); setTitle(article.title); setSlug(article.slug); setCategory(article.category);
+    setEditingId(article.id); setTitle(article.title); setSlug(article.slug); setCategory(article.primary_category || article.category); setSelectedCategories(article.category_names?.length ? article.category_names : [article.category]); setArticleType(article.article_type || "news");
     setAuthor(article.author); setExcerpt(article.excerpt); setBody(article.body_html); setFeaturedImage(article.featured_image || "");
     setSeoTitle(article.seo_title || ""); setMetaDescription(article.meta_description || "");
     setSocialImage(article.social_image || ""); setScheduledFor(toLocalDateTimeInput(article.scheduled_for));
@@ -394,8 +397,35 @@ export default function AdminPage() {
           <label>Headline<input required value={title} onChange={e => { setTitle(e.target.value); if (!slug) setSlug(makeSlug(e.target.value)); }} placeholder="Enter the news headline" /></label>
           <label>Slug<input required value={slug} onChange={e => setSlug(makeSlug(e.target.value))} placeholder="article-url-slug" /></label>
           <div className="adminFormGrid">
-            <label>Category<select value={category} onChange={e => setCategory(e.target.value)}>{categories.map(item => <option key={item}>{item}</option>)}</select></label>
-            <label>Author<input value={author} onChange={e => setAuthor(e.target.value)} /></label>
+            <div>
+              <div className="adminLabel">Categories</div>
+              <div className="adminNote">Choose every section where this story should appear. Legacy articles keep their original category unless you change it here.</div>
+              <div className="adminCategoryChecks">
+                {(categoryOptions.length ? categoryOptions.map(item => item.name) : defaultCategories).map(item => (
+                  <label key={item} className="adminCheckLabel">
+                    <input type="checkbox" checked={selectedCategories.includes(item)} disabled={!categoryLinksReady}
+                      onChange={e => {
+                        const next = e.target.checked
+                          ? [...selectedCategories, item]
+                          : selectedCategories.filter(value => value !== item);
+                        if (next.length === 0) return;
+                        setSelectedCategories(next);
+                        if (!next.includes(category)) setCategory(next[0]);
+                      }} />
+                    {item}
+                  </label>
+                ))}
+              </div>
+              {!categoryLinksReady && <p className="adminNote">Multi-category editing becomes available after the category migration is applied.</p>}
+            </div>
+            <div>
+              <label>Primary category<select value={category} onChange={e => {
+                setCategory(e.target.value);
+                setSelectedCategories(current => current.includes(e.target.value) ? current : [...current, e.target.value]);
+              }}>{(selectedCategories.length ? selectedCategories : [category]).map(item => <option key={item}>{item}</option>)}</select></label>
+              <label>Article type<select value={articleType} onChange={e => setArticleType(e.target.value)}>{articleTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+              <label>Author<input value={author} onChange={e => setAuthor(e.target.value)} /></label>
+            </div>
           </div>
           <label>Excerpt / summary<textarea rows={3} value={excerpt} onChange={e => setExcerpt(e.target.value)} placeholder="Short summary for cards and search engines" /></label>
           <div className="adminFormGrid">
