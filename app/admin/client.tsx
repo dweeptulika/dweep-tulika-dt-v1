@@ -241,6 +241,20 @@ export default function AdminPage() {
         setMessage(error?.message || "The story could not be adopted. No existing story was overwritten.");
         return;
       }
+      const adoptedNames = defaultCategories.filter(name => [article.category, ...article.labels].some(label => label.toLowerCase() === name.toLowerCase()));
+      const adoptedCategories = categoryOptions.filter(item => adoptedNames.includes(item.name));
+      if (categoryLinksReady && adoptedCategories.length) {
+        const categoryLinks = adoptedCategories.map(item => ({
+          article_id: inserted.id,
+          category_id: item.id,
+          is_primary: item.name === article.category || (!adoptedNames.includes(article.category) && item.name === adoptedCategories[0].name),
+        }));
+        const { error: categoryError } = await supabase.from("article_categories")
+          .upsert(categoryLinks, { onConflict: "article_id,category_id" });
+        if (categoryError) {
+          setMessage("Legacy story was adopted, but category assignments need attention: " + categoryError.message);
+        }
+      }
       setEditingId(inserted.id);
       setTitle(article.title); setSlug(article.slug); setCategory(article.category);
       const legacyCategoryNames = defaultCategories.filter(name => [article.category, ...article.labels].some(label => label.toLowerCase() === name.toLowerCase()));
