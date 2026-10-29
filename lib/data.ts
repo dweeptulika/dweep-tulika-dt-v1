@@ -229,7 +229,7 @@ export async function getPublishedNewsroomArticleByPath(year: string, month: str
   const requestedPath = `/${year}/${month}/${normalizedSlug}.html`;
   const supabase = publicSupabase();
   if (!supabase) return null;
-  const selectFields = "id,title,slug,category,article_type,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,category_links:article_categories(is_primary,category:categories(name,slug))";
+  const selectFields = "id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at";
   const { data: pathMatch } = await supabase
     .from("articles").select(selectFields)
     .eq("public_path", requestedPath)
