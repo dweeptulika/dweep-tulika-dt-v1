@@ -99,7 +99,7 @@ export default function AdminPage() {
   const pagedLegacyArticles = filteredLegacyArticles.slice((legacyPage - 1) * legacyPageSize, legacyPage * legacyPageSize);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState(""); const [slug, setSlug] = useState("");
-  const [category, setCategory] = useState(categories[0]); const [author, setAuthor] = useState("Dweep Tulika");
+  const [category, setCategory] = useState(defaultCategories[0]); const [selectedCategories, setSelectedCategories] = useState<string[]>([defaultCategories[0]]); const [articleType, setArticleType] = useState("news"); const [author, setAuthor] = useState("Dweep Tulika");
   const [excerpt, setExcerpt] = useState(""); const [body, setBody] = useState("");
   const [featuredImage, setFeaturedImage] = useState(""); const [seoTitle, setSeoTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState(""); const [socialImage, setSocialImage] = useState("");
@@ -123,7 +123,42 @@ export default function AdminPage() {
         .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
         .order("updated_at", { ascending: false });
       if (error) throw error;
-      setArticles((data || []) as ArticleRow[]);
+      const baseRows = (data || []) as ArticleRow[];
+      let rows = baseRows.map(article => ({ ...article, category_names: [article.category], primary_category: article.category, article_type: "news" }));
+      const { data: categoryData, error: categoryError } = await supabase.from("categories").select("id,name,slug").order("name");
+      if (!categoryError && categoryData) {
+        setCategoryOptions(categoryData as Array<{ id: string; name: string; slug: string }>);
+        const { data: linkData, error: linkError } = await supabase
+          .from("article_categories")
+          .select("article_id,is_primary,category:categories(name)");
+        if (!linkError && linkData) {
+          const linksByArticle = new Map<string, Array<{ name: string; primary: boolean }>>();
+          for (const link of linkData as Array<{ article_id: string; is_primary: boolean; category?: { name?: string } | null }>) {
+            const name = link.category?.name;
+            if (!name) continue;
+            const current = linksByArticle.get(link.article_id) || [];
+            current.push({ name, primary: link.is_primary });
+            linksByArticle.set(link.article_id, current);
+          }
+          rows = baseRows.map(article => {
+            const assigned = linksByArticle.get(article.id) || [];
+            return {
+              ...article,
+              category_names: assigned.length ? assigned.map(item => item.name) : [article.category],
+              primary_category: assigned.find(item => item.primary)?.name || article.category,
+            };
+          });
+          setCategoryLinksReady(true);
+        } else {
+          setCategoryLinksReady(false);
+        }
+      } else {
+        setCategoryOptions([]);
+        setCategoryLinksReady(false);
+      }
+      const { error: typeError } = await supabase.from("articles").select("article_type").limit(1);
+      setArticleTypeReady(!typeError);
+      setArticles(rows);
     } catch (error) {
       setArticleLoadError(error instanceof Error ? error.message : "Could not load newsroom articles.");
       setArticles([]);
