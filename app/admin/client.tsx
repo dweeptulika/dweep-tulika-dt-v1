@@ -10,7 +10,7 @@ import { AdvertisementPanel } from "@/components/AdvertisementPanel";
 const categories = ["Andaman News", "National", "Politics", "Editorial", "Culture", "Business", "Sports"];
 type ArticleStatus = "draft" | "published" | "scheduled";
 type ArticleRow = {
-  id: string; title: string; slug: string; category: string; category_names?: string[]; primary_category?: string; article_type?: string; source?: "blogger" | "newsroom"; public_path?: string | null; author: string; excerpt: string;
+  id: string; title: string; slug: string; category: string; category_names?: string[]; primary_category?: string; article_type?: string; series_name?: string; source?: "blogger" | "newsroom"; public_path?: string | null; author: string; excerpt: string;
   body_html: string; featured_image: string | null; seo_title: string | null;
   meta_description: string | null; social_image: string | null; status: ArticleStatus;
   scheduled_for: string | null; published_at: string | null; updated_at: string;
@@ -99,7 +99,7 @@ export default function AdminPage() {
   const pagedLegacyArticles = filteredLegacyArticles.slice((legacyPage - 1) * legacyPageSize, legacyPage * legacyPageSize);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState(""); const [slug, setSlug] = useState("");
-  const [category, setCategory] = useState(defaultCategories[0]); const [selectedCategories, setSelectedCategories] = useState<string[]>([defaultCategories[0]]); const [articleType, setArticleType] = useState("news"); const [author, setAuthor] = useState("Dweep Tulika");
+  const [category, setCategory] = useState(defaultCategories[0]); const [selectedCategories, setSelectedCategories] = useState<string[]>([defaultCategories[0]]); const [articleType, setArticleType] = useState("news"); const [seriesName, setSeriesName] = useState(""); const [author, setAuthor] = useState("Dweep Tulika");
   const [excerpt, setExcerpt] = useState(""); const [body, setBody] = useState("");
   const [featuredImage, setFeaturedImage] = useState(""); const [seoTitle, setSeoTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState(""); const [socialImage, setSocialImage] = useState("");
@@ -162,6 +162,15 @@ export default function AdminPage() {
         setCategoryOptions([]);
         setCategoryLinksReady(false);
       }
+      const { data: seriesLinks, error: seriesError } = await supabase.from("article_series").select("article_id,series:series(name)");
+      if (!seriesError && seriesLinks) {
+        const seriesByArticle = new Map<string, string>();
+        for (const link of seriesLinks as Array<{ article_id: string; series?: { name?: string } | null }>) {
+          if (link.series?.name) seriesByArticle.set(link.article_id, link.series.name);
+        }
+        rows = rows.map(article => ({ ...article, series_name: seriesByArticle.get(article.id) || "" }));
+        setSeriesReady(true);
+      } else setSeriesReady(false);
       const { error: typeError } = await supabase.from("articles").select("article_type").limit(1);
       setArticleTypeReady(!typeError);
       setArticles(rows);
@@ -236,7 +245,7 @@ export default function AdminPage() {
       setTitle(article.title); setSlug(article.slug); setCategory(article.category);
       const legacyCategoryNames = defaultCategories.filter(name => [article.category, ...article.labels].some(label => label.toLowerCase() === name.toLowerCase()));
       setSelectedCategories(legacyCategoryNames.length ? legacyCategoryNames : [article.category]);
-      setArticleType("news");
+      setArticleType("news"); setSeriesName("");
       setAuthor(article.author || "Dweep Tulika"); setExcerpt(article.excerpt || ""); setBody(article.bodyHtml || "");
       setFeaturedImage(article.featuredImage || ""); setSeoTitle(article.title);
       setMetaDescription(article.excerpt || ""); setSocialImage(""); setScheduledFor("");
@@ -253,13 +262,13 @@ export default function AdminPage() {
   }
 
   function resetEditor() {
-    setEditingId(null); setTitle(""); setSlug(""); setCategory(defaultCategories[0]); setSelectedCategories([defaultCategories[0]]); setArticleType("news"); setAuthor("Dweep Tulika");
+    setEditingId(null); setTitle(""); setSlug(""); setCategory(defaultCategories[0]); setSelectedCategories([defaultCategories[0]]); setArticleType("news"); setSeriesName(""); setAuthor("Dweep Tulika");
     setExcerpt(""); setBody(""); setFeaturedImage(""); setSeoTitle(""); setMetaDescription("");
     setSocialImage(""); setScheduledFor(""); setPublicationDate(""); setStatus("draft"); setOriginalPublishedAt(null); setMessage("");
   }
 
   function editArticle(article: ArticleRow) {
-    setEditingId(article.id); setTitle(article.title); setSlug(article.slug); setCategory(article.primary_category || article.category); setSelectedCategories(article.category_names?.length ? article.category_names : [article.category]); setArticleType(article.article_type || "news");
+    setEditingId(article.id); setTitle(article.title); setSlug(article.slug); setCategory(article.primary_category || article.category); setSelectedCategories(article.category_names?.length ? article.category_names : [article.category]); setArticleType(article.article_type || "news"); setSeriesName(article.series_name || "");
     setAuthor(article.author); setExcerpt(article.excerpt); setBody(article.body_html); setFeaturedImage(article.featured_image || "");
     setSeoTitle(article.seo_title || ""); setMetaDescription(article.meta_description || "");
     setSocialImage(article.social_image || ""); setScheduledFor(toLocalDateTimeInput(article.scheduled_for));
