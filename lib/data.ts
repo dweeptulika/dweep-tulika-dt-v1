@@ -178,6 +178,7 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
   const supabase = publicSupabase();
   if (!supabase) return [];
   const withCategories = "id,title,slug,category,article_type,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,category_links:article_categories(is_primary,category:categories(name,slug))";
+  const categoriesOnly = "id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,category_links:article_categories(is_primary,category:categories(name,slug))";
   const legacyFields = "id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at";
   const primary = await supabase.from("articles")
     .select(withCategories)
@@ -189,14 +190,25 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
   if (!primary.error && primary.data) {
     rows = primary.data as unknown as DbArticle[];
   } else {
-    // Preview deployments may run before the category migration is applied.
-    const fallback = await supabase.from("articles")
-      .select(legacyFields)
+    // The join table may exist before article_type is added by the migration.
+    const categoryResult = await supabase.from("articles")
+      .select(categoriesOnly)
       .in("status", ["published", "scheduled"])
       .not("published_at", "is", null)
       .lte("published_at", new Date().toISOString())
       .order("published_at", { ascending: false });
-    if (!fallback.error && fallback.data) rows = fallback.data as unknown as DbArticle[];
+    if (!categoryResult.error && categoryResult.data) {
+      rows = categoryResult.data as unknown as DbArticle[];
+    } else {
+      // Preview deployments may run before the category migration is applied.
+      const fallback = await supabase.from("articles")
+        .select(legacyFields)
+        .in("status", ["published", "scheduled"])
+        .not("published_at", "is", null)
+        .lte("published_at", new Date().toISOString())
+        .order("published_at", { ascending: false });
+      if (!fallback.error && fallback.data) rows = fallback.data as unknown as DbArticle[];
+    }
   }
   return rows ? rows.map(mapDbArticle) : [];
 }
