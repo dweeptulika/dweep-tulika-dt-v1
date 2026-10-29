@@ -55,6 +55,8 @@ type DbArticle = {
   title: string;
   slug: string;
   category: string;
+  article_type?: string | null;
+  category_links?: Array<{ is_primary: boolean; category?: { name?: string; slug?: string } | null }> | null;
   source?: "blogger" | "newsroom";
   legacy_id?: string | null;
   legacy_url?: string | null;
@@ -104,7 +106,11 @@ export function canonicalCategory(labels: string[], title = "") {
 }
 
 function mapDbArticle(article: DbArticle): PublishedStory {
-  const category = canonicalCategory([article.category], article.title);
+  const linkedCategories = (article.category_links || []).map((link) => link.category?.name).filter((name): name is string => Boolean(name));
+  const primaryLink = (article.category_links || []).find((link) => link.is_primary)?.category?.name;
+  const uniqueCategories = linkedCategories.length ? [...new Set(linkedCategories)] : [canonicalCategory([article.category], article.title)];
+  const labels = primaryLink ? [primaryLink, ...uniqueCategories.filter((name) => name !== primaryLink)] : uniqueCategories;
+  const category = primaryLink || labels[0] || canonicalCategory([article.category], article.title);
   return {
     source: article.source === "blogger" ? "blogger" : "newsroom",
     id: `${article.source === "blogger" ? "blogger" : "newsroom"}-${article.id}`,
@@ -118,7 +124,7 @@ function mapDbArticle(article: DbArticle): PublishedStory {
     publishedAt: article.published_at,
     updatedAt: article.updated_at,
     url: newsroomUrl(article),
-    labels: [category],
+    labels,
     seoTitle: article.seo_title,
     metaDescription: article.meta_description,
     socialImage: article.social_image,
@@ -172,15 +178,40 @@ export async function getActiveAdvertisements(placement: Advertisement["placemen
 export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> {
   const supabase = publicSupabase();
   if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("articles")
-    .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
+  const withCategories = "id,title,slug,category,article_type,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,category_links:article_categories(is_primary,category:categories(name,slug))";
+  const categoriesOnly = "id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,category_links:article_categories(is_primary,category:categories(name,slug))";
+  const legacyFields = "id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at";
+  const primary = await supabase.from("articles")
+    .select(withCategories)
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
     .order("published_at", { ascending: false });
-  if (error || !data) return [];
-  return (data as DbArticle[]).map(mapDbArticle);
+  let rows: DbArticle[] | null = null;
+  if (!primary.error && primary.data) {
+    rows = primary.data as unknown as DbArticle[];
+  } else {
+    // The join table may exist before article_type is added by the migration.
+    const categoryResult = await supabase.from("articles")
+      .select(categoriesOnly)
+      .in("status", ["published", "scheduled"])
+      .not("published_at", "is", null)
+      .lte("published_at", new Date().toISOString())
+      .order("published_at", { ascending: false });
+    if (!categoryResult.error && categoryResult.data) {
+      rows = categoryResult.data as unknown as DbArticle[];
+    } else {
+      // Preview deployments may run before the category migration is applied.
+      const fallback = await supabase.from("articles")
+        .select(legacyFields)
+        .in("status", ["published", "scheduled"])
+        .not("published_at", "is", null)
+        .lte("published_at", new Date().toISOString())
+        .order("published_at", { ascending: false });
+      if (!fallback.error && fallback.data) rows = fallback.data as unknown as DbArticle[];
+    }
+  }
+  return rows ? rows.map(mapDbArticle) : [];
 }
 
 export function normalizePublicPath(value: string) {

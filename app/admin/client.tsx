@@ -7,10 +7,16 @@ import { createClient } from "@/lib/supabase/client";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { AdvertisementPanel } from "@/components/AdvertisementPanel";
 
-const categories = ["Andaman News", "National", "Politics", "Editorial", "Culture", "Business", "Sports"];
+const defaultCategories = ["Andaman News", "National", "Politics", "Editorial", "Culture", "Business", "Sports"];
+const articleTypes: Array<[string, string]> = [
+  ["news", "News report"], ["feature", "Feature"], ["editorial", "Editorial"],
+  ["opinion", "Opinion / Column"], ["interview", "Interview"], ["explainer", "Explainer"],
+  ["review", "Review"], ["press-release", "Press release"], ["photo-story", "Photo story"],
+  ["video", "Video"], ["live-blog", "Live blog"],
+];
 type ArticleStatus = "draft" | "published" | "scheduled";
 type ArticleRow = {
-  id: string; title: string; slug: string; category: string; source?: "blogger" | "newsroom"; public_path?: string | null; author: string; excerpt: string;
+  id: string; title: string; slug: string; category: string; category_names?: string[]; primary_category?: string; article_type?: string; series_name?: string; source?: "blogger" | "newsroom"; public_path?: string | null; author: string; excerpt: string;
   body_html: string; featured_image: string | null; seo_title: string | null;
   meta_description: string | null; social_image: string | null; status: ArticleStatus;
   scheduled_for: string | null; published_at: string | null; updated_at: string;
@@ -43,6 +49,10 @@ export default function AdminPage() {
   const [sessionReady, setSessionReady] = useState(false);
   const [activeTab, setActiveTab] = useState<"write" | "ads" | "stories">("write");
   const [articles, setArticles] = useState<ArticleRow[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<Array<{ id: string; name: string; slug: string }>>([]);
+  const [categoryLinksReady, setCategoryLinksReady] = useState(false);
+  const [articleTypeReady, setArticleTypeReady] = useState(false);
+  const [seriesReady, setSeriesReady] = useState(false);
   const [articlesLoading, setArticlesLoading] = useState(true);
   const [articleLoadError, setArticleLoadError] = useState<string | null>(null);
   const [legacyArticles, setLegacyArticles] = useState<LegacyArticle[]>([]);
@@ -71,7 +81,7 @@ export default function AdminPage() {
       return matchesQuery
         && matchesSource
         && (libraryStatus === "all" || effectiveStatus === libraryStatus)
-        && (libraryCategory === "all" || article.category === libraryCategory);
+        && (libraryCategory === "all" || article.category === libraryCategory || (article.category_names || []).includes(libraryCategory));
     }).sort((a, b) => {
       if (librarySort === "title") return a.title.localeCompare(b.title);
       if (librarySort === "published") return new Date(b.published_at || b.updated_at).getTime() - new Date(a.published_at || a.updated_at).getTime();
@@ -99,7 +109,7 @@ export default function AdminPage() {
   const pagedLegacyArticles = filteredLegacyArticles.slice((legacyPage - 1) * legacyPageSize, legacyPage * legacyPageSize);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState(""); const [slug, setSlug] = useState("");
-  const [category, setCategory] = useState(categories[0]); const [author, setAuthor] = useState("Dweep Tulika");
+  const [category, setCategory] = useState(defaultCategories[0]); const [selectedCategories, setSelectedCategories] = useState<string[]>([defaultCategories[0]]); const [articleType, setArticleType] = useState("news"); const [seriesName, setSeriesName] = useState(""); const [author, setAuthor] = useState("Dweep Tulika");
   const [excerpt, setExcerpt] = useState(""); const [body, setBody] = useState("");
   const [featuredImage, setFeaturedImage] = useState(""); const [seoTitle, setSeoTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState(""); const [socialImage, setSocialImage] = useState("");
@@ -119,11 +129,64 @@ export default function AdminPage() {
     setArticlesLoading(true);
     setArticleLoadError(null);
     try {
-      const { data, error } = await supabase.from("articles")
-        .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
+      const withType = await supabase.from("articles")
+        .select("id,title,slug,category,article_type,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
         .order("updated_at", { ascending: false });
-      if (error) throw error;
-      setArticles((data || []) as ArticleRow[]);
+      let baseRows: ArticleRow[];
+      if (withType.error) {
+        const fallback = await supabase.from("articles")
+          .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
+          .order("updated_at", { ascending: false });
+        if (fallback.error) throw fallback.error;
+        baseRows = (fallback.data || []) as ArticleRow[];
+      } else {
+        baseRows = (withType.data || []) as ArticleRow[];
+      }
+      let rows = baseRows.map(article => ({ ...article, category_names: [article.category], primary_category: article.category, article_type: article.article_type || "news" }));
+      const { data: categoryData, error: categoryError } = await supabase.from("categories").select("id,name,slug").order("name");
+      if (!categoryError && categoryData) {
+        setCategoryOptions(categoryData as Array<{ id: string; name: string; slug: string }>);
+        const { data: linkData, error: linkError } = await supabase
+          .from("article_categories")
+          .select("article_id,is_primary,category:categories(name)");
+        if (!linkError && linkData) {
+          const linksByArticle = new Map<string, Array<{ name: string; primary: boolean }>>();
+          for (const link of linkData as Array<{ article_id: string; is_primary: boolean; category?: { name?: string } | null }>) {
+            const name = link.category?.name;
+            if (!name) continue;
+            const current = linksByArticle.get(link.article_id) || [];
+            current.push({ name, primary: link.is_primary });
+            linksByArticle.set(link.article_id, current);
+          }
+          rows = baseRows.map(article => {
+            const assigned = linksByArticle.get(article.id) || [];
+            return {
+              ...article,
+              category_names: assigned.length ? assigned.map(item => item.name) : [article.category],
+              primary_category: assigned.find(item => item.primary)?.name || article.category,
+              article_type: article.article_type || "news",
+            };
+          });
+          setCategoryLinksReady(true);
+        } else {
+          setCategoryLinksReady(false);
+        }
+      } else {
+        setCategoryOptions([]);
+        setCategoryLinksReady(false);
+      }
+      const { data: seriesLinks, error: seriesError } = await supabase.from("article_series").select("article_id,series:series(name)");
+      if (!seriesError && seriesLinks) {
+        const seriesByArticle = new Map<string, string>();
+        for (const link of seriesLinks as Array<{ article_id: string; series?: { name?: string } | null }>) {
+          if (link.series?.name) seriesByArticle.set(link.article_id, link.series.name);
+        }
+        rows = rows.map(article => ({ ...article, series_name: seriesByArticle.get(article.id) || "" }));
+        setSeriesReady(true);
+      } else setSeriesReady(false);
+      const { error: typeError } = await supabase.from("articles").select("article_type").limit(1);
+      setArticleTypeReady(!typeError);
+      setArticles(rows);
     } catch (error) {
       setArticleLoadError(error instanceof Error ? error.message : "Could not load newsroom articles.");
       setArticles([]);
@@ -191,8 +254,25 @@ export default function AdminPage() {
         setMessage(error?.message || "The story could not be adopted. No existing story was overwritten.");
         return;
       }
+      const adoptedNames = defaultCategories.filter(name => [article.category, ...article.labels].some(label => label.toLowerCase() === name.toLowerCase()));
+      const adoptedCategories = categoryOptions.filter(item => adoptedNames.includes(item.name));
+      if (categoryLinksReady && adoptedCategories.length) {
+        const categoryLinks = adoptedCategories.map(item => ({
+          article_id: inserted.id,
+          category_id: item.id,
+          is_primary: item.name === article.category || (!adoptedNames.includes(article.category) && item.name === adoptedCategories[0].name),
+        }));
+        const { error: categoryError } = await supabase.from("article_categories")
+          .upsert(categoryLinks, { onConflict: "article_id,category_id" });
+        if (categoryError) {
+          setMessage("Legacy story was adopted, but category assignments need attention: " + categoryError.message);
+        }
+      }
       setEditingId(inserted.id);
       setTitle(article.title); setSlug(article.slug); setCategory(article.category);
+      const legacyCategoryNames = defaultCategories.filter(name => [article.category, ...article.labels].some(label => label.toLowerCase() === name.toLowerCase()));
+      setSelectedCategories(legacyCategoryNames.length ? legacyCategoryNames : [article.category]);
+      setArticleType("news"); setSeriesName("");
       setAuthor(article.author || "Dweep Tulika"); setExcerpt(article.excerpt || ""); setBody(article.bodyHtml || "");
       setFeaturedImage(article.featuredImage || ""); setSeoTitle(article.title);
       setMetaDescription(article.excerpt || ""); setSocialImage(""); setScheduledFor("");
@@ -209,13 +289,13 @@ export default function AdminPage() {
   }
 
   function resetEditor() {
-    setEditingId(null); setTitle(""); setSlug(""); setCategory(categories[0]); setAuthor("Dweep Tulika");
+    setEditingId(null); setTitle(""); setSlug(""); setCategory(defaultCategories[0]); setSelectedCategories([defaultCategories[0]]); setArticleType("news"); setSeriesName(""); setAuthor("Dweep Tulika");
     setExcerpt(""); setBody(""); setFeaturedImage(""); setSeoTitle(""); setMetaDescription("");
     setSocialImage(""); setScheduledFor(""); setPublicationDate(""); setStatus("draft"); setOriginalPublishedAt(null); setMessage("");
   }
 
   function editArticle(article: ArticleRow) {
-    setEditingId(article.id); setTitle(article.title); setSlug(article.slug); setCategory(article.category);
+    setEditingId(article.id); setTitle(article.title); setSlug(article.slug); setCategory(article.primary_category || article.category); setSelectedCategories(article.category_names?.length ? article.category_names : [article.category]); setArticleType(article.article_type || "news"); setSeriesName(article.series_name || "");
     setAuthor(article.author); setExcerpt(article.excerpt); setBody(article.body_html); setFeaturedImage(article.featured_image || "");
     setSeoTitle(article.seo_title || ""); setMetaDescription(article.meta_description || "");
     setSocialImage(article.social_image || ""); setScheduledFor(toLocalDateTimeInput(article.scheduled_for));
@@ -306,6 +386,7 @@ export default function AdminPage() {
     if (!user) { router.replace("/admin/login"); return; }
     const finalSlug = slug || makeSlug(title);
     if (!title.trim() || !finalSlug || !body.trim()) { setMessage("Headline, slug and article body are required."); setBusy(false); return; }
+    if (categoryLinksReady && selectedCategories.length === 0) { setMessage("Choose at least one category."); setBusy(false); return; }
     if (requestedStatus === "scheduled" && !scheduledFor) { setMessage("Choose a date and time for scheduled publication."); setBusy(false); return; }
     const normalizedSlug = finalSlug.toLowerCase();
     const { data: slugMatch } = await supabase.from("articles").select("id").eq("slug", normalizedSlug).maybeSingle();
@@ -325,13 +406,78 @@ export default function AdminPage() {
       status: requestedStatus === "scheduled" ? "published" : requestedStatus, scheduled_for: scheduledAt,
       published_at: publishedAt,
       updated_by: user.id,
+      ...(articleTypeReady ? { article_type: articleType } : {}),
     };
     const query = editingId
-      ? supabase.from("articles").update(payload).eq("id", editingId)
-      : supabase.from("articles").insert({ ...payload, created_by: user.id });
-    const { error } = await query;
-    if (error) setMessage(error.message);
-    else { setMessage(requestedStatus === "published" ? "Article published successfully." : requestedStatus === "scheduled" ? "Article scheduled successfully." : "Draft saved successfully."); resetEditor(); await loadArticles(); }
+      ? supabase.from("articles").update(payload).eq("id", editingId).select("id").single()
+      : supabase.from("articles").insert({ ...payload, created_by: user.id }).select("id").single();
+    const { data: saved, error } = await query;
+    if (error || !saved) {
+      setMessage(error?.message || "The article could not be saved.");
+      setBusy(false);
+      return;
+    }
+    if (categoryLinksReady) {
+      const chosen = categoryOptions.filter(item => selectedCategories.includes(item.name));
+      if (!chosen.length) {
+        setMessage("Article saved, but no valid category IDs were available. Keep the editor open and retry after refreshing the category list.");
+        setEditingId(saved.id);
+        setBusy(false);
+        return;
+      }
+      const links = chosen.map(item => ({ article_id: saved.id, category_id: item.id, is_primary: item.name === category }));
+      const { error: linkSaveError } = await supabase.from("article_categories").upsert(links, { onConflict: "article_id,category_id" });
+      if (linkSaveError) {
+        setMessage("Article saved, but category assignments failed: " + linkSaveError.message);
+        setEditingId(saved.id);
+        setBusy(false);
+        return;
+      }
+      const keepIds = chosen.map(item => '"' + item.id + '"').join(",");
+      const { error: removeError } = await supabase.from("article_categories")
+        .delete().eq("article_id", saved.id).not("category_id", "in", "(" + keepIds + ")");
+      if (removeError) {
+        setMessage("Article saved and selected categories assigned, but old category links could not be cleared: " + removeError.message);
+        setEditingId(saved.id);
+        setBusy(false);
+        return;
+      }
+    }
+    if (seriesReady) {
+      const trimmedSeries = seriesName.trim();
+      if (trimmedSeries) {
+        const seriesSlug = makeSlug(trimmedSeries);
+        if (!seriesSlug) {
+          setMessage("Article saved, but the series name is invalid.");
+          setEditingId(saved.id);
+          setBusy(false);
+          return;
+        }
+        const seriesResult = await supabase.from("series")
+          .upsert({ name: trimmedSeries, slug: seriesSlug }, { onConflict: "slug" })
+          .select("id").single();
+        if (seriesResult.error || !seriesResult.data) {
+          setMessage("Article saved, but series could not be saved: " + (seriesResult.error?.message || "Unknown error"));
+          setEditingId(saved.id);
+          setBusy(false);
+          return;
+        }
+        const assignResult = await supabase.from("article_series")
+          .upsert({ article_id: saved.id, series_id: seriesResult.data.id }, { onConflict: "article_id,series_id" });
+        if (assignResult.error) {
+          setMessage("Article saved, but series assignment failed: " + assignResult.error.message);
+          setEditingId(saved.id);
+          setBusy(false);
+          return;
+        }
+        await supabase.from("article_series").delete().eq("article_id", saved.id).neq("series_id", seriesResult.data.id);
+      } else {
+        await supabase.from("article_series").delete().eq("article_id", saved.id);
+      }
+    }
+    setMessage(requestedStatus === "published" ? "Article published successfully." : requestedStatus === "scheduled" ? "Article scheduled successfully." : "Draft saved successfully.");
+    resetEditor();
+    await loadArticles();
     setBusy(false);
   }
 
@@ -359,8 +505,38 @@ export default function AdminPage() {
           <label>Headline<input required value={title} onChange={e => { setTitle(e.target.value); if (!slug) setSlug(makeSlug(e.target.value)); }} placeholder="Enter the news headline" /></label>
           <label>Slug<input required value={slug} onChange={e => setSlug(makeSlug(e.target.value))} placeholder="article-url-slug" /></label>
           <div className="adminFormGrid">
-            <label>Category<select value={category} onChange={e => setCategory(e.target.value)}>{categories.map(item => <option key={item}>{item}</option>)}</select></label>
-            <label>Author<input value={author} onChange={e => setAuthor(e.target.value)} /></label>
+            <div>
+              <div className="adminLabel">Categories</div>
+              <div className="adminNote">Choose every section where this story should appear. Legacy articles keep their original category unless you change it here.</div>
+              <div className="adminCategoryChecks">
+                {(categoryOptions.length ? categoryOptions.map(item => item.name) : defaultCategories).map(item => (
+                  <label key={item} className="adminCheckLabel">
+                    <input type="checkbox" checked={selectedCategories.includes(item)} disabled={!categoryLinksReady}
+                      onChange={e => {
+                        const next = e.target.checked
+                          ? [...selectedCategories, item]
+                          : selectedCategories.filter(value => value !== item);
+                        if (next.length === 0) return;
+                        setSelectedCategories(next);
+                        if (!next.includes(category)) setCategory(next[0]);
+                      }} />
+                    {item}
+                  </label>
+                ))}
+              </div>
+              {!categoryLinksReady && <p className="adminNote">Multi-category editing becomes available after the category migration is applied.</p>}
+            </div>
+            <div>
+              <label>Primary category<select value={category} onChange={e => {
+                setCategory(e.target.value);
+                setSelectedCategories(current => current.includes(e.target.value) ? current : [...current, e.target.value]);
+              }}>{(selectedCategories.length ? selectedCategories : [category]).map(item => <option key={item}>{item}</option>)}</select></label>
+              <label>Article type<select value={articleType} disabled={!articleTypeReady} onChange={e => setArticleType(e.target.value)}>{articleTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+              {!articleTypeReady && <p className="adminNote">Article types become editable after the taxonomy migration is applied.</p>}
+              <label>Series (optional)<input value={seriesName} disabled={!seriesReady} onChange={e => setSeriesName(e.target.value)} placeholder="e.g. Rajneeti Ke Chehre" /></label>
+              {!seriesReady && <p className="adminNote">Series assignment becomes available after the series migration is applied.</p>}
+              <label>Author<input value={author} onChange={e => setAuthor(e.target.value)} /></label>
+            </div>
           </div>
           <label>Excerpt / summary<textarea rows={3} value={excerpt} onChange={e => setExcerpt(e.target.value)} placeholder="Short summary for cards and search engines" /></label>
           <div className="adminFormGrid">
@@ -406,7 +582,7 @@ export default function AdminPage() {
           <div className="adminFormGrid">
             <label>Status<select value={libraryStatus} onChange={e => { setLibraryStatus(e.target.value as "all" | ArticleStatus); setLibraryPage(1); setLegacyPage(1); }}><option value="all">All statuses</option><option value="published">Published</option><option value="draft">Drafts</option><option value="scheduled">Scheduled</option></select></label>
             <label>Source<select value={librarySource} onChange={e => { setLibrarySource(e.target.value as "all" | "newsroom" | "blogger"); setLibraryPage(1); setLegacyPage(1); }}><option value="all">All sources</option><option value="newsroom">Newsroom</option><option value="blogger">Legacy Blogger</option></select></label>
-            <label>Category / Blogger label<select value={libraryCategory} onChange={e => { setLibraryCategory(e.target.value); setLibraryPage(1); setLegacyPage(1); }}><option value="all">All categories</option>{Array.from(new Set([...articles.map(article => article.category), ...legacyArticles.map(article => article.category), ...legacyArticles.flatMap(article => article.labels)])).sort().map(item => <option key={item} value={item}>{item}</option>)}</select></label>
+            <label>Category / Blogger label<select value={libraryCategory} onChange={e => { setLibraryCategory(e.target.value); setLibraryPage(1); setLegacyPage(1); }}><option value="all">All categories</option>{Array.from(new Set([...articles.map(article => article.category), ...articles.flatMap(article => article.category_names || []), ...legacyArticles.map(article => article.category), ...legacyArticles.flatMap(article => article.labels)])).sort().map(item => <option key={item} value={item}>{item}</option>)}</select></label>
             <label>Sort by<select value={librarySort} onChange={e => { setLibrarySort(e.target.value as "updated" | "published" | "title"); setLibraryPage(1); }}><option value="updated">Recently updated</option><option value="published">Publication date</option><option value="title">Headline A–Z</option></select></label>
           </div>
           <p className="adminNote">{filteredArticles.length} article{filteredArticles.length === 1 ? "" : "s"} found · Showing page {Math.min(libraryPage, libraryPageCount)} of {libraryPageCount}</p>
