@@ -112,3 +112,19 @@ create policy "editors can manage article categories"
   on public.article_categories for all to authenticated
   using (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()))
   with check (exists (select 1 from public.editorial_profiles p where p.id = auth.uid()));
+
+
+-- Normalize each article to exactly one primary category without removing links.
+with ranked as (
+  select article_id, category_id,
+         row_number() over (
+           partition by article_id
+           order by is_primary desc, created_at, category_id
+         ) as rn
+  from public.article_categories
+)
+update public.article_categories ac
+set is_primary = (ranked.rn = 1)
+from ranked
+where ac.article_id = ranked.article_id
+  and ac.category_id = ranked.category_id;
