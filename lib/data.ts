@@ -55,6 +55,8 @@ type DbArticle = {
   title: string;
   slug: string;
   category: string;
+  article_type?: string | null;
+  category_links?: Array<{ is_primary: boolean; category?: { name?: string; slug?: string } | null }> | null;
   source?: "blogger" | "newsroom";
   legacy_id?: string | null;
   legacy_url?: string | null;
@@ -104,7 +106,10 @@ export function canonicalCategory(labels: string[], title = "") {
 }
 
 function mapDbArticle(article: DbArticle): PublishedStory {
-  const category = canonicalCategory([article.category], article.title);
+  const linkedCategories = (article.category_links || []).map((link) => link.category?.name).filter((name): name is string => Boolean(name));
+  const labels = linkedCategories.length ? [...new Set(linkedCategories)] : [canonicalCategory([article.category], article.title)];
+  const primaryLink = (article.category_links || []).find((link) => link.is_primary)?.category?.name;
+  const category = primaryLink || labels[0] || canonicalCategory([article.category], article.title);
   return {
     source: article.source === "blogger" ? "blogger" : "newsroom",
     id: `${article.source === "blogger" ? "blogger" : "newsroom"}-${article.id}`,
@@ -118,7 +123,7 @@ function mapDbArticle(article: DbArticle): PublishedStory {
     publishedAt: article.published_at,
     updatedAt: article.updated_at,
     url: newsroomUrl(article),
-    labels: [category],
+    labels,
     seoTitle: article.seo_title,
     metaDescription: article.meta_description,
     socialImage: article.social_image,
@@ -174,7 +179,7 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("articles")
-    .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
+    .select("id,title,slug,category,article_type,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,category_links:article_categories(is_primary,category:categories(name,slug))")
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
@@ -214,7 +219,7 @@ export async function getPublishedNewsroomArticleByPath(year: string, month: str
   const requestedPath = `/${year}/${month}/${normalizedSlug}.html`;
   const supabase = publicSupabase();
   if (!supabase) return null;
-  const selectFields = "id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at";
+  const selectFields = "id,title,slug,category,article_type,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at,category_links:article_categories(is_primary,category:categories(name,slug))";
   const { data: pathMatch } = await supabase
     .from("articles").select(selectFields)
     .eq("public_path", requestedPath)
