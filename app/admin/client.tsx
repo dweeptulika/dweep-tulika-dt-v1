@@ -7,7 +7,13 @@ import { createClient } from "@/lib/supabase/client";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { AdvertisementPanel } from "@/components/AdvertisementPanel";
 
-const categories = ["Andaman News", "National", "Politics", "Editorial", "Culture", "Business", "Sports"];
+const defaultCategories = ["Andaman News", "National", "Politics", "Editorial", "Culture", "Business", "Sports"];
+const articleTypes: Array<[string, string]> = [
+  ["news", "News report"], ["feature", "Feature"], ["editorial", "Editorial"],
+  ["opinion", "Opinion / Column"], ["interview", "Interview"], ["explainer", "Explainer"],
+  ["review", "Review"], ["press-release", "Press release"], ["photo-story", "Photo story"],
+  ["video", "Video"], ["live-blog", "Live blog"],
+];
 type ArticleStatus = "draft" | "published" | "scheduled";
 type ArticleRow = {
   id: string; title: string; slug: string; category: string; category_names?: string[]; primary_category?: string; article_type?: string; series_name?: string; source?: "blogger" | "newsroom"; public_path?: string | null; author: string; excerpt: string;
@@ -43,6 +49,10 @@ export default function AdminPage() {
   const [sessionReady, setSessionReady] = useState(false);
   const [activeTab, setActiveTab] = useState<"write" | "ads" | "stories">("write");
   const [articles, setArticles] = useState<ArticleRow[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<Array<{ id: string; name: string; slug: string }>>([]);
+  const [categoryLinksReady, setCategoryLinksReady] = useState(false);
+  const [articleTypeReady, setArticleTypeReady] = useState(false);
+  const [seriesReady, setSeriesReady] = useState(false);
   const [articlesLoading, setArticlesLoading] = useState(true);
   const [articleLoadError, setArticleLoadError] = useState<string | null>(null);
   const [legacyArticles, setLegacyArticles] = useState<LegacyArticle[]>([]);
