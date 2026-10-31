@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { articleJsonLd, breadcrumbJsonLd, SITE_URL } from "@/lib/seo";
+import { articleJsonLd, breadcrumbJsonLd, canonicalSiteUrl } from "@/lib/seo";
 import { AdSlot } from "@/components/AdSlot";
 import { findArticleByPath, getAllPublishedArticles, categoryPath } from "@/lib/data";
 import { sanitizeArticleHtml } from "@/lib/security";
@@ -22,11 +22,11 @@ export async function generateMetadata({ params }: { params: Promise<{year:strin
   // The root metadata template appends "| Dweep Tulika"; avoid repeating it when an SEO title already includes it.
   const title = rawTitle.replace(/\s*\|\s*Dweep Tulika\s*$/i, "").trim() || article.title;
   const image = article.socialImage || article.featuredImage || undefined;
-  const url = new URL(article.url, SITE_URL).toString();
+  const url = canonicalSiteUrl(article.url);
   return {
     title,
     description,
-    alternates: { canonical: article.url },
+    alternates: { canonical: url },
     openGraph: {
       type: "article",
       siteName: "Dweep Tulika",
@@ -49,6 +49,6 @@ export async function generateMetadata({ params }: { params: Promise<{year:strin
 
 export default async function Article({params}:{params:Promise<{year:string;month:string;slug:string}>}) {
   const p=await params; const article=await findArticleByPath(p.year,p.month,p.slug); if(!article) notFound();
-  const url=new URL(article.url, SITE_URL).toString();
+  const url=canonicalSiteUrl(article.url);
   return <div className="container"><div className="breadcrumbs"><Link href="/">Home</Link> / <Link href={"/category/"+categoryPath(article.category)}>{article.category}</Link></div><article className="article"><div className="kicker">{article.labels.slice(0,4).join(" · ") || "News"}</div><h1>{article.title}</h1>{article.excerpt && <p className="dek">{article.excerpt}</p>}<div className="meta">By {article.author || "Dweep Tulika"} · {new Date(article.publishedAt).toLocaleDateString("en-IN",{dateStyle:"long",timeZone:"Asia/Kolkata"})}{article.source === "blogger" ? null : null}</div><AdSlot placement="article" />{article.source === "newsroom" && article.featuredImage && <div className="articleFeaturedImage"><Image src={article.featuredImage} alt="" fill sizes="(max-width: 900px) 100vw, 900px" /></div>}<div className="articlebody" dangerouslySetInnerHTML={{__html:sanitizeArticleHtml(article.bodyHtml)}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(articleJsonLd(article,url))}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbJsonLd(article,url))}} /></article></div>;
 }
