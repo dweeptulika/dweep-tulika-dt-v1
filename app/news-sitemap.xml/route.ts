@@ -1,8 +1,8 @@
 import { getAllPublishedArticles } from "@/lib/data";
+import { canonicalSiteUrl } from "@/lib/seo";
 
 export const revalidate = 300;
 
-const SITE_URL = "https://dweeptulika.in";
 const NEWS_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 function escapeXml(value: string) {
@@ -29,7 +29,7 @@ export async function GET() {
 
   const entries = recentArticles
     .map((article) => {
-      const url = new URL(article.url, SITE_URL).toString();
+      const url = canonicalSiteUrl(article.url);
       const publishedAt = new Date(article.publishedAt).toISOString();
       return [
         "  <url>",
