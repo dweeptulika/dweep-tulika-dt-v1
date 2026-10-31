@@ -5,6 +5,21 @@ export const SITE_NAME = "Dweep Tulika";
 export const SITE_LOGO =
   "https://blogger.googleusercontent.com/img/a/AVvXsEhJ3O2ALVPRaVh4xa5sjb5cak1NEUvqzGOAVMb6_pKdZtiafHPuuXuO4IJU13NasgeXor5zyzIWviKh8bZ5yAS4A36CoJ24lxyF8EsIubyouuUyCQIa9eIif8ggVe8Xkua8sg6Tn-KafGLP6ZcB2GSOtA_8uaHZcosg_WJXtm-FyJ2fVglkrqMTdqvnyqw=s676";
 
+/**
+ * Build the one preferred public URL for an article or internal page.
+ * The site uses HTTPS on the apex domain; query strings and fragments are
+ * not part of an article's canonical identity.
+ */
+export function canonicalSiteUrl(value: string) {
+  const url = new URL(value, SITE_URL);
+  url.protocol = "https:";
+  url.hostname = "dweeptulika.in";
+  url.port = "";
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
 export function articleJsonLd(a: PublishedStory, url: string) {
   const image = a.socialImage || a.featuredImage || undefined;
   const authorName = a.author || "Dweep Tulika";
