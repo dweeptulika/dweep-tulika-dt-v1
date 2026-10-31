@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [{
       // Keep the original Blogger .html article paths as the one public format.
-      source: "/:year(\\d{4})/:month(\\d{2})/:slug",
+      source: "/:year(\\d{4})/:month(\\d{2})/:slug([^/.]+)",
       destination: "/:year/:month/:slug.html",
       permanent: true,
     }];
