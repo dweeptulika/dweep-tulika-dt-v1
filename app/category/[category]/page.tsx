@@ -16,6 +16,16 @@ const aliases: Record<string, string> = {
 
 export const revalidate = 0;
 
+const descriptions: Record<string, string> = {
+  "andaman-nicobar": "Local reporting on public services, governance, transport, health, education, the environment and community issues across the Andaman & Nicobar Islands.",
+  national: "Coverage of national developments, public policy and decisions that shape India and may affect island communities.",
+  politics: "Reporting on political parties, elected representatives, public accountability, governance and policy debates.",
+  editorial: "Commentary, opinion and analysis examining public issues, policy choices and developments affecting society.",
+  culture: "Stories on arts, literature, heritage, festivals, cultural organisations and the traditions of island communities.",
+  business: "Coverage of business, trade, industry, employment, livelihoods and economic developments in the islands and beyond.",
+  sports: "Reports on sporting events, athletes, competitions and community sports from the islands and across India.",
+};
+
 function ArticleImage({ src, title }: { src: string | null; title: string }) {
   if (!src) return null;
   return <div className="storyImage"><Image src={src} alt={title} fill sizes="(max-width: 800px) 100vw, 400px" /></div>;
@@ -47,6 +57,7 @@ export default async function Category({ params }: { params: Promise<{ category:
     <main className="container">
       <div className="breadcrumbs"><Link href="/">Home</Link> / {label}</div>
       <h1 className="pageTitle">{label}</h1>
+      <p className="dek categoryIntro">{descriptions[category] || `Latest ${label.toLowerCase()} reports and updates from Dweep Tulika.`}</p>
       <div className="grid">
         {items.map((article) => (
           <article className="card" key={article.id}>
