@@ -3,13 +3,13 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "About Dweep Tulika — Bengali Newspaper in Andaman",
-  description: "Learn about Dweep Tulika, its editorial team, and its work covering news, public affairs, culture and community issues in the Andaman & Nicobar Islands.",
+  title: "About Dweep Tulika — Andaman & Nicobar News Publication",
+  description: "Learn about Dweep Tulika, its digital news publication in English and Hindi, Bengali monthly newspaper, editorial team and island-focused journalism.",
   alternates: { canonical: "/about" },
   openGraph: {
     type: "website",
-    title: "About Dweep Tulika — Bengali Newspaper in Andaman",
-    description: "Meet the team behind Dweep Tulika and learn about our island-focused journalism and public-interest reporting.",
+    title: "About Dweep Tulika — Andaman & Nicobar News Publication",
+    description: "Meet the team behind Dweep Tulika and learn about its digital and print editions and island-focused public-interest reporting.",
     url: "https://dweeptulika.in/about",
   },
 };
@@ -48,10 +48,7 @@ export default function AboutPage() {
         <div className="kicker">Dweep Tulika</div>
         <h1>About the Publication</h1>
         <p className="dek">
-          Dweep Tulika is a Bengali monthly newspaper of the Andaman & Nicobar
-          Islands, covering politics, governance, public affairs, education,
-          culture, civic issues, and regional developments with a truthful and
-          unbiased perspective.
+          Dweep Tulika is an island-focused news publication from the Andaman & Nicobar Islands. Its digital edition publishes news and public-interest reporting in English and Hindi, while its Bengali monthly newspaper documents the region’s social, cultural, political and community life. The publication covers governance, education, culture, civic issues and regional developments with a commitment to a truthful and unbiased perspective.
         </p>
 
         <div className="aboutIntro">
