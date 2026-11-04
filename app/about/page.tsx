@@ -50,7 +50,7 @@ export default async function AboutPage() {
     .eq("is_active", true).order("sort_order", { ascending: true }).order("created_at", { ascending: true });
   const profiles = teamRows?.length ? teamRows.map(member => ({
     name: member.name, role: member.designation, text: member.biography,
-    tagline: member.tagline, image: member.image_url || "/images/team/default-profile.webp",
+    tagline: member.tagline, image: member.image_url,
   })) : fallbackProfiles;
   return (
     <div className="container">
@@ -76,13 +76,13 @@ export default async function AboutPage() {
         <div className="profileGrid">
           {profiles.map((profile) => (
             <section className="teamCard" key={profile.name}>
-              <Image
+              {profile.image ? <Image
                 src={profile.image}
                 alt={profile.name}
                 width={150}
                 height={150}
                 className="teamImage"
-              />
+              /> : <div className="teamImage" aria-hidden="true" /> }
               <h3>{profile.name}</h3>
               <div className="teamRole">{profile.role}</div>
               <p>{profile.text}</p>
