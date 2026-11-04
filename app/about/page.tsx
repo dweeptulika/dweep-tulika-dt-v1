@@ -17,10 +17,10 @@ export const metadata: Metadata = {
 const profiles = [
   {
     name: "R. Vineeth",
-    role: "Editor-in-Chief",
+    role: "Editor-in-Chief | Investigative & Data Journalist",
     image: "/images/team/r-vineeth.webp",
     text:
-      "Former Indian Air Force personnel and journalist from the Andaman & Nicobar Islands associated with regional journalism, public affairs, and cultural documentation through Dweep Tulika. With prior experience across demanding operational environments and a continued association with mountaineering and adventure activities, his work reflects resilience, field exposure, and grassroots engagement with island realities.",
+      "Former Indian Air Force personnel and journalist from the Andaman & Nicobar Islands, R. Vineeth leads Dweep Tulika’s editorial work with a focus on investigative journalism, data journalism, public affairs and accountability reporting. His work through Dweep Tulika includes examining public-interest issues, analysing information and records, and bringing grassroots concerns into public discourse. His journalism is informed by field engagement, regional realities and an interest in documenting issues that affect island communities.",
   },
   {
     name: "Birendra Kishore Talukdar",
@@ -28,14 +28,15 @@ const profiles = [
     image:
       "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhu4UqeXIK0MARkWP6RvhreOnb_7jlnvFSUrDfmiCYA61f_NbNpWQmzZBAhWL7mP8AZmLn_zu7CMuSDt_4wUhUH98acP1LQNRejIrOEHBnfxGGfK6R0B56i0z2fLwdNP1__RjkqCEFan6DGnKoppsXYJuRs-WVk2nSSnfq3e5QpEUEX2AlPy9SWIK-1DFU/s320/WhatsApp%20Image%202025-06-29%20at%202.22.22%20PM.jpeg",
     text:
-      "Senior cultural personality from the Andaman & Nicobar Islands associated with performing arts, regional cultural activities and community engagement for several decades. A respected artist and recipient of multiple honours across the fields of art and culture, he has remained actively involved in cultural preservation, public communication and community outreach initiatives. He has also contributed to journalism and public-interest reporting through Dweep Tulika.",
+      "Senior cultural personality from the Andaman & Nicobar Islands associated with performing arts, regional cultural activities and community engagement for several decades. A respected artist and recipient of multiple honours across the fields of art and culture, he has remained actively involved in cultural preservation, public communication and community outreach initiatives. He has also contributed to journalism and public-interest reporting through Dweep Tulika and as Sub-Editor of News Spot Light. In addition, he previously served as Advisor to the Sylhet Divisional Committee of the International Human Rights Crime Reporters Foundation (IHCRF), reflecting his long-standing association with media, social awareness and public-interest initiatives.",
+    tagline: "Committed to Culture, Community & Credible Journalism",
   },
   {
     name: "Mrs. Chapala Talukdar",
-    role: "Sub Editor / Proof Reader",
+    role: "Sub Editor | Local Issues & Ground Reports | Proofreader",
     image: "/images/team/chapala-talukdar.webp",
     text:
-      "Mrs. Chapala Talukdar serves as the Sub Editor and Proof Reader of Dweep Tulika, contributing to the publication’s editorial accuracy, language refinement, and content quality. With a keen eye for detail and a strong command over editorial standards, she plays an important role in maintaining the clarity, professionalism, and credibility of the newspaper.",
+      "Mrs. Chapala Talukdar contributes to Dweep Tulika’s editorial work through coverage of local issues and ground reports, along with proofreading and language review. Her role supports the accuracy, clarity and consistency of published content, helping ensure that community concerns and local developments are presented with care and attention to detail.",
   },
 ];
 
@@ -74,6 +75,7 @@ export default function AboutPage() {
               <h3>{profile.name}</h3>
               <div className="teamRole">{profile.role}</div>
               <p>{profile.text}</p>
+              {profile.tagline ? <p><em>“{profile.tagline}”</em></p> : null}
             </section>
           ))}
         </div>
