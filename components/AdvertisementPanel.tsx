@@ -57,14 +57,18 @@ export function AdvertisementPanel() {
   }
 
   // Load on mount and refresh when the user returns to the dashboard tab.
-  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
   useEffect(() => {
-    void loadAds();
+    const initialLoad = window.setTimeout(() => void loadAds(), 0);
     const refreshWhenVisible = () => {
       if (document.visibilityState === "visible") void loadAds();
     };
     document.addEventListener("visibilitychange", refreshWhenVisible);
-    return () => document.removeEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.clearTimeout(initialLoad);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+    // loadAds is a component-local loader; the effect intentionally runs on mount only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function reset() {
