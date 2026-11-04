@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "About Dweep Tulika — Andaman & Nicobar News Publication",
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
   },
 };
 
-const profiles = [
+const fallbackProfiles = [
   {
     name: "R. Vineeth",
     role: "Editor-in-Chief | Investigative & Data Journalist",
@@ -42,7 +43,15 @@ const profiles = [
   },
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const supabase = await createClient();
+  const { data: teamRows } = await supabase.from("team_members")
+    .select("name,designation,biography,tagline,image_url")
+    .eq("is_active", true).order("sort_order", { ascending: true }).order("created_at", { ascending: true });
+  const profiles = teamRows?.length ? teamRows.map(member => ({
+    name: member.name, role: member.designation, text: member.biography,
+    tagline: member.tagline, image: member.image_url || "/images/team/default-profile.webp",
+  })) : fallbackProfiles;
   return (
     <div className="container">
       <article className="article aboutPage">
