@@ -21,6 +21,7 @@ const profiles = [
     image: "/images/team/r-vineeth.webp",
     text:
       "Former Indian Air Force personnel and journalist from the Andaman & Nicobar Islands, R. Vineeth leads Dweep Tulika’s editorial work with a focus on investigative journalism, data journalism, public affairs and accountability reporting. His work through Dweep Tulika includes examining public-interest issues, analysing information and records, and bringing grassroots concerns into public discourse. His journalism is informed by field engagement, regional realities and an interest in documenting issues that affect island communities.",
+    tagline: "Investigating Issues. Interpreting Data. Amplifying Public Voices.",
   },
   {
     name: "Birendra Kishore Talukdar",
@@ -37,6 +38,7 @@ const profiles = [
     image: "/images/team/chapala-talukdar.webp",
     text:
       "Mrs. Chapala Talukdar contributes to Dweep Tulika’s editorial work through coverage of local issues and ground reports, along with proofreading and language review. Her role supports the accuracy, clarity and consistency of published content, helping ensure that community concerns and local developments are presented with care and attention to detail.",
+    tagline: "Grounded in the Community. Guided by Accuracy.",
   },
 ];
 
