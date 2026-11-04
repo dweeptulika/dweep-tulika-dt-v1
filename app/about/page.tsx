@@ -18,8 +18,7 @@ const profiles = [
   {
     name: "R. Vineeth",
     role: "Editor-in-Chief",
-    image:
-      "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiAIbDPv8WvJ0RIi8pbUUegG2vOe773YTcfM2NjrGUUQnrH6tj3zWEnomI3Kc4dvZqX-AH6vQz_Nu6XA5Ry_bEQho-sy5ZIIu0QKJKzQOC_PdxcRvcUKfgvw71Tp9lhRIvWvj3eC5O5eBvUIfs5RwWdM12_BpSdsO-P90MrsB-mdBvZEPm2dPhKRGT6_Ng/s320/VINEETH%20PASSPORT.png",
+    image: "/images/team/r-vineeth.webp",
     text:
       "Former Indian Air Force personnel and journalist from the Andaman & Nicobar Islands associated with regional journalism, public affairs, and cultural documentation through Dweep Tulika. With prior experience across demanding operational environments and a continued association with mountaineering and adventure activities, his work reflects resilience, field exposure, and grassroots engagement with island realities.",
   },
@@ -34,8 +33,7 @@ const profiles = [
   {
     name: "Mrs. Chapala Talukdar",
     role: "Sub Editor / Proof Reader",
-    image:
-      "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh2HKP6pXJD_gmxAGkCw0ZaatomrKzOw9XJz32u1CXDcbWxU0XAd1RnnDH5y5hfH1oQSaAobkqaDFnCK8Td82FGyBybuLHu9Fsi8NxLOJ-1WKZgM-_E40GLEg3IWQ1enPPoRQAuFeCtBeBEBCddv8pSxqX090C3cpCjonSC3ufwYDRf3bUSHka1UzDOHo/s320/CHAPALA%20TALUKDAR%20PASSPORT%20SIZE.png",
+    image: "/images/team/chapala-talukdar.webp",
     text:
       "Mrs. Chapala Talukdar serves as the Sub Editor and Proof Reader of Dweep Tulika, contributing to the publication’s editorial accuracy, language refinement, and content quality. With a keen eye for detail and a strong command over editorial standards, she plays an important role in maintaining the clarity, professionalism, and credibility of the newspaper.",
   },
