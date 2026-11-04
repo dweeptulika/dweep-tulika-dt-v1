@@ -21,11 +21,11 @@ const profiles = [
     image:
       "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiAIbDPv8WvJ0RIi8pbUUegG2vOe773YTcfM2NjrGUUQnrH6tj3zWEnomI3Kc4dvZqX-AH6vQz_Nu6XA5Ry_bEQho-sy5ZIIu0QKJKzQOC_PdxcRvcUKfgvw71Tp9lhRIvWvj3eC5O5eBvUIfs5RwWdM12_BpSdsO-P90MrsB-mdBvZEPm2dPhKRGT6_Ng/s320/VINEETH%20PASSPORT.png",
     text:
-      "Ex-Indian Airforce, journalist from the Andaman & Nicobar Islands associated with regional journalism, public affairs, and cultural documentation through Dweep Tulika. With prior experience across demanding operational environments and a continued association with mountaineering and adventure activities, his work reflects resilience, field exposure, and grassroots engagement with island realities.",
+      "Former Indian Air Force personnel and journalist from the Andaman & Nicobar Islands associated with regional journalism, public affairs, and cultural documentation through Dweep Tulika. With prior experience across demanding operational environments and a continued association with mountaineering and adventure activities, his work reflects resilience, field exposure, and grassroots engagement with island realities.",
   },
   {
     name: "Birendra Kishore Talukdar",
-    role: "Publisher / Editor",
+    role: "Publisher & Editor, Bengali Monthly Newspaper",
     image:
       "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhu4UqeXIK0MARkWP6RvhreOnb_7jlnvFSUrDfmiCYA61f_NbNpWQmzZBAhWL7mP8AZmLn_zu7CMuSDt_4wUhUH98acP1LQNRejIrOEHBnfxGGfK6R0B56i0z2fLwdNP1__RjkqCEFan6DGnKoppsXYJuRs-WVk2nSSnfq3e5QpEUEX2AlPy9SWIK-1DFU/s320/WhatsApp%20Image%202025-06-29%20at%202.22.22%20PM.jpeg",
     text:
