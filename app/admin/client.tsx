@@ -343,7 +343,7 @@ export default function AdminPage() {
     <main className="adminShell">
       <div className="adminTop">
         <div><div className="kicker">Dweep Tulika Newsroom</div><h1>Editorial Dashboard</h1><p>Authenticated publishing workspace for the digital edition.</p></div>
-        <div className="adminHeaderActions"><Link className="adminBack" href="/">View Website</Link><Link className="adminBack" href="/admin/logout">Sign Out</Link></div>
+        <div className="adminHeaderActions"><Link className="adminBack" href="/admin/team">Manage Team</Link><Link className="adminBack" href="/">View Website</Link><Link className="adminBack" href="/admin/logout">Sign Out</Link></div>
       </div>
 
       <nav className="adminTabs" role="tablist" aria-label="Editorial dashboard sections">
