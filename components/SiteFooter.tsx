@@ -13,6 +13,7 @@ export function SiteFooter() {
         <div>
           <h3>Publication</h3>
           <p><Link href="/about">About &amp; Editorial Team</Link></p>
+          <p><Link href="/contact">Contact the Editorial Office</Link></p>
           <p><Link href="/archive">News Archive</Link></p>
           <p><Link href="/search">Search News</Link></p>
           <p><Link href="/advertise">Advertise With Us</Link></p>

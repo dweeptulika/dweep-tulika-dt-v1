@@ -11,6 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/", priority: 1, changeFrequency: "daily" as const },
     { path: "/archive", priority: 0.9, changeFrequency: "daily" as const },
     { path: "/about", priority: 0.5, changeFrequency: "monthly" as const },
+    { path: "/contact", priority: 0.4, changeFrequency: "monthly" as const },
     { path: "/advertise", priority: 0.4, changeFrequency: "monthly" as const },
     ...["andaman-nicobar", "national", "politics", "editorial", "culture", "business", "sports"].map((category) => ({
       path: `/category/${category}`,
