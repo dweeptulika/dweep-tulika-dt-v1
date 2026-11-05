@@ -4,13 +4,13 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Contact Dweep Tulika",
   description:
-    "Contact the Dweep Tulika editorial office in Sri Vijaya Puram for news tips, corrections, feedback, and advertising enquiries.",
+    "Contact the Dweep Tulika editorial office in Sri Vijaya Puram for news tips, corrections, and reader feedback.",
   alternates: { canonical: "/contact" },
   openGraph: {
     type: "website",
     title: "Contact Dweep Tulika",
     description:
-      "Reach the Dweep Tulika editorial office for news tips, corrections, feedback, and advertising enquiries.",
+      "Reach the Dweep Tulika editorial office for news tips, corrections, and reader feedback.",
     url: "https://dweeptulika.in/contact",
   },
 };
@@ -36,12 +36,6 @@ const contactOptions = [
       "Send feedback about our coverage, accessibility, or a concern regarding material published on this website. Please explain the issue clearly and include the relevant article link, if applicable.",
     subject: "Reader Feedback / Complaint",
   },
-  {
-    title: "Advertising and partnerships",
-    description:
-      "For advertising placements, sponsored promotions, and partnership enquiries, include your organisation or business name, campaign objective, preferred dates, and the placement you wish to discuss.",
-    subject: "Advertising / Partnership Enquiry",
-  },
 ];
 
 export default function ContactPage() {
@@ -51,8 +45,8 @@ export default function ContactPage() {
         <div className="kicker">Dweep Tulika</div>
         <h1>Contact the Editorial Office</h1>
         <p className="dek">
-          We welcome news tips, corrections, reader feedback, and professional
-          enquiries from across the Andaman &amp; Nicobar Islands and beyond.
+          We welcome news tips, corrections, and reader feedback from across
+          the Andaman &amp; Nicobar Islands and beyond.
         </p>
 
         <div className="aboutIntro">
