@@ -177,7 +177,8 @@ export default function AdminPage() {
       if (!Number.isFinite(publishedAt.getTime())) {
         setMessage("The legacy story has no valid publication date, so it was not adopted.");
         return;
-      }      const { data: inserted, error } = await supabase.from("articles").insert({
+      }
+      const { data: inserted, error } = await supabase.from("articles").insert({
         title: article.title, slug: article.slug, category: article.category,
         source: "blogger", legacy_id: article.id, legacy_url: article.publicPath,
         public_path: article.publicPath, author: article.author || "Dweep Tulika",
@@ -193,7 +194,7 @@ export default function AdminPage() {
       setEditingId(inserted.id);
       setTitle(article.title); setSlug(article.slug); setCategory(article.category);
       setAuthor(article.author || "Dweep Tulika"); setExcerpt(article.excerpt || ""); setBody(article.bodyHtml || "");
-      setFeaturedImage(article.featuredImage || ""); setSeoTitle(article.title);
+      setFeaturedImage(article.featuredImage || ""); setFeaturedImageAlt(""); setFeaturedImageCaption(""); setSeoTitle(article.title);
       setMetaDescription(article.excerpt || ""); setSocialImage(""); setScheduledFor("");
       setPublicationDate(toLocalDateTimeInput(publishedAt.toISOString()));
       setOriginalPublishedAt(publishedAt.toISOString()); setStatus("published");
@@ -360,7 +361,8 @@ export default function AdminPage() {
         <div className="adminEditorHead"><div><div className="adminLabel">{editingId ? "Edit Article" : "New Article"}</div><h2>{editingId ? "Update newsroom story" : "Write and publish"}</h2></div><span className="adminStatus">{status}</span></div>
         <form onSubmit={submit}>
           <label>Headline<input required value={title} onChange={e => { setTitle(e.target.value); if (!slug) setSlug(makeSlug(e.target.value)); }} placeholder="Enter the news headline" /></label>
-          <label>Slug<input required value={slug} onChange={e => setSlug(makeSlug(e.target.value))} placeholder="article-url-slug" /></label>          <div className="adminFormGrid">
+          <label>Slug<input required value={slug} onChange={e => setSlug(makeSlug(e.target.value))} placeholder="article-url-slug" /></label>
+          <div className="adminFormGrid">
             <label>Category<select value={category} onChange={e => setCategory(e.target.value)}>{categories.map(item => <option key={item}>{item}</option>)}</select></label>
             <label>Author<input value={author} onChange={e => setAuthor(e.target.value)} /></label>
           </div>
