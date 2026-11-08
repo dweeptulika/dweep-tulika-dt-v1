@@ -11,7 +11,7 @@ const categories = ["Andaman News", "National", "Politics", "Editorial", "Cultur
 type ArticleStatus = "draft" | "published" | "scheduled";
 type ArticleRow = {
   id: string; title: string; slug: string; category: string; source?: "blogger" | "newsroom"; public_path?: string | null; author: string; excerpt: string;
-  body_html: string; featured_image: string | null; seo_title: string | null;
+  body_html: string; featured_image: string | null; featured_image_alt: string | null; featured_image_caption: string | null; seo_title: string | null;
   meta_description: string | null; social_image: string | null; status: ArticleStatus;
   scheduled_for: string | null; published_at: string | null; updated_at: string;
 };
@@ -101,7 +101,7 @@ export default function AdminPage() {
   const [title, setTitle] = useState(""); const [slug, setSlug] = useState("");
   const [category, setCategory] = useState(categories[0]); const [author, setAuthor] = useState("Dweep Tulika");
   const [excerpt, setExcerpt] = useState(""); const [body, setBody] = useState("");
-  const [featuredImage, setFeaturedImage] = useState(""); const [seoTitle, setSeoTitle] = useState("");
+  const [featuredImage, setFeaturedImage] = useState(""); const [featuredImageAlt, setFeaturedImageAlt] = useState(""); const [featuredImageCaption, setFeaturedImageCaption] = useState(""); const [seoTitle, setSeoTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState(""); const [socialImage, setSocialImage] = useState("");
   const [scheduledFor, setScheduledFor] = useState(""); const [publicationDate, setPublicationDate] = useState(""); const [status, setStatus] = useState<ArticleStatus>("draft");
   const [originalPublishedAt, setOriginalPublishedAt] = useState<string | null>(null);
@@ -120,7 +120,7 @@ export default function AdminPage() {
     setArticleLoadError(null);
     try {
       const { data, error } = await supabase.from("articles")
-        .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
+        .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,featured_image_alt,featured_image_caption,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
         .order("updated_at", { ascending: false });
       if (error) throw error;
       setArticles((data || []) as ArticleRow[]);
@@ -177,8 +177,7 @@ export default function AdminPage() {
       if (!Number.isFinite(publishedAt.getTime())) {
         setMessage("The legacy story has no valid publication date, so it was not adopted.");
         return;
-      }
-      const { data: inserted, error } = await supabase.from("articles").insert({
+      }      const { data: inserted, error } = await supabase.from("articles").insert({
         title: article.title, slug: article.slug, category: article.category,
         source: "blogger", legacy_id: article.id, legacy_url: article.publicPath,
         public_path: article.publicPath, author: article.author || "Dweep Tulika",
@@ -210,13 +209,14 @@ export default function AdminPage() {
 
   function resetEditor() {
     setEditingId(null); setTitle(""); setSlug(""); setCategory(categories[0]); setAuthor("Dweep Tulika");
-    setExcerpt(""); setBody(""); setFeaturedImage(""); setSeoTitle(""); setMetaDescription("");
+    setExcerpt(""); setBody(""); setFeaturedImage(""); setFeaturedImageAlt(""); setFeaturedImageCaption(""); setSeoTitle(""); setMetaDescription("");
     setSocialImage(""); setScheduledFor(""); setPublicationDate(""); setStatus("draft"); setOriginalPublishedAt(null); setMessage("");
   }
 
   function editArticle(article: ArticleRow) {
     setEditingId(article.id); setTitle(article.title); setSlug(article.slug); setCategory(article.category);
     setAuthor(article.author); setExcerpt(article.excerpt); setBody(article.body_html); setFeaturedImage(article.featured_image || "");
+    setFeaturedImageAlt(article.featured_image_alt || ""); setFeaturedImageCaption(article.featured_image_caption || "");
     setSeoTitle(article.seo_title || ""); setMetaDescription(article.meta_description || "");
     setSocialImage(article.social_image || ""); setScheduledFor(toLocalDateTimeInput(article.scheduled_for));
     setPublicationDate(toLocalDateTimeInput(article.published_at));
@@ -320,7 +320,10 @@ export default function AdminPage() {
 
     const payload = {
       title: title.trim(), slug: normalizedSlug, category, author: author.trim() || "Dweep Tulika", excerpt: excerpt.trim(),
-      body_html: body, featured_image: featuredImage || null, seo_title: seoTitle.trim() || null,
+      body_html: body, featured_image: featuredImage || null,
+      featured_image_alt: featuredImage ? featuredImageAlt.trim() || null : null,
+      featured_image_caption: featuredImage ? featuredImageCaption.trim() || null : null,
+      seo_title: seoTitle.trim() || null,
       meta_description: metaDescription.trim() || excerpt.trim() || null, social_image: socialImage || null,
       status: requestedStatus === "scheduled" ? "published" : requestedStatus, scheduled_for: scheduledAt,
       published_at: publishedAt,
@@ -357,8 +360,7 @@ export default function AdminPage() {
         <div className="adminEditorHead"><div><div className="adminLabel">{editingId ? "Edit Article" : "New Article"}</div><h2>{editingId ? "Update newsroom story" : "Write and publish"}</h2></div><span className="adminStatus">{status}</span></div>
         <form onSubmit={submit}>
           <label>Headline<input required value={title} onChange={e => { setTitle(e.target.value); if (!slug) setSlug(makeSlug(e.target.value)); }} placeholder="Enter the news headline" /></label>
-          <label>Slug<input required value={slug} onChange={e => setSlug(makeSlug(e.target.value))} placeholder="article-url-slug" /></label>
-          <div className="adminFormGrid">
+          <label>Slug<input required value={slug} onChange={e => setSlug(makeSlug(e.target.value))} placeholder="article-url-slug" /></label>          <div className="adminFormGrid">
             <label>Category<select value={category} onChange={e => setCategory(e.target.value)}>{categories.map(item => <option key={item}>{item}</option>)}</select></label>
             <label>Author<input value={author} onChange={e => setAuthor(e.target.value)} /></label>
           </div>
@@ -371,9 +373,15 @@ export default function AdminPage() {
             <label>Featured image<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => uploadImage(e, "featured")} disabled={uploading || busy} /></label>
             <label>Social image<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => uploadImage(e, "social")} disabled={uploading || busy} /></label>
           </div>
-          {featuredImage && (body.includes(featuredImage)
-            ? <div className="adminNote">The featured image is already embedded in the article body, so its duplicate preview is hidden. The featured-image metadata is preserved. <button type="button" onClick={() => setFeaturedImage("")}>Remove featured image</button></div>
-            : <div className="adminImagePreview"><img src={featuredImage} alt="Selected featured image" /><button type="button" onClick={() => setFeaturedImage("")}>Remove featured image</button></div>)}
+          {featuredImage && <>
+            <div className="adminFormGrid">
+              <label>Featured image alt text<input value={featuredImageAlt} onChange={e => setFeaturedImageAlt(e.target.value)} placeholder="Describe what is visible in the image" /></label>
+              <label>Featured image caption (optional)<input value={featuredImageCaption} onChange={e => setFeaturedImageCaption(e.target.value)} placeholder="Visible caption / photo credit" /></label>
+            </div>
+            {body.includes(featuredImage)
+              ? <div className="adminNote">The featured image is already embedded in the article body; the alt text and caption below apply to the featured-image presentation. <button type="button" onClick={() => { setFeaturedImage(""); setFeaturedImageAlt(""); setFeaturedImageCaption(""); }}>Remove featured image</button></div>
+              : <div className="adminImagePreview"><img src={featuredImage} alt={featuredImageAlt || "Selected featured image"} /><button type="button" onClick={() => { setFeaturedImage(""); setFeaturedImageAlt(""); setFeaturedImageCaption(""); }}>Remove featured image</button></div>}
+          </>}
           {socialImage && <div className="adminImagePreview"><img src={socialImage} alt="Selected social image" /><button type="button" onClick={() => setSocialImage("")}>Remove social image</button></div>}
           <label>Article body
             <RichTextEditor value={body} onChange={setBody} onUploadImage={uploadInlineImage} />
