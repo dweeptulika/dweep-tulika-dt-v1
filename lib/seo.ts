@@ -23,6 +23,7 @@ export function canonicalSiteUrl(value: string) {
 export function articleJsonLd(a: PublishedStory, url: string) {
   const image = a.socialImage || a.featuredImage || undefined;
   const authorName = a.author || "Dweep Tulika";
+  const authorIsOrganization = /^dweep tulika(?:\s+.*)?$/i.test(authorName.trim());
   return {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
@@ -33,7 +34,7 @@ export function articleJsonLd(a: PublishedStory, url: string) {
     dateModified: a.updatedAt || a.publishedAt,
     inLanguage: "en-IN",
     articleSection: a.category || undefined,
-    author: [{ "@type": "Person", name: authorName }],
+    author: [{ "@type": authorIsOrganization ? "Organization" : "Person", name: authorName }],
     publisher: {
       "@type": "Organization",
       name: SITE_NAME,

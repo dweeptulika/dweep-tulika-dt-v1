@@ -41,6 +41,8 @@ export type PublishedStory = {
   excerpt: string;
   bodyHtml: string;
   featuredImage: string | null;
+  featuredImageAlt?: string | null;
+  featuredImageCaption?: string | null;
   publishedAt: string;
   updatedAt: string;
   url: string;
@@ -63,6 +65,8 @@ type DbArticle = {
   excerpt: string;
   body_html: string;
   featured_image: string | null;
+  featured_image_alt?: string | null;
+  featured_image_caption?: string | null;
   published_at: string;
   updated_at: string;
   seo_title: string | null;
@@ -115,6 +119,8 @@ function mapDbArticle(article: DbArticle): PublishedStory {
     excerpt: article.excerpt || "",
     bodyHtml: article.body_html || "",
     featuredImage: article.featured_image,
+    featuredImageAlt: article.featured_image_alt,
+    featuredImageCaption: article.featured_image_caption,
     publishedAt: article.published_at,
     updatedAt: article.updated_at,
     url: newsroomUrl(article),
@@ -137,6 +143,8 @@ function mapLegacyArticle(article: Article): PublishedStory {
     excerpt: article.description || "",
     bodyHtml: article.html,
     featuredImage: articleImage(article),
+    featuredImageAlt: article.title,
+    featuredImageCaption: null,
     publishedAt: article.published,
     updatedAt: article.updated || article.published,
     url: article.filename,
@@ -174,7 +182,7 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("articles")
-    .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
+    .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,featured_image_alt,featured_image_caption,seo_title,meta_description,social_image,published_at,updated_at")
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
@@ -214,7 +222,7 @@ export async function getPublishedNewsroomArticleByPath(year: string, month: str
   const requestedPath = `/${year}/${month}/${normalizedSlug}.html`;
   const supabase = publicSupabase();
   if (!supabase) return null;
-  const selectFields = "id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at";
+  const selectFields = "id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,featured_image_alt,featured_image_caption,seo_title,meta_description,social_image,published_at,updated_at";
   const { data: pathMatch } = await supabase
     .from("articles").select(selectFields)
     .eq("public_path", requestedPath)

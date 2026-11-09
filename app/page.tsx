@@ -8,7 +8,7 @@ export const revalidate = 0;
 function StoryImage({ article, large = false }: { article: PublishedStory; large?: boolean }) {
   if (!article.featuredImage) return null;
   return <div className={large ? "storyImage storyImageLarge" : "storyImage"}>
-    <Image src={article.featuredImage} alt="" fill sizes={large ? "(max-width: 800px) 100vw, 820px" : "(max-width: 800px) 100vw, 400px"} priority={large} />
+    <Image src={article.featuredImage} alt={article.featuredImageAlt || article.title} fill sizes={large ? "(max-width: 800px) 100vw, 820px" : "(max-width: 800px) 100vw, 400px"} priority={large} />
   </div>;
 }
 
