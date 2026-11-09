@@ -215,6 +215,7 @@ export default function AdminPage() {
   }
 
   function editArticle(article: ArticleRow) {
+    setActiveTab("write");
     setEditingId(article.id); setTitle(article.title); setSlug(article.slug); setCategory(article.category);
     setAuthor(article.author); setExcerpt(article.excerpt); setBody(article.body_html); setFeaturedImage(article.featured_image || "");
     setFeaturedImageAlt(article.featured_image_alt || ""); setFeaturedImageCaption(article.featured_image_caption || "");
