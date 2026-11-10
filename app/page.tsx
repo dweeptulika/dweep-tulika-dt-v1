@@ -3,7 +3,8 @@ import Link from "next/link";
 import { getAllPublishedArticles, type PublishedStory } from "@/lib/data";
 import { AdSlot } from "@/components/AdSlot";
 
-export const revalidate = 0;
+// Refresh public listing pages periodically instead of querying Supabase on every request.
+export const revalidate = 300;
 
 function StoryImage({ article, large = false }: { article: PublishedStory; large?: boolean }) {
   if (!article.featuredImage) return null;
