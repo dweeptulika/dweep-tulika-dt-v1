@@ -61,7 +61,7 @@ type DbArticle = {
   public_path?: string | null;
   author: string;
   excerpt: string;
-  body_html: string;
+  body_html?: string;
   featured_image: string | null;
   published_at: string;
   updated_at: string;
@@ -174,7 +174,7 @@ export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> 
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("articles")
-    .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
+    .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
