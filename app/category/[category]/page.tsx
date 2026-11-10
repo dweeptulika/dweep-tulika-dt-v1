@@ -14,7 +14,8 @@ const aliases: Record<string, string> = {
   sports: "Sports",
 };
 
-export const revalidate = 0;
+// Refresh public listing pages periodically instead of querying Supabase on every request.
+export const revalidate = 300;
 
 const descriptions: Record<string, string> = {
   "andaman-nicobar": "Local reporting on public services, governance, transport, health, education, the environment and community issues across the Andaman & Nicobar Islands.",
