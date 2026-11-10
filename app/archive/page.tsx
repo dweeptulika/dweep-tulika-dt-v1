@@ -5,7 +5,8 @@ import { getAllPublishedArticles } from "@/lib/data";
 
 export const metadata: Metadata = { title: "News Archive", description: "Browse Dweep Tulika’s news archive by month, including reporting on the Andaman & Nicobar Islands, national affairs, culture and public issues.", alternates: { canonical: "/archive" } };
 
-export const revalidate = 0;
+// Refresh public listing pages periodically instead of querying Supabase on every request.
+export const revalidate = 300;
 
 function ArticleImage({ src, title }: { src: string | null; title: string }) {
   if (!src) return null;
