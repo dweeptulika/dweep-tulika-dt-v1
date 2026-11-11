@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   const categoryTitle = label === "Andaman News" ? "Andaman & Nicobar" : label;
   const title = `${categoryTitle} News`;
   const subject = label === "Andaman News" ? "Andaman & Nicobar" : label;
-  const description = `Latest ${subject.toLowerCase()} news, reports and updates from Dweep Tulika, covering the islands and beyond.`;
+  const description = descriptions[category] || `Latest ${subject.toLowerCase()} news, reports and updates from Dweep Tulika, covering the islands and beyond.`;
   return {
     title,
     description,
