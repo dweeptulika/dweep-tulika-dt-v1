@@ -16,7 +16,10 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{year:string;month:string;slug:string}> }): Promise<Metadata> {
   const p=await params; const article=await findArticleByPath(p.year,p.month,p.slug);
-  if(!article) return {};
+  // Never let the root layout homepage canonical leak onto an unresolved article route.
+  // A missing article will render a 404 below; its metadata should still not canonicalize to "/".
+  const requestedUrl = canonicalSiteUrl(`/${p.year}/${p.month}/${p.slug}.html`);
+  if(!article) return { alternates: { canonical: requestedUrl } };
   const description = article.metaDescription?.trim() || article.excerpt?.trim() || `Read ${article.title} on Dweep Tulika, covering news and public affairs from the Andaman & Nicobar Islands.`;
   const rawTitle = article.seoTitle?.trim() || article.title;
   // The root metadata template appends "| Dweep Tulika"; avoid repeating it when an SEO title already includes it.
