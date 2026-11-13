@@ -86,3 +86,15 @@ export function breadcrumbJsonLd(article: Pick<PublishedStory, "title" | "labels
     ],
   };
 }
+
+/**
+ * Route social-preview and structured-data images through Next's image
+ * optimizer. This prevents social/search crawlers from repeatedly fetching
+ * multi-megabyte original uploads directly from Supabase Storage.
+ * The optimized response is cached by the deployment's image optimizer.
+ */
+export function optimizedSocialImageUrl(image: string | null | undefined): string | undefined {
+  if (!image) return undefined;
+  if (image.startsWith("/")) return SITE_URL + image;
+  return `${SITE_URL}/_next/image?url=${encodeURIComponent(image)}&w=1200&q=75`;
+}
