@@ -2,8 +2,13 @@ import { categoryPath, type PublishedStory } from "@/lib/data";
 
 export const SITE_URL = "https://dweeptulika.in";
 export const SITE_NAME = "Dweep Tulika";
+// White-background logo for publisher/organization structured data.
 export const SITE_LOGO =
   "https://blogger.googleusercontent.com/img/a/AVvXsEhJ3O2ALVPRaVh4xa5sjb5cak1NEUvqzGOAVMb6_pKdZtiafHPuuXuO4IJU13NasgeXor5zyzIWviKh8bZ5yAS4A36CoJ24lxyF8EsIubyouuUyCQIa9eIif8ggVe8Xkua8sg6Tn-KafGLP6ZcB2GSOtA_8uaHZcosg_WJXtm-FyJ2fVglkrqMTdqvnyqw=s676";
+
+// Black-background version reserved for the website masthead.
+export const SITE_MASTHEAD_LOGO =
+  "https://blogger.googleusercontent.com/img/a/AVvXsEhJ3O2ALVPRaVh4xa5sjb5cak1NEUvqzGOAVMb6_pKdZtiafHPuuXuO4IJU13NasgeXor5zyzIWviKh8bZ5yAS4A36CoJ24lxyF8EsIubyouuUyCQIa9eIif8ggVe8Xkua8sg6Tn-KafGLP6ZcB2GSOtA8_uaHZcosg_WJXtm-FyJ2fVglkrqMTdqvnyqw=s676";
 
 /**
  * Build the one preferred public URL for an article or internal page.
@@ -21,7 +26,7 @@ export function canonicalSiteUrl(value: string) {
 }
 
 export function articleJsonLd(a: PublishedStory, url: string) {
-  const image = a.socialImage || a.featuredImage || undefined;
+  const image = optimizedSocialImageUrl(a.socialImage || a.featuredImage);
   const authorName = a.author || "Dweep Tulika";
   return {
     "@context": "https://schema.org",
@@ -80,4 +85,16 @@ export function breadcrumbJsonLd(article: Pick<PublishedStory, "title" | "labels
       { "@type": "ListItem", position: 3, name: article.title, item: url },
     ],
   };
+}
+
+/**
+ * Route social-preview and structured-data images through Next's image
+ * optimizer. This prevents social/search crawlers from repeatedly fetching
+ * multi-megabyte original uploads directly from Supabase Storage.
+ * The optimized response is cached by the deployment's image optimizer.
+ */
+export function optimizedSocialImageUrl(image: string | null | undefined): string | undefined {
+  if (!image) return undefined;
+  if (image.startsWith("/")) return SITE_URL + image;
+  return `${SITE_URL}/_next/image?url=${encodeURIComponent(image)}&w=1200&q=75`;
 }

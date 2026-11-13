@@ -7,6 +7,21 @@ const allowedTags = [
   "table","tbody","td","tfoot","th","thead","tr","u","ul"
 ];
 
+function optimizeSupabaseStorageImage(value: string | undefined): string | undefined {
+  if (!value || value.startsWith("/_next/image?")) return value;
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol !== "https:" ||
+      !url.hostname.endsWith(".supabase.co") ||
+      !url.pathname.startsWith("/storage/v1/object/public/")
+    ) return value;
+    return `/_next/image?url=${encodeURIComponent(url.toString())}&w=1200&q=75`;
+  } catch {
+    return value;
+  }
+}
+
 export function sanitizeArticleHtml(html: string): string {
   return sanitizeHtml(html, {
     allowedTags,
@@ -28,6 +43,10 @@ export function sanitizeArticleHtml(html: string): string {
     allowProtocolRelative: false,
     disallowedTagsMode: "discard",
     transformTags: {
+      img: (tagName, attribs) => ({
+        tagName,
+        attribs: { ...attribs, src: optimizeSupabaseStorageImage(attribs.src) || attribs.src }
+      }),
       a: (tagName, attribs) => {
         if (attribs.target === "_blank") {
           return {

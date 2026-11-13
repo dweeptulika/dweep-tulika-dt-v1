@@ -1,8 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-
-const LOGO_URL =
-  "https://blogger.googleusercontent.com/img/a/AVvXsEhJ3O2ALVPRaVh4xa5sjb5cak1NEUvqzGOAVMb6_pKdZtiafHPuuXuO4IJU13NasgeXor5zyzIWviKh8bZ5yAS4A36CoJ24lxyF8EsIubyouuUyCQIa9eIif8ggVe8Xkua8sg6Tn-KafGLP6ZcB2GSOtA8_uaHZcosg_WJXtm-FyJ2fVglkrqMTdqvnyqw=s676";
+import { SITE_MASTHEAD_LOGO } from "@/lib/seo";
 
 export function SiteHeader() {
   return (
@@ -13,7 +11,7 @@ export function SiteHeader() {
       </div>
       <div className="masthead">
         <Link href="/" className="mastlink" aria-label="Dweep Tulika home">
-          <Image src={LOGO_URL} alt="Dweep Tulika — A Truthful &amp; Unbiased Perspective" width={676} height={270} priority className="officialLogo" />
+          <Image src={SITE_MASTHEAD_LOGO} alt="Dweep Tulika — A Truthful &amp; Unbiased Perspective" width={676} height={270} priority className="officialLogo" />
         </Link>
       </div>
       <nav aria-label="Primary navigation">

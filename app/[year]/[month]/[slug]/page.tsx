@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { articleJsonLd, breadcrumbJsonLd, canonicalSiteUrl } from "@/lib/seo";
+import { articleJsonLd, breadcrumbJsonLd, canonicalSiteUrl, optimizedSocialImageUrl } from "@/lib/seo";
 import { AdSlot } from "@/components/AdSlot";
 import { findArticleByPath, getAllPublishedArticles, categoryPath } from "@/lib/data";
 import { sanitizeArticleHtml } from "@/lib/security";
 
-export const revalidate = 0;
+// Revalidate article pages once per minute so crawlers and readers receive fresh newsroom updates without a database read on every request.\nexport const revalidate = 60;
 
 export async function generateStaticParams() {
   const articles = await getAllPublishedArticles();
@@ -16,12 +16,15 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{year:string;month:string;slug:string}> }): Promise<Metadata> {
   const p=await params; const article=await findArticleByPath(p.year,p.month,p.slug);
-  if(!article) return {};
+  // Never let the root layout homepage canonical leak onto an unresolved article route.
+  // A missing article will render a 404 below; its metadata should still not canonicalize to "/".
+  const requestedUrl = canonicalSiteUrl(`/${p.year}/${p.month}/${p.slug}.html`);
+  if(!article) return { alternates: { canonical: requestedUrl } };
   const description = article.metaDescription?.trim() || article.excerpt?.trim() || `Read ${article.title} on Dweep Tulika, covering news and public affairs from the Andaman & Nicobar Islands.`;
   const rawTitle = article.seoTitle?.trim() || article.title;
   // The root metadata template appends "| Dweep Tulika"; avoid repeating it when an SEO title already includes it.
   const title = rawTitle.replace(/\s*\|\s*Dweep Tulika\s*$/i, "").trim() || article.title;
-  const image = article.socialImage || article.featuredImage || undefined;
+  const image = optimizedSocialImageUrl(article.socialImage || article.featuredImage);
   const url = canonicalSiteUrl(article.url);
   return {
     title,
@@ -50,5 +53,5 @@ export async function generateMetadata({ params }: { params: Promise<{year:strin
 export default async function Article({params}:{params:Promise<{year:string;month:string;slug:string}>}) {
   const p=await params; const article=await findArticleByPath(p.year,p.month,p.slug); if(!article) notFound();
   const url=canonicalSiteUrl(article.url);
-  return <div className="container"><div className="breadcrumbs"><Link href="/">Home</Link> / <Link href={"/category/"+categoryPath(article.category)}>{article.category}</Link></div><article className="article"><div className="kicker">{article.labels.slice(0,4).join(" · ") || "News"}</div><h1>{article.title}</h1>{article.excerpt && <p className="dek">{article.excerpt}</p>}<div className="meta">By {article.author || "Dweep Tulika"} · {new Date(article.publishedAt).toLocaleDateString("en-IN",{dateStyle:"long",timeZone:"Asia/Kolkata"})}{article.source === "blogger" ? null : null}</div><AdSlot placement="article" />{article.source === "newsroom" && article.featuredImage && <div className="articleFeaturedImage"><Image src={article.featuredImage} alt="" fill sizes="(max-width: 900px) 100vw, 900px" /></div>}<div className="articlebody" dangerouslySetInnerHTML={{__html:sanitizeArticleHtml(article.bodyHtml)}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(articleJsonLd(article,url))}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbJsonLd(article,url))}} /></article></div>;
+  return <div className="container"><div className="breadcrumbs"><Link href="/">Home</Link> / <Link href={"/category/"+categoryPath(article.category)}>{article.category}</Link></div><article className="article"><div className="kicker">{article.labels.slice(0,4).join(" · ") || "News"}</div><h1>{article.title}</h1>{article.excerpt && <p className="dek">{article.excerpt}</p>}<div className="meta">By {article.author || "Dweep Tulika"} · {new Date(article.publishedAt).toLocaleDateString("en-IN",{dateStyle:"long",timeZone:"Asia/Kolkata"})}{article.source === "blogger" ? null : null}</div><AdSlot placement="article" />{article.source === "newsroom" && article.featuredImage && <div className="articleFeaturedImage"><Image src={article.featuredImage} alt={article.title} fill sizes="(max-width: 900px) 100vw, 900px" /></div>}<div className="articlebody" dangerouslySetInnerHTML={{__html:sanitizeArticleHtml(article.bodyHtml)}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(articleJsonLd(article,url))}} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(breadcrumbJsonLd(article,url))}} /></article></div>;
 }
