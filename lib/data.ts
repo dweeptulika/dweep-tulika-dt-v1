@@ -73,7 +73,13 @@ type DbArticle = {
 function publicSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key) return null;
+  if (!url || !key) {
+    console.error("[data] Supabase public client unavailable", {
+      hasUrl: Boolean(url),
+      hasPublishableKey: Boolean(key),
+    });
+    return null;
+  }
   return createSupabaseClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
@@ -125,25 +131,6 @@ function mapDbArticle(article: DbArticle): PublishedStory {
   };
 }
 
-function mapLegacyArticle(article: Article): PublishedStory {
-  const category = canonicalCategory(article.labels, article.title);
-  return {
-    source: "blogger",
-    id: String(article.id),
-    title: article.title,
-    slug: articleSlug(article),
-    category,
-    author: article.author || "Dweep Tulika",
-    excerpt: article.description || "",
-    bodyHtml: article.html,
-    featuredImage: articleImage(article),
-    publishedAt: article.published,
-    updatedAt: article.updated || article.published,
-    url: article.filename,
-    labels: [category, ...article.labels.filter((label) => normalizeLabel(label) !== normalizeLabel(category))],
-  };
-}
-
 
 export type Advertisement = {
   id: string;
@@ -172,14 +159,29 @@ export async function getActiveAdvertisements(placement: Advertisement["placemen
 export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> {
   const supabase = publicSupabase();
   if (!supabase) return [];
-  const { data, error } = await supabase
+  const { data, error, status, statusText } = await supabase
     .from("articles")
     .select("id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,featured_image,seo_title,meta_description,social_image,published_at,updated_at")
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
     .order("published_at", { ascending: false });
-  if (error || !data) return [];
+  if (error || !data) {
+    console.error("[data] Published newsroom article query failed", {
+      code: error?.code ?? null,
+      message: error?.message ?? null,
+      details: error?.details ?? null,
+      hint: error?.hint ?? null,
+      httpStatus: status,
+      httpStatusText: statusText,
+      receivedData: Boolean(data),
+    });
+    return [];
+  }
+  console.info("[data] Published newsroom article query succeeded", {
+    rowCount: data.length,
+    latestPublishedAt: data[0]?.published_at ?? null,
+  });
   return (data as DbArticle[]).map(mapDbArticle);
 }
 
@@ -215,23 +217,46 @@ export async function getPublishedNewsroomArticleByPath(year: string, month: str
   const supabase = publicSupabase();
   if (!supabase) return null;
   const selectFields = "id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at";
-  const { data: pathMatch } = await supabase
+  const { data: pathMatch, error: pathError, status: pathStatus } = await supabase
     .from("articles").select(selectFields)
     .eq("public_path", requestedPath)
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
     .maybeSingle();
+  if (pathError) {
+    console.error("[data] Article public_path lookup failed", {
+      code: pathError.code,
+      message: pathError.message,
+      details: pathError.details,
+      hint: pathError.hint,
+      httpStatus: pathStatus,
+      requestedPath,
+    });
+  }
   if (pathMatch) return mapDbArticle(pathMatch as DbArticle);
 
-  const { data, error } = await supabase
+  const { data, error, status, statusText } = await supabase
     .from("articles").select(selectFields)
     .eq("slug", normalizedSlug)
     .in("status", ["published", "scheduled"])
     .not("published_at", "is", null)
     .lte("published_at", new Date().toISOString())
     .maybeSingle();
-  if (error || !data) return null;
+  if (error || !data) {
+    if (error) {
+      console.error("[data] Article slug lookup failed", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        httpStatus: status,
+        httpStatusText: statusText,
+        requestedPath,
+      });
+    }
+    return null;
+  }
   const article = mapDbArticle(data as DbArticle);
   if (normalizePublicPath(article.url) !== normalizePublicPath(requestedPath)) return null;
   return article;
@@ -250,9 +275,6 @@ export async function allPublishedLabels(): Promise<string[]> {
 }
 
 export function articleFromPath(year: string, month: string, slug: string) {
-  // Next.js can pass percent-encoded path segments through to dynamic route params.
-  // Decode safely so legacy Blogger filenames containing spaces still match their
-  // original stored URL; retain the original value if it is malformed.
   let decodedSlug = slug;
   try {
     decodedSlug = decodeURIComponent(slug);
