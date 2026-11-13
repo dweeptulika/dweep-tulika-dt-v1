@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { articleJsonLd, breadcrumbJsonLd, canonicalSiteUrl } from "@/lib/seo";
+import { articleJsonLd, breadcrumbJsonLd, canonicalSiteUrl, optimizedSocialImageUrl } from "@/lib/seo";
 import { AdSlot } from "@/components/AdSlot";
 import { findArticleByPath, getAllPublishedArticles, categoryPath } from "@/lib/data";
 import { sanitizeArticleHtml } from "@/lib/security";
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{year:strin
   const rawTitle = article.seoTitle?.trim() || article.title;
   // The root metadata template appends "| Dweep Tulika"; avoid repeating it when an SEO title already includes it.
   const title = rawTitle.replace(/\s*\|\s*Dweep Tulika\s*$/i, "").trim() || article.title;
-  const image = article.socialImage || article.featuredImage || undefined;
+  const image = optimizedSocialImageUrl(article.socialImage || article.featuredImage);
   const url = canonicalSiteUrl(article.url);
   return {
     title,
