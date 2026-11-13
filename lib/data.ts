@@ -132,6 +132,26 @@ function mapDbArticle(article: DbArticle): PublishedStory {
 }
 
 
+function mapLegacyArticle(article: Article): PublishedStory {
+  const category = canonicalCategory(article.labels, article.title);
+  return {
+    source: "blogger",
+    id: String(article.id),
+    title: article.title,
+    slug: articleSlug(article),
+    category,
+    author: article.author || "Dweep Tulika",
+    excerpt: article.description || "",
+    bodyHtml: article.html,
+    featuredImage: articleImage(article),
+    publishedAt: article.published,
+    updatedAt: article.updated || article.published,
+    url: article.filename,
+    labels: [category, ...article.labels.filter((label) => normalizeLabel(label) !== normalizeLabel(category))],
+  };
+}
+
+
 export type Advertisement = {
   id: string;
   name: string;
