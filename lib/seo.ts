@@ -26,7 +26,7 @@ export function canonicalSiteUrl(value: string) {
 }
 
 export function articleJsonLd(a: PublishedStory, url: string) {
-  const image = a.socialImage || a.featuredImage || undefined;
+  const image = optimizedSocialImageUrl(a.socialImage || a.featuredImage);
   const authorName = a.author || "Dweep Tulika";
   return {
     "@context": "https://schema.org",
