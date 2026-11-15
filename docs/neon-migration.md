@@ -33,3 +33,18 @@ Copy data with a separately reviewed export/import process. Preserve IDs, articl
 6. Test login, recovery, editorial roles, publishing, scheduling, and uploads.
 7. Rehearse rollback to Supabase.
 8. Require explicit approval before any production environment or domain cutover.
+
+## Migration progress (2026-11-15)
+
+- Applied and verified the Neon schema on the project's production-named branch; the website is not cut over.
+- Copied 136 articles, 1 advertisement, 7 categories, 25 article-category links, 7 team members, 2 editorial profile rows, 252 media metadata rows, and 0 article redirects from Supabase.
+- The Supabase and Neon article row counts match, and both full-row and article-HTML aggregate hashes match exactly.
+- Neon Preview access uses a dedicated read-only database role. The Vercel variables `CONTENT_DATABASE_PROVIDER=neon` and `DATABASE_URL` are scoped only to the `migration/reversible-backend-adapter` Preview branch.
+- Supabase remains the authentication and admin write provider. No production environment variables or domain settings have been changed.
+
+## Still outstanding
+
+- Supabase Storage has 258 objects while its `public.media` metadata table has 252 rows. The six-object difference must be reconciled before any media cutover.
+- The 252 media metadata records have been copied, but the underlying binary objects have not been copied to Cloudflare R2 or Neon object storage.
+- Verify the branch-scoped read-only connection against the live Preview deployment and exercise public pages.
+- Complete the remaining admin write, authorization, media, login/recovery, publishing, scheduling, and rollback work before any production cutover.
