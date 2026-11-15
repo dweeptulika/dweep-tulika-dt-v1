@@ -89,3 +89,34 @@ create table if not exists public.team_members (
 );
 create index if not exists team_members_public_order_idx
   on public.team_members(is_active, sort_order, created_at);
+
+-- Supabase parity: editorial image metadata and relational categories/redirects.
+alter table public.articles add column if not exists featured_image_alt text;
+alter table public.articles add column if not exists featured_image_caption text;
+
+create table if not exists public.categories (
+  id uuid primary key,
+  slug text not null unique,
+  name text not null unique,
+  description text not null default '',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.article_categories (
+  article_id uuid not null references public.articles(id) on delete cascade,
+  category_id uuid not null references public.categories(id) on delete cascade,
+  is_primary boolean not null default false,
+  created_at timestamptz not null default now(),
+  primary key (article_id, category_id)
+);
+create index if not exists article_categories_category_idx
+  on public.article_categories(category_id);
+
+create table if not exists public.article_redirects (
+  old_path text primary key,
+  article_id uuid not null references public.articles(id) on delete cascade,
+  new_path text not null,
+  status_code integer not null default 301 check (status_code = 301),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
