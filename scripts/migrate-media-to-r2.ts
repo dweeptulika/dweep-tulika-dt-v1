@@ -14,6 +14,7 @@ type MediaRow = {
 };
 
 const apply = process.argv.includes("--apply");
+const testSource = process.argv.includes("--test-source");
 const allowedBranch = "migration/reversible-backend-adapter";
 
 function required(name: string): string {
@@ -23,9 +24,36 @@ function required(name: string): string {
 }
 
 function publicUrl(base: string, key: string): string {
-  const normalizedBase = base.replace(/\/+$/, "");
+  const normalizedBase = base.replace(/\\/+$/, "");
   const encodedKey = key.split("/").map(encodeURIComponent).join("/");
   return `${normalizedBase}/${encodedKey}`;
+}
+
+function createSupabaseS3Client(): S3Client {
+  return new S3Client({
+    region: required("SUPABASE_S3_REGION"),
+    endpoint: required("SUPABASE_S3_ENDPOINT"),
+    credentials: {
+      accessKeyId: required("SUPABASE_S3_ACCESS_KEY_ID"),
+      secretAccessKey: required("SUPABASE_S3_SECRET_ACCESS_KEY"),
+    },
+    forcePathStyle: true,
+  });
+}
+
+async function downloadFromSupabase(
+  client: S3Client,
+  bucket: string,
+  key: string,
+): Promise<{ bytes: Buffer; contentType: string }> {
+  const response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  if (!response.Body) throw new Error(`Supabase S3 returned no body for ${key}`);
+  const bytes = Buffer.from(await response.Body.transformToByteArray());
+  if (!bytes.length) throw new Error(`Supabase S3 returned an empty object for ${key}`);
+  return {
+    bytes,
+    contentType: response.ContentType || "application/octet-stream",
+  };
 }
 
 async function main() {
@@ -42,12 +70,25 @@ async function main() {
     if (!rows.length) throw new Error("No media records found; refusing to continue.");
 
     console.log(`Found ${rows.length} media records in Neon.`);
-    if (!apply) {
-      console.log("DRY RUN: no files uploaded and no database URLs changed.");
-      console.log("Re-run the workflow with apply=true only after all R2 secrets and the public domain are configured.");
+
+    if (testSource) {
+      const source = createSupabaseS3Client();
+      const bucket = required("SUPABASE_S3_BUCKET");
+      const sample = rows[0];
+      const downloaded = await downloadFromSupabase(source, bucket, sample.file_path);
+      console.log(`SOURCE TEST SUCCESS: downloaded ${sample.file_path} from Supabase S3 (${downloaded.bytes.length} bytes; ${downloaded.contentType}).`);
+      console.log("No R2 objects were uploaded and no database URLs were changed.");
       return;
     }
 
+    if (!apply) {
+      console.log("DRY RUN: no files uploaded and no database URLs changed.");
+      console.log("Run with test_source=true first; only use apply=true after the source test succeeds.");
+      return;
+    }
+
+    const source = createSupabaseS3Client();
+    const sourceBucket = required("SUPABASE_S3_BUCKET");
     const accountId = required("R2_ACCOUNT_ID");
     const accessKeyId = required("R2_ACCESS_KEY_ID");
     const secretAccessKey = required("R2_SECRET_ACCESS_KEY");
@@ -63,16 +104,12 @@ async function main() {
     });
 
     const verified: Array<{ row: MediaRow; url: string; bytes: number; sha256: string }> = [];
-    let failed = 0;
     const concurrency = 4;
     for (let i = 0; i < rows.length; i += concurrency) {
       const batch = rows.slice(i, i + concurrency);
       const outcomes = await Promise.all(batch.map(async (row) => {
-        const source = await fetch(row.public_url, { redirect: "follow" });
-        if (!source.ok) throw new Error(`Source download failed (${source.status}) for ${row.file_path}`);
-        const contentType = source.headers.get("content-type") || "application/octet-stream";
-        const bytes = Buffer.from(await source.arrayBuffer());
-        if (!bytes.length) throw new Error(`Empty source object: ${row.file_path}`);
+        const downloadedSource = await downloadFromSupabase(source, sourceBucket, row.file_path);
+        const { bytes, contentType } = downloadedSource;
         const sha256 = createHash("sha256").update(bytes).digest("base64");
         await s3.send(new PutObjectCommand({
           Bucket: bucket,
