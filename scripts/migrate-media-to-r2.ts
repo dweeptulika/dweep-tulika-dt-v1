@@ -4,6 +4,7 @@ import {
   S3Client,
   PutObjectCommand,
   HeadObjectCommand,
+  GetObjectCommand,
 } from "@aws-sdk/client-s3";
 
 type MediaRow = {
@@ -80,7 +81,6 @@ async function main() {
           ContentLength: bytes.length,
           ContentType: contentType,
           CacheControl: "public, max-age=31536000, immutable",
-          ChecksumSHA256: sha256,
         }));
         const head = await s3.send(new HeadObjectCommand({
           Bucket: bucket,
@@ -90,8 +90,15 @@ async function main() {
         if (head.ContentLength !== bytes.length) {
           throw new Error(`R2 size verification failed for ${row.file_path}`);
         }
-        if (head.ChecksumSHA256 && head.ChecksumSHA256 !== sha256) {
-          throw new Error(`R2 checksum verification failed for ${row.file_path}`);
+        const downloaded = await s3.send(new GetObjectCommand({
+          Bucket: bucket,
+          Key: row.file_path,
+        }));
+        if (!downloaded.Body) throw new Error(`R2 read-back returned no body for ${row.file_path}`);
+        const readBack = Buffer.from(await downloaded.Body.transformToByteArray());
+        const readBackHash = createHash("sha256").update(readBack).digest("base64");
+        if (readBack.length !== bytes.length || readBackHash !== sha256) {
+          throw new Error(`R2 read-back checksum verification failed for ${row.file_path}`);
         }
         return { row, url: publicUrl(base, row.file_path), bytes: bytes.length, sha256 };
       }));
