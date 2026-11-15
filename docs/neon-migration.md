@@ -45,6 +45,23 @@ Copy data with a separately reviewed export/import process. Preserve IDs, articl
 ## Still outstanding
 
 - Supabase Storage has 258 objects while its `public.media` metadata table has 252 rows. The six-object difference must be reconciled before any media cutover.
-- The 252 media metadata records have been copied, but the underlying binary objects have not been copied to Cloudflare R2 or Neon object storage.
+- All 258 Supabase Storage objects now have corresponding Neon media metadata (252 original records plus the six storage-only objects: one advertisement image and five team images). The binary objects have not yet been copied to Cloudflare R2.
 - Verify the branch-scoped read-only connection against the live Preview deployment and exercise public pages.
 - Complete the remaining admin write, authorization, media, login/recovery, publishing, scheduling, and rollback work before any production cutover.
+
+## Cloudflare R2 media transfer
+
+A guarded manual workflow is available at `.github/workflows/migrate-media-to-r2.yml`. It only runs from `migration/reversible-backend-adapter`.
+
+Required GitHub Actions repository secrets:
+
+- `NEON_MIGRATION_DATABASE_URL`: Neon connection string for a migration role with SELECT on `public` and UPDATE only on `public.media`, `public.articles`, `public.advertisements`, and `public.team_members`.
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET_NAME`
+- `R2_PUBLIC_BASE_URL`: HTTPS public hostname for the R2 bucket (custom domain preferred).
+
+The workflow defaults to a dry run. Only dispatch with `apply=true` after all six secrets are configured and the R2 bucket's public HTTPS hostname is active. The script uploads each object under its original storage key, reads it back, verifies byte length and SHA-256, and only after every object passes verification updates matching URLs in `media`, article image fields and HTML, advertisements, and team profiles in one database transaction. It never deletes Supabase source objects.
+
+Do not change production environment variables, DNS, or Supabase storage during this stage. Keep the Supabase bucket online until public preview URLs and rollback have been tested.
