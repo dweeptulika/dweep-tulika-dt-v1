@@ -46,14 +46,32 @@ async function downloadFromSupabase(
   bucket: string,
   key: string,
 ): Promise<{ bytes: Buffer; contentType: string }> {
-  const response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-  if (!response.Body) throw new Error(`Supabase S3 returned no body for ${key}`);
-  const bytes = Buffer.from(await response.Body.transformToByteArray());
-  if (!bytes.length) throw new Error(`Supabase S3 returned an empty object for ${key}`);
-  return {
-    bytes,
-    contentType: response.ContentType || "application/octet-stream",
-  };
+  try {
+    const response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    if (!response.Body) throw new Error(`Supabase S3 returned no body for ${key}`);
+    const bytes = Buffer.from(await response.Body.transformToByteArray());
+    if (!bytes.length) throw new Error(`Supabase S3 returned an empty object for ${key}`);
+    return {
+      bytes,
+      contentType: response.ContentType || "application/octet-stream",
+    };
+  } catch (error) {
+    const err = error as {
+      name?: string;
+      message?: string;
+      $metadata?: { httpStatusCode?: number; requestId?: string; extendedRequestId?: string };
+      $response?: { headers?: Record<string, string>; body?: unknown };
+    };
+    const status = err.$metadata?.httpStatusCode ?? "unknown";
+    const contentType = err.$response?.headers?.["content-type"] ?? "unknown";
+    const requestId = err.$metadata?.requestId ?? "unavailable";
+    const extendedRequestId = err.$metadata?.extendedRequestId ?? "unavailable";
+    console.error(
+      `Supabase S3 request failed: name=${err.name ?? "unknown"} status=${status} content-type=${contentType} request-id=${requestId} extended-request-id=${extendedRequestId}`
+    );
+    console.error(`Supabase S3 error message: ${err.message ?? "No message"}`);
+    throw error;
+  }
 }
 
 async function main() {
