@@ -194,6 +194,16 @@ export function normalizePublicPath(value: string) {
   }
 }
 
+export async function getHomepageArticles(): Promise<PublishedStory[]> {
+  const stories = await getAllPublishedArticles();
+  // Keep the homepage focused on current newsroom publications while preserving
+  // the Blogger archive below them for visitors who want older coverage.
+  return [
+    ...stories.filter((story) => story.source === "newsroom"),
+    ...stories.filter((story) => story.source === "blogger"),
+  ];
+}
+
 export async function getAllPublishedArticles(): Promise<PublishedStory[]> {
   const newsroom = await getPublishedNewsroomArticles();
   const newsroomByPath = new Map<string, PublishedStory>();
