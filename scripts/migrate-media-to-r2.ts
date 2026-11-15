@@ -24,7 +24,7 @@ function required(name: string): string {
 }
 
 function publicUrl(base: string, key: string): string {
-  const normalizedBase = base.replace(/\\/+$/, "");
+  const normalizedBase = base.replace(/\/+$/, "");
   const encodedKey = key.split("/").map(encodeURIComponent).join("/");
   return `${normalizedBase}/${encodedKey}`;
 }
