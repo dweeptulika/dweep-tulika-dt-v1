@@ -1,9 +1,9 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth/client";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { AdvertisementPanel } from "@/components/AdvertisementPanel";
 
@@ -39,7 +39,7 @@ function toLocalDateTimeInput(value: string | null) {
 
 export default function AdminPage() {
   const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
+
   const [sessionReady, setSessionReady] = useState(false);
   const [activeTab, setActiveTab] = useState<"write" | "ads" | "stories">("write");
   const [articles, setArticles] = useState<ArticleRow[]>([]);
@@ -48,11 +48,8 @@ export default function AdminPage() {
   const [legacyArticles, setLegacyArticles] = useState<LegacyArticle[]>([]);
   const [legacyLoadError, setLegacyLoadError] = useState(false);
   const [legacyPage, setLegacyPage] = useState(1);
-  const adoptionDisabledForPreview = useSyncExternalStore(
-    () => () => {},
-    () => window.location.hostname.endsWith(".vercel.app"),
-    () => true,
-  );
+  const adoptionDisabledForPreview = false;
+
   const [librarySource, setLibrarySource] = useState<"all" | "newsroom" | "blogger">("all");
   const [librarySearch, setLibrarySearch] = useState("");
   const [libraryStatus, setLibraryStatus] = useState<"all" | ArticleStatus>("all");
@@ -109,104 +106,59 @@ export default function AdminPage() {
 
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.replace("/admin/login");
+    authClient.getSession().then(({ data }) => {
+      if (!data?.session) router.replace("/admin/login");
       else { setSessionReady(true); void loadArticles(); }
-    });
-  }, [router, supabase]);
+    }).catch(() => router.replace("/admin/login"));
+  }, [router]);
+
+
 
   async function loadArticles() {
-    setArticlesLoading(true);
-    setArticleLoadError(null);
+    setArticlesLoading(true); setArticleLoadError(null);
     try {
-      const { data, error } = await supabase.from("articles")
-        .select("id,title,slug,category,source,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,status,scheduled_for,published_at,updated_at")
-        .order("updated_at", { ascending: false });
-      if (error) throw error;
-      setArticles((data || []) as ArticleRow[]);
+      const response = await fetch("/api/admin/articles", { cache: "no-store" });
+      if (!response.ok) throw new Error(response.status === 401 ? "Your session has expired. Please sign in again." : "Could not load newsroom articles.");
+      const data = await response.json();
+      setArticles(Array.isArray(data) ? data as ArticleRow[] : []);
     } catch (error) {
       setArticleLoadError(error instanceof Error ? error.message : "Could not load newsroom articles.");
       setArticles([]);
-    } finally {
-      setArticlesLoading(false);
-    }
+    } finally { setArticlesLoading(false); }
     try {
       const response = await fetch("/api/admin/legacy-articles", { cache: "no-store" });
       if (!response.ok) throw new Error("Legacy archive request failed");
       const result = await response.json();
       if (!Array.isArray(result)) throw new Error("Unexpected legacy archive response");
-      setLegacyArticles(result as LegacyArticle[]);
-      setLegacyLoadError(false);
-    } catch {
-      setLegacyArticles([]);
-      setLegacyLoadError(true);
-    }
+      setLegacyArticles(result as LegacyArticle[]); setLegacyLoadError(false);
+    } catch { setLegacyArticles([]); setLegacyLoadError(true); }
   }
 
+
+
   async function adoptLegacyArticle(summary: LegacyArticle) {
-    if (adoptionDisabledForPreview) {
-      setMessage("Adoption is disabled on preview domains because they share production data. Test the archive here; adopt only from the production domain or after a safe test database is configured.");
-      return;
-    }
-    setBusy(true);
-    setMessage("");
+    setBusy(true); setMessage("");
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        router.replace("/admin/login");
-        return;
-      }
-      const detailResponse = await fetch("/api/admin/legacy-articles?path=" + encodeURIComponent(summary.publicPath), { cache: "no-store" });
-      if (!detailResponse.ok) {
-        setMessage(detailResponse.status === 404 ? "This legacy story could not be found in the source archive." : "Could not load the legacy story. Please retry.");
-        return;
-      }
-      const article = await detailResponse.json() as LegacyArticle & { bodyHtml: string };
-      const { data: existing, error: duplicateCheckError } = await supabase.from("articles")
-        .select("id").eq("public_path", article.publicPath).maybeSingle();
-      if (duplicateCheckError) {
-        setMessage("Could not verify whether this story was already adopted: " + duplicateCheckError.message);
-        return;
-      }
-      if (existing) {
-        setMessage("This Blogger article has already been adopted. Refresh the library to see it under newsroom stories.");
-        await loadArticles();
-        return;
-      }
-      const publishedAt = new Date(article.publishedAt);
-      if (!Number.isFinite(publishedAt.getTime())) {
-        setMessage("The legacy story has no valid publication date, so it was not adopted.");
-        return;
-      }
-      const { data: inserted, error } = await supabase.from("articles").insert({
-        title: article.title, slug: article.slug, category: article.category,
-        source: "blogger", legacy_id: article.id, legacy_url: article.publicPath,
-        public_path: article.publicPath, author: article.author || "Dweep Tulika",
-        excerpt: article.excerpt || "", body_html: article.bodyHtml || "",
-        featured_image: article.featuredImage, seo_title: article.title,
-        meta_description: article.excerpt || null, status: "published",
-        published_at: publishedAt.toISOString(), created_by: userData.user.id, updated_by: userData.user.id,
-      }).select("id").single();
-      if (error || !inserted) {
-        setMessage(error?.message || "The story could not be adopted. No existing story was overwritten.");
-        return;
-      }
-      setEditingId(inserted.id);
-      setTitle(article.title); setSlug(article.slug); setCategory(article.category);
-      setAuthor(article.author || "Dweep Tulika"); setExcerpt(article.excerpt || ""); setBody(article.bodyHtml || "");
-      setFeaturedImage(article.featuredImage || ""); setSeoTitle(article.title);
-      setMetaDescription(article.excerpt || ""); setSocialImage(""); setScheduledFor("");
-      setPublicationDate(toLocalDateTimeInput(publishedAt.toISOString()));
-      setOriginalPublishedAt(publishedAt.toISOString()); setStatus("published");
-      setMessage("Legacy Blogger story adopted into the newsroom as published. Its original public URL and publication date are preserved; the source archive remains unchanged.");
-      await loadArticles();
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch {
-      setMessage("The legacy story could not be adopted. The source archive remains unchanged.");
-    } finally {
-      setBusy(false);
-    }
+      const response = await fetch("/api/admin/legacy-articles", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ publicPath: summary.publicPath }),
+      });
+      const result = await response.json();
+      if (!response.ok) { setMessage(result.error || "The legacy story could not be adopted."); return; }
+      const article = result as ArticleRow;
+      setEditingId(article.id); setTitle(article.title); setSlug(article.slug); setCategory(article.category);
+      setAuthor(article.author || "Dweep Tulika"); setExcerpt(article.excerpt || ""); setBody(article.body_html || "");
+      setFeaturedImage(article.featured_image || ""); setSeoTitle(article.seo_title || article.title);
+      setMetaDescription(article.meta_description || article.excerpt || ""); setSocialImage(article.social_image || "");
+      setScheduledFor(""); setPublicationDate(toLocalDateTimeInput(article.published_at));
+      setOriginalPublishedAt(article.published_at); setStatus("published");
+      setMessage("Legacy Blogger story adopted into the isolated preview newsroom. Its original public URL and publication date are preserved.");
+      await loadArticles(); window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch { setMessage("The legacy story could not be adopted. The source archive remains unchanged."); }
+    finally { setBusy(false); }
   }
+
+
 
   function resetEditor() {
     setEditingId(null); setTitle(""); setSlug(""); setCategory(categories[0]); setAuthor("Dweep Tulika");
@@ -225,115 +177,54 @@ export default function AdminPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function uploadImage(event: ChangeEvent<HTMLInputElement>, kind: "featured" | "social") {
-    const file = event.target.files?.[0]; if (!file) return;
-    if (!["image/jpeg","image/png","image/webp"].includes(file.type)) { setMessage("Only JPEG, PNG and WebP images are allowed."); return; }
-    if (file.size > 10 * 1024 * 1024) { setMessage("Image is larger than the 10 MB newsroom limit."); return; }
-    setUploading(true); setMessage("");
-    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const safeBase = makeSlug(file.name.replace(/\.[^.]+$/, "")) || "image";
-    const path = "articles/" + Date.now() + "-" + safeBase + "." + extension;
-    const { error: uploadError } = await supabase.storage.from("news-media").upload(path, file, { cacheControl: "31536000", upsert: false });
-    if (uploadError) { setMessage(uploadError.message); setUploading(false); return; }
-    const { data: publicData } = supabase.storage.from("news-media").getPublicUrl(path);
-    const { data: userData } = await supabase.auth.getUser();
-    const { error: mediaError } = await supabase.from("media").insert({
-      file_path: path, public_url: publicData.publicUrl,
-      alt_text: title || safeBase.replace(/-/g, " "), caption: "", uploaded_by: userData.user?.id ?? null,
-    });
-    if (mediaError) setMessage("Image uploaded, but media record failed: " + mediaError.message);
-    else {
-      if (kind === "featured") setFeaturedImage(publicData.publicUrl); else setSocialImage(publicData.publicUrl);
-      setMessage("Image uploaded successfully.");
-    }
-    setUploading(false); event.target.value = "";
-  }
-
-  async function uploadInlineImage(file: File): Promise<string | null> {
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      setMessage("Only JPEG, PNG and WebP images are allowed.");
-      return null;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setMessage("Image is larger than the 10 MB newsroom limit.");
-      return null;
-    }
-    if (uploading || busy) {
-      setMessage("Wait for the current newsroom operation to finish.");
-      return null;
-    }
-
-    setUploading(true);
-    setMessage("Uploading inline image…");
-    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const safeBase = makeSlug(file.name.replace(/\.[^.]+$/, "")) || "article-image";
-    const path = "articles/" + Date.now() + "-" + safeBase + "." + extension;
-
-    try {
-      const { error: uploadError } = await supabase.storage
-        .from("news-media")
-        .upload(path, file, { cacheControl: "31536000", upsert: false });
-      if (uploadError) {
-        setMessage("Inline image upload failed: " + uploadError.message);
-        return null;
-      }
-
-      const { data: publicData } = supabase.storage.from("news-media").getPublicUrl(path);
-      const { data: userData } = await supabase.auth.getUser();
-      const { error: mediaError } = await supabase.from("media").insert({
-        file_path: path,
-        public_url: publicData.publicUrl,
-        alt_text: title || safeBase.replace(/-/g, " "),
-        caption: "",
-        uploaded_by: userData.user?.id ?? null,
-      });
-
-      setMessage(mediaError
-        ? "Image uploaded; media-library record needs attention: " + mediaError.message
-        : "Inline image uploaded. Add alt text and an optional caption.");
-      return publicData.publicUrl;
-    } catch {
-      setMessage("Inline image upload failed. Please try again.");
-      return null;
-    } finally {
-      setUploading(false);
+  async function uploadImage(event: ChangeEvent<HTMLInputElement>, _kind: "featured" | "social") {
+    if (event.target.files?.[0]) {
+      setMessage("Image upload is temporarily disabled in this preview while the R2 upload endpoint is being connected.");
+      event.target.value = "";
     }
   }
+
+
+
+  async function uploadInlineImage(_file: File): Promise<string | null> {
+    setMessage("Inline image upload is temporarily disabled in this preview while the R2 upload endpoint is being connected.");
+    return null;
+  }
+
+
 
   async function saveArticle(requestedStatus: ArticleStatus) {
     setBusy(true); setMessage("");
-    const { data: userData } = await supabase.auth.getUser(); const user = userData.user;
-    if (!user) { router.replace("/admin/login"); return; }
     const finalSlug = slug || makeSlug(title);
     if (!title.trim() || !finalSlug || !body.trim()) { setMessage("Headline, slug and article body are required."); setBusy(false); return; }
     if (requestedStatus === "scheduled" && !scheduledFor) { setMessage("Choose a date and time for scheduled publication."); setBusy(false); return; }
-    const normalizedSlug = finalSlug.toLowerCase();
-    const { data: slugMatch } = await supabase.from("articles").select("id").eq("slug", normalizedSlug).maybeSingle();
-    if (slugMatch && slugMatch.id !== editingId) { setMessage("That URL slug is already in use. Choose a different slug."); setBusy(false); return; }
-
     const scheduledAt = requestedStatus === "scheduled" ? new Date(scheduledFor).toISOString() : null;
-    const publishedAt = requestedStatus === "scheduled"
-      ? scheduledAt
-      : requestedStatus === "published"
-        ? (publicationDate ? new Date(publicationDate).toISOString() : (originalPublishedAt || new Date().toISOString()))
-        : originalPublishedAt;
-
+    const publishedAt = requestedStatus === "scheduled" ? scheduledAt
+      : requestedStatus === "published" ? (publicationDate ? new Date(publicationDate).toISOString() : (originalPublishedAt || new Date().toISOString()))
+      : originalPublishedAt;
     const payload = {
-      title: title.trim(), slug: normalizedSlug, category, author: author.trim() || "Dweep Tulika", excerpt: excerpt.trim(),
-      body_html: body, featured_image: featuredImage || null, seo_title: seoTitle.trim() || null,
-      meta_description: metaDescription.trim() || excerpt.trim() || null, social_image: socialImage || null,
-      status: requestedStatus === "scheduled" ? "published" : requestedStatus, scheduled_for: scheduledAt,
-      published_at: publishedAt,
-      updated_by: user.id,
+      title: title.trim(), slug: finalSlug.toLowerCase(), category, author: author.trim() || "Dweep Tulika",
+      excerpt: excerpt.trim(), body_html: body, featured_image: featuredImage || null,
+      seo_title: seoTitle.trim() || null, meta_description: metaDescription.trim() || excerpt.trim() || null,
+      social_image: socialImage || null, status: requestedStatus, scheduled_for: scheduledAt, published_at: publishedAt,
     };
-    const query = editingId
-      ? supabase.from("articles").update(payload).eq("id", editingId)
-      : supabase.from("articles").insert({ ...payload, created_by: user.id });
-    const { error } = await query;
-    if (error) setMessage(error.message);
-    else { setMessage(requestedStatus === "published" ? "Article published successfully." : requestedStatus === "scheduled" ? "Article scheduled successfully." : "Draft saved successfully."); resetEditor(); await loadArticles(); }
-    setBusy(false);
+    try {
+      const response = await fetch(editingId ? "/api/admin/articles/" + editingId : "/api/admin/articles", {
+        method: editingId ? "PATCH" : "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      if (!response.ok) setMessage(result.error || "The article could not be saved.");
+      else {
+        setMessage(requestedStatus === "published" ? "Article published successfully."
+          : requestedStatus === "scheduled" ? "Article scheduled successfully." : "Draft saved successfully.");
+        resetEditor(); await loadArticles();
+      }
+    } catch { setMessage("The newsroom service could not be reached. Your article has not been confirmed as saved."); }
+    finally { setBusy(false); }
   }
+
+
 
   async function submit(event: FormEvent) { event.preventDefault(); await saveArticle(editingId ? status : "draft"); }
 
@@ -368,9 +259,10 @@ export default function AdminPage() {
             <label>Meta description<input value={metaDescription} onChange={e => setMetaDescription(e.target.value)} placeholder="Optional meta description" /></label>
           </div>
           <div className="adminFormGrid">
-            <label>Featured image<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => uploadImage(e, "featured")} disabled={uploading || busy} /></label>
-            <label>Social image<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => uploadImage(e, "social")} disabled={uploading || busy} /></label>
+            <label>Featured image URL<input type="url" value={featuredImage} onChange={e => setFeaturedImage(e.target.value)} placeholder="https://media.dweeptulika.in/..." /></label>
+            <label>Social image URL<input type="url" value={socialImage} onChange={e => setSocialImage(e.target.value)} placeholder="https://media.dweeptulika.in/..." /></label>
           </div>
+          <p className="adminNote">Direct image uploads are temporarily disabled in this preview until the R2 upload credentials are connected. Existing public image URLs can be used here.</p>
           {featuredImage && (body.includes(featuredImage)
             ? <div className="adminNote">The featured image is already embedded in the article body, so its duplicate preview is hidden. The featured-image metadata is preserved. <button type="button" onClick={() => setFeaturedImage("")}>Remove featured image</button></div>
             : <div className="adminImagePreview"><img src={featuredImage} alt="Selected featured image" /><button type="button" onClick={() => setFeaturedImage("")}>Remove featured image</button></div>)}
