@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { getHomepageArticles, type PublishedStory } from "@/lib/data";
+import { getAllPublishedArticles, type PublishedStory } from "@/lib/data";
 import { AdSlot } from "@/components/AdSlot";
 
 export const revalidate = 0;
@@ -13,7 +13,7 @@ function StoryImage({ article, large = false }: { article: PublishedStory; large
 }
 
 export default async function Home() {
-  const items = await getHomepageArticles();
+  const items = await getAllPublishedArticles();
   const lead = items[0];
   return <div className="container">
     <AdSlot placement="homepage" />
