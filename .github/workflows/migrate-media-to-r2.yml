@@ -3,8 +3,13 @@ name: Migrate newsroom media to Cloudflare R2
 on:
   workflow_dispatch:
     inputs:
+      test_source:
+        description: "Test downloading one public Supabase media object only; no R2 writes"
+        required: true
+        type: boolean
+        default: true
       apply:
-        description: "Upload all media, verify each object, then update Neon URLs"
+        description: "Upload all media, verify every object, then update Neon URLs"
         required: true
         type: boolean
         default: false
@@ -44,7 +49,9 @@ jobs:
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
           R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
         run: |
-          if [ "${{ inputs.apply }}" = "true" ]; then
+          if [ "${{ inputs.test_source }}" = "true" ]; then
+            npx tsx scripts/migrate-media-to-r2.ts --test-source
+          elif [ "${{ inputs.apply }}" = "true" ]; then
             npx tsx scripts/migrate-media-to-r2.ts --apply
           else
             npx tsx scripts/migrate-media-to-r2.ts

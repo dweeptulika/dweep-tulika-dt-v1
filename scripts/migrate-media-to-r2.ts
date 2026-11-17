@@ -29,49 +29,30 @@ function publicUrl(base: string, key: string): string {
   return `${normalizedBase}/${encodedKey}`;
 }
 
-function createSupabaseS3Client(): S3Client {
-  return new S3Client({
-    region: required("SUPABASE_S3_REGION"),
-    endpoint: required("SUPABASE_S3_ENDPOINT"),
-    credentials: {
-      accessKeyId: required("SUPABASE_S3_ACCESS_KEY_ID"),
-      secretAccessKey: required("SUPABASE_S3_SECRET_ACCESS_KEY"),
-    },
-    forcePathStyle: true,
-  });
-}
-
-async function downloadFromSupabase(
-  client: S3Client,
-  bucket: string,
-  key: string,
-): Promise<{ bytes: Buffer; contentType: string }> {
-  try {
-    const response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-    if (!response.Body) throw new Error(`Supabase S3 returned no body for ${key}`);
-    const bytes = Buffer.from(await response.Body.transformToByteArray());
-    if (!bytes.length) throw new Error(`Supabase S3 returned an empty object for ${key}`);
-    return {
-      bytes,
-      contentType: response.ContentType || "application/octet-stream",
-    };
-  } catch (error) {
-    const err = error as {
-      name?: string;
-      message?: string;
-      $metadata?: { httpStatusCode?: number; requestId?: string; extendedRequestId?: string };
-      $response?: { headers?: Record<string, string>; body?: unknown };
-    };
-    const status = err.$metadata?.httpStatusCode ?? "unknown";
-    const contentType = err.$response?.headers?.["content-type"] ?? "unknown";
-    const requestId = err.$metadata?.requestId ?? "unavailable";
-    const extendedRequestId = err.$metadata?.extendedRequestId ?? "unavailable";
-    console.error(
-      `Supabase S3 request failed: name=${err.name ?? "unknown"} status=${status} content-type=${contentType} request-id=${requestId} extended-request-id=${extendedRequestId}`
-    );
-    console.error(`Supabase S3 error message: ${err.message ?? "No message"}`);
-    throw error;
+async function downloadFromSupabase(row: MediaRow): Promise<{ bytes: Buffer; contentType: string }> {
+  const url = new URL(row.public_url);
+  if (
+    url.protocol !== "https:" ||
+    !url.hostname.endsWith(".supabase.co") ||
+    !url.pathname.includes("/storage/v1/object/public/news-media/")
+  ) {
+    throw new Error(`Refusing unexpected Supabase public media URL for ${row.file_path}`);
   }
+
+  const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 500);
+    throw new Error(
+      `Supabase public media download failed for ${row.file_path}: HTTP ${response.status} ${response.statusText}; ${detail}`,
+    );
+  }
+
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (!bytes.length) throw new Error(`Supabase returned an empty object for ${row.file_path}`);
+  return {
+    bytes,
+    contentType: response.headers.get("content-type") || "application/octet-stream",
+  };
 }
 
 async function main() {
@@ -90,10 +71,8 @@ async function main() {
     console.log(`Found ${rows.length} media records in Neon.`);
 
     if (testSource) {
-      const source = createSupabaseS3Client();
-      const bucket = required("SUPABASE_S3_BUCKET");
       const sample = rows[0];
-      const downloaded = await downloadFromSupabase(source, bucket, sample.file_path);
+      const downloaded = await downloadFromSupabase(sample);
       console.log(`SOURCE TEST SUCCESS: downloaded ${sample.file_path} from Supabase S3 (${downloaded.bytes.length} bytes; ${downloaded.contentType}).`);
       console.log("No R2 objects were uploaded and no database URLs were changed.");
       return;
@@ -105,8 +84,6 @@ async function main() {
       return;
     }
 
-    const source = createSupabaseS3Client();
-    const sourceBucket = required("SUPABASE_S3_BUCKET");
     const accountId = required("R2_ACCOUNT_ID");
     const accessKeyId = required("R2_ACCESS_KEY_ID");
     const secretAccessKey = required("R2_SECRET_ACCESS_KEY");
@@ -126,7 +103,7 @@ async function main() {
     for (let i = 0; i < rows.length; i += concurrency) {
       const batch = rows.slice(i, i + concurrency);
       const outcomes = await Promise.all(batch.map(async (row) => {
-        const downloadedSource = await downloadFromSupabase(source, sourceBucket, row.file_path);
+        const downloadedSource = await downloadFromSupabase(row);
         const { bytes, contentType } = downloadedSource;
         const sha256 = createHash("sha256").update(bytes).digest("base64");
         await s3.send(new PutObjectCommand({
