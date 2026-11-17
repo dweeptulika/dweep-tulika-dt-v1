@@ -12,6 +12,7 @@
     "migrate:blogger": "tsx scripts/migrate-blogger.ts"
   },
   "dependencies": {
+    "@neondatabase/auth": "0.7.0-beta",
     "@next/third-parties": "^16.3.8",
     "fast-xml-parser": "^5.2.5",
     "next": "16.3.8",
@@ -19,7 +20,9 @@
     "react-dom": "19.2.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.57.0",
-    "sanitize-html": "^2.18.0"
+    "sanitize-html": "^2.18.0",
+    "pg": "^8.16.3",
+    "@aws-sdk/client-s3": "^3.850.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",
@@ -29,6 +32,7 @@
     "eslint-config-next": "16.3.3",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0",
-    "@types/sanitize-html": "^2.16.2"
+    "@types/sanitize-html": "^2.16.2",
+    "@types/pg": "^8.15.5"
   }
 }

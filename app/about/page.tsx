@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { isNeonContentDatabase, queryNeon } from "@/lib/backend/neon";
 
 export const metadata: Metadata = {
   title: "About Dweep Tulika — Andaman & Nicobar News Publication",
@@ -44,11 +45,21 @@ const fallbackProfiles = [
 ];
 
 export default async function AboutPage() {
-  const supabase = await createClient();
-  const { data: teamRows } = await supabase.from("team_members")
-    .select("name,designation,biography,tagline,image_url")
-    .eq("is_active", true).order("sort_order", { ascending: true }).order("created_at", { ascending: true });
-  const profiles = teamRows?.length ? teamRows.map(member => ({
+  const teamRows = isNeonContentDatabase()
+    ? await queryNeon<{
+        name: string; designation: string; biography: string;
+        tagline: string | null; image_url: string | null;
+      }>(
+        "select name,designation,biography,tagline,image_url from public.team_members where is_active = true order by sort_order asc, created_at asc",
+      )
+    : await (async () => {
+        const supabase = await createClient();
+        const { data } = await supabase.from("team_members")
+          .select("name,designation,biography,tagline,image_url")
+          .eq("is_active", true).order("sort_order", { ascending: true }).order("created_at", { ascending: true });
+        return data || [];
+      })();
+  const profiles = teamRows.length ? teamRows.map(member => ({
     name: member.name, role: member.designation, text: member.biography,
     tagline: member.tagline, image: member.image_url,
   })) : fallbackProfiles;

@@ -1,6 +1,7 @@
 import articles from "@/data/articles.json";
 import pages from "@/data/pages.json";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { isNeonContentDatabase, queryNeon } from "@/lib/backend/neon";
 
 export type Article = typeof articles[number];
 export type Page = typeof pages[number];
@@ -155,6 +156,26 @@ export type Advertisement = {
 };
 
 export async function getActiveAdvertisements(placement: Advertisement["placement"]): Promise<Advertisement[]> {
+  if (isNeonContentDatabase()) {
+    type NeonAdvertisement = {
+      id: string; name: string; advertiser: string; image_url: string;
+      target_url: string | null; placement: Advertisement["placement"];
+    };
+    const rows = await queryNeon<NeonAdvertisement>(
+      `select id, name, advertiser, image_url, target_url, placement
+       from public.advertisements
+       where placement = $1 and active = true
+         and (starts_at is null or starts_at <= now())
+         and (ends_at is null or ends_at >= now())
+       order by created_at desc`,
+      [placement],
+    );
+    return rows.map((ad) => ({
+      id: ad.id, name: ad.name, advertiser: ad.advertiser,
+      imageUrl: ad.image_url, targetUrl: ad.target_url, placement: ad.placement,
+    }));
+  }
+
   const supabase = publicSupabase();
   if (!supabase) return [];
   const now = new Date().toISOString();
@@ -170,6 +191,19 @@ export async function getActiveAdvertisements(placement: Advertisement["placemen
   return data.map((ad) => ({ id: ad.id, name: ad.name, advertiser: ad.advertiser, imageUrl: ad.image_url, targetUrl: ad.target_url, placement: ad.placement }));
 }
 export async function getPublishedNewsroomArticles(): Promise<PublishedStory[]> {
+  if (isNeonContentDatabase()) {
+    const rows = await queryNeon<DbArticle>(
+      `select id, title, slug, category, source, legacy_id, legacy_url, public_path,
+              author, excerpt, body_html, featured_image, seo_title, meta_description,
+              social_image, published_at, updated_at
+       from public.articles
+       where status in ('published', 'scheduled')
+         and published_at is not null and published_at <= now()
+       order by published_at desc`,
+    );
+    return rows.map(mapDbArticle);
+  }
+
   const supabase = publicSupabase();
   if (!supabase) return [];
   const { data, error } = await supabase
@@ -213,9 +247,33 @@ export async function getAllPublishedArticles(): Promise<PublishedStory[]> {
 export async function getPublishedNewsroomArticleByPath(year: string, month: string, slug: string): Promise<PublishedStory | null> {
   const normalizedSlug = slug.replace(/\.html$/, "");
   const requestedPath = `/${year}/${month}/${normalizedSlug}.html`;
+  const selectFields = "id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at";
+  if (isNeonContentDatabase()) {
+    const pathRows = await queryNeon<DbArticle>(
+      `select ${selectFields} from public.articles
+       where public_path = $1 and status in ('published', 'scheduled')
+         and published_at is not null and published_at <= now()
+       limit 1`,
+      [requestedPath],
+    );
+    if (pathRows[0]) return mapDbArticle(pathRows[0]);
+
+    const slugRows = await queryNeon<DbArticle>(
+      `select ${selectFields} from public.articles
+       where slug = $1 and status in ('published', 'scheduled')
+         and published_at is not null and published_at <= now()
+       limit 1`,
+      [normalizedSlug],
+    );
+    if (!slugRows[0]) return null;
+    const article = mapDbArticle(slugRows[0]);
+    return normalizePublicPath(article.url) === normalizePublicPath(requestedPath)
+      ? article
+      : null;
+  }
+
   const supabase = publicSupabase();
   if (!supabase) return null;
-  const selectFields = "id,title,slug,category,source,legacy_id,legacy_url,public_path,author,excerpt,body_html,featured_image,seo_title,meta_description,social_image,published_at,updated_at";
   const { data: pathMatch } = await supabase
     .from("articles").select(selectFields)
     .eq("public_path", requestedPath)

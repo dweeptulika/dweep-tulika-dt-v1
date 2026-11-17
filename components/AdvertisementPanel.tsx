@@ -1,188 +1,30 @@
 "use client";
-
-import { ChangeEvent, useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-
-type AdRow = {
-  id: string;
-  name: string;
-  advertiser: string;
-  image_url: string;
-  target_url: string | null;
-  placement: "homepage" | "article" | "sidebar";
-  active: boolean;
-  starts_at: string | null;
-  ends_at: string | null;
-};
-
-const placements = [
-  ["homepage", "Homepage"],
-  ["article", "Article pages"],
-  ["sidebar", "Sidebar"],
-] as const;
-
-export function AdvertisementPanel() {
-  const supabase = createClient();
-  const [ads, setAds] = useState<AdRow[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [advertiser, setAdvertiser] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [targetUrl, setTargetUrl] = useState("");
-  const [placement, setPlacement] = useState<AdRow["placement"]>("homepage");
-  const [startsAt, setStartsAt] = useState("");
-  const [endsAt, setEndsAt] = useState("");
-  const [active, setActive] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [loadingAds, setLoadingAds] = useState(true);
-  const [adsLoadError, setAdsLoadError] = useState<string | null>(null);
-
-  async function loadAds() {
-    setLoadingAds(true);
-    setAdsLoadError(null);
-    try {
-      const { data, error } = await supabase.from("advertisements")
-        .select("id,name,advertiser,image_url,target_url,placement,active,starts_at,ends_at,created_at")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      setAds((data || []) as AdRow[]);
-    } catch (error) {
-      setAdsLoadError(error instanceof Error ? error.message : "Could not load advertisements.");
-      setAds([]);
-    } finally {
-      setLoadingAds(false);
-    }
-  }
-
-  // Load on mount and refresh when the user returns to the dashboard tab.
-  useEffect(() => {
-    const initialLoad = window.setTimeout(() => void loadAds(), 0);
-    const refreshWhenVisible = () => {
-      if (document.visibilityState === "visible") void loadAds();
-    };
-    document.addEventListener("visibilitychange", refreshWhenVisible);
-    return () => {
-      window.clearTimeout(initialLoad);
-      document.removeEventListener("visibilitychange", refreshWhenVisible);
-    };
-    // loadAds is a component-local loader; the effect intentionally runs on mount only.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function reset() {
-    setEditingId(null); setName(""); setAdvertiser(""); setImageUrl(""); setTargetUrl("");
-    setPlacement("homepage"); setStartsAt(""); setEndsAt(""); setActive(true); setMessage("");
-  }
-
-  function editAd(ad: AdRow) {
-    setEditingId(ad.id); setName(ad.name); setAdvertiser(ad.advertiser); setImageUrl(ad.image_url);
-    setTargetUrl(ad.target_url || ""); setPlacement(ad.placement);
-    setStartsAt(ad.starts_at ? ad.starts_at.slice(0, 16) : "");
-    setEndsAt(ad.ends_at ? ad.ends_at.slice(0, 16) : "");
-    setActive(ad.active); setMessage("Editing advertisement.");
-    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
-  }
-
-  async function uploadAd(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]; if (!file) return;
-    if (!["image/jpeg","image/png","image/webp"].includes(file.type)) {
-      setMessage("Only JPEG, PNG and WebP images are allowed."); return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setMessage("Image is larger than the 10 MB newsroom limit."); return;
-    }
-    setUploading(true); setMessage("");
-    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const safe = file.name.replace(/\.[^.]+$/, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "advertisement";
-    const path = "advertisements/" + Date.now() + "-" + safe + "." + extension;
-    const { error } = await supabase.storage.from("news-media").upload(path, file, { cacheControl: "31536000", upsert: false });
-    if (error) setMessage(error.message);
-    else {
-      const { data } = supabase.storage.from("news-media").getPublicUrl(path);
-      setImageUrl(data.publicUrl); setMessage("Advertisement image uploaded.");
-    }
-    setUploading(false); event.target.value = "";
-  }
-
-  async function saveAd() {
-    if (!name.trim() || !imageUrl) { setMessage("Advertisement name and image are required."); return; }
-    setBusy(true); setMessage("");
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
-    if (!user) { setMessage("Please sign in again."); setBusy(false); return; }
-    const payload = {
-      name: name.trim(), advertiser: advertiser.trim(), image_url: imageUrl,
-      target_url: targetUrl.trim() || null, placement, active,
-      starts_at: startsAt ? new Date(startsAt).toISOString() : null,
-      ends_at: endsAt ? new Date(endsAt).toISOString() : null,
-      updated_by: user.id,
-    };
-    const result = editingId
-      ? await supabase.from("advertisements").update(payload).eq("id", editingId)
-      : await supabase.from("advertisements").insert({ ...payload, created_by: user.id });
-    if (result.error) setMessage(result.error.message);
-    else { setMessage(editingId ? "Advertisement updated." : "Advertisement added."); reset(); await loadAds(); }
-    setBusy(false);
-  }
-
-  async function toggleAd(ad: AdRow) {
-    const { error } = await supabase.from("advertisements").update({ active: !ad.active }).eq("id", ad.id);
-    if (error) setMessage(error.message); else await loadAds();
-  }
-
-  async function deleteAd(ad: AdRow) {
-    if (!window.confirm("Delete this advertisement?")) return;
-    const { error } = await supabase.from("advertisements").delete().eq("id", ad.id);
-    if (error) setMessage(error.message); else { setMessage("Advertisement deleted."); await loadAds(); }
-  }
-
-  return <section className="adminEditor">
-    <div className="adminEditorHead">
-      <div><div className="adminLabel">Advertising</div><h2>Advertisement Control Panel</h2></div>
-      <div className="adminActions">
-        <span className="adminStatus">{loadingAds ? "Loading ads…" : adsLoadError ? "Ads unavailable" : `${ads.filter(a => a.active).length} active`}</span>
-        <button type="button" disabled={loadingAds} onClick={() => void loadAds()}>{loadingAds ? "Refreshing…" : "Refresh ads"}</button>
-      </div>
-    </div>
-    <div className="adminFormGrid">
-      <label>Advertisement name<input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. ABC Traders — Diwali Offer" /></label>
-      <label>Advertiser / business<input value={advertiser} onChange={e => setAdvertiser(e.target.value)} placeholder="Business or organisation name" /></label>
-    </div>
-    <div className="adminFormGrid">
-      <label>Placement<select value={placement} onChange={e => setPlacement(e.target.value as AdRow["placement"])}>{placements.map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-      <label>Click destination URL (optional)<input value={targetUrl} onChange={e => setTargetUrl(e.target.value)} placeholder="https://example.com" /><small>Leave blank if the advertisement should not be clickable.</small></label>
-    </div>
-    <label>Advertisement image<input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadAd} disabled={uploading || busy} /></label>
-    {imageUrl && <div className="adminImagePreview"><img src={imageUrl} alt="Advertisement preview" /><button type="button" onClick={() => setImageUrl("")}>Remove image</button></div>}
-    <div className="adminFormGrid">
-      <label>Start date &amp; time<input type="datetime-local" value={startsAt} onChange={e => setStartsAt(e.target.value)} /><small>Leave blank to start immediately when active.</small></label>
-      <label>End date &amp; time<input type="datetime-local" value={endsAt} onChange={e => setEndsAt(e.target.value)} /><small>Leave blank for no automatic end date.</small></label>
-    </div>
-    <label><input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} /> Active <small>Uncheck to keep this advertisement hidden without deleting it.</small></label>
-    {adsLoadError && <p className="adminMessage">Could not load advertisements: {adsLoadError}. Use “Refresh ads” to retry.</p>}
-    {message && <p className="adminMessage">{message}</p>}
-    <div className="adminActions">
-      <button type="button" disabled={busy || uploading} onClick={() => void saveAd()}>{busy ? "Saving…" : editingId ? "Save Advertisement" : "Add Advertisement"}</button>
-      {editingId && <button type="button" disabled={busy || uploading} onClick={reset}>Cancel Edit</button>}
-    </div>
-    <div className="adminStoryList">
-      {ads.map(ad => <article className="adminStoryRow" key={ad.id}>
-        <div>
-          <span className="adminStatus">{ad.active ? "active" : "inactive"} · {ad.placement}</span>
-          <h3>{ad.name}</h3>
-          <p>{ad.advertiser || "No advertiser name"}</p><p className="adminAdMeta"><strong>Link:</strong> {ad.target_url ? "Yes" : "No"} · {ad.ends_at ? "Ends " + new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeZone: "Asia/Kolkata" }).format(new Date(ad.ends_at)) : "No end date"}</p>
-        </div>
-        <div className="adminActions">
-          <button type="button" onClick={() => editAd(ad)}>Edit</button>
-          <button type="button" onClick={() => void toggleAd(ad)}>{ad.active ? "Deactivate" : "Activate"}</button>
-          <button type="button" onClick={() => void deleteAd(ad)}>Delete</button>
-        </div>
-      </article>)}
-      {!loadingAds && !adsLoadError && ads.length === 0 && <p className="adminNote">No advertisements added yet.</p>}
-      {loadingAds && <p className="adminNote">Loading saved advertisements…</p>}
-      {adsLoadError && <p className="adminNote">The saved advertisement list could not be confirmed. The active count is not being reported as zero.</p>}
-    </div>
-  </section>;
+import { FormEvent,useEffect,useState } from "react";
+type Ad={id:string;name:string;advertiser:string;image_url:string;target_url:string|null;placement:"homepage"|"article"|"sidebar";active:boolean;starts_at:string|null;ends_at:string|null};
+const blank={name:"",advertiser:"",image_url:"",target_url:"",placement:"homepage" as Ad["placement"],active:true,starts_at:"",ends_at:""};
+function localDate(v:string|null){if(!v)return "";const d=new Date(v),p=(n:number)=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+"T"+p(d.getHours())+":"+p(d.getMinutes());}
+export function AdvertisementPanel(){
+ const [ads,setAds]=useState<Ad[]>([]),[form,setForm]=useState(blank),[editing,setEditing]=useState<string|null>(null);
+ const [busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[message,setMessage]=useState(""),[error,setError]=useState("");
+ async function load(){setLoading(true);setError("");try{const r=await fetch("/api/admin/advertisements",{cache:"no-store"}),j=await r.json();if(!r.ok)throw new Error(j.error||"Could not load advertisements.");setAds(Array.isArray(j)?j:[]);}catch(e){setError(e instanceof Error?e.message:"Could not load advertisements.");}finally{setLoading(false);}}
+ useEffect(()=>{void load();},[]);
+ function reset(){setEditing(null);setForm(blank);setMessage("");setError("");}
+ function edit(a:Ad){setEditing(a.id);setForm({name:a.name,advertiser:a.advertiser,image_url:a.image_url,target_url:a.target_url||"",placement:a.placement,active:a.active,starts_at:localDate(a.starts_at),ends_at:localDate(a.ends_at)});setMessage("Editing advertisement.");}
+ async function save(e:FormEvent){e.preventDefault();setBusy(true);setMessage("");setError("");try{const payload={...form,starts_at:form.starts_at?new Date(form.starts_at).toISOString():null,ends_at:form.ends_at?new Date(form.ends_at).toISOString():null};const r=await fetch(editing?"/api/admin/advertisements/"+editing:"/api/admin/advertisements",{method:editing?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const j=await r.json();if(!r.ok)throw new Error(j.error||"Advertisement could not be saved.");setMessage(editing?"Advertisement updated.":"Advertisement added.");reset();await load();}catch(e){setError(e instanceof Error?e.message:"Advertisement could not be saved.");}finally{setBusy(false);}}
+ async function toggle(a:Ad){setBusy(true);setError("");try{const r=await fetch("/api/admin/advertisements/"+a.id,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({...a,active:!a.active})});const j=await r.json();if(!r.ok)throw new Error(j.error||"Could not update advertisement.");await load();}catch(e){setError(e instanceof Error?e.message:"Could not update advertisement.");}finally{setBusy(false);}}
+ async function remove(a:Ad){if(!window.confirm("Delete this advertisement?"))return;setBusy(true);setError("");try{const r=await fetch("/api/admin/advertisements/"+a.id,{method:"DELETE"}),j=await r.json();if(!r.ok)throw new Error(j.error||"Could not delete advertisement.");setMessage("Advertisement deleted.");await load();}catch(e){setError(e instanceof Error?e.message:"Could not delete advertisement.");}finally{setBusy(false);}}
+ return <section className="adminEditor">
+  <div className="adminEditorHead"><div><div className="adminLabel">Advertising</div><h2>Advertisement Control Panel</h2></div><div className="adminActions"><span className="adminStatus">{loading?"Loading ads…":ads.filter(x=>x.active).length+" active"}</span><button type="button" disabled={loading||busy} onClick={()=>void load()}>Refresh ads</button></div></div>
+  <form onSubmit={save}>
+   <div className="adminFormGrid"><label>Advertisement name<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>Advertiser / business<input value={form.advertiser} onChange={e=>setForm({...form,advertiser:e.target.value})}/></label></div>
+   <div className="adminFormGrid"><label>Placement<select value={form.placement} onChange={e=>setForm({...form,placement:e.target.value as Ad["placement"]})}><option value="homepage">Homepage</option><option value="article">Article pages</option><option value="sidebar">Sidebar</option></select></label><label>Click destination URL<input type="url" value={form.target_url} onChange={e=>setForm({...form,target_url:e.target.value})} placeholder="https://example.com"/></label></div>
+   <label>Advertisement image URL<input type="url" required value={form.image_url} onChange={e=>setForm({...form,image_url:e.target.value})} placeholder="https://media.dweeptulika.in/..."/><small>R2 upload is being connected separately; use an existing public image URL for now.</small></label>
+   {form.image_url&&<div className="adminImagePreview"><img src={form.image_url} alt="Advertisement preview"/><button type="button" onClick={()=>setForm({...form,image_url:""})}>Remove image</button></div>}
+   <div className="adminFormGrid"><label>Start date &amp; time<input type="datetime-local" value={form.starts_at} onChange={e=>setForm({...form,starts_at:e.target.value})}/></label><label>End date &amp; time<input type="datetime-local" value={form.ends_at} onChange={e=>setForm({...form,ends_at:e.target.value})}/></label></div>
+   <label><input type="checkbox" checked={form.active} onChange={e=>setForm({...form,active:e.target.checked})}/> Active</label>
+   {message&&<p className="adminMessage" role="status">{message}</p>}{error&&<p className="adminMessage" role="alert">{error}</p>}
+   <div className="adminActions"><button type="submit" disabled={busy}>{busy?"Saving…":editing?"Save Advertisement":"Add Advertisement"}</button>{editing&&<button type="button" disabled={busy} onClick={reset}>Cancel Edit</button>}</div>
+  </form>
+  <div className="adminStoryList">{ads.map(a=><article className="adminStoryRow" key={a.id}><div>{a.image_url&&<img src={a.image_url} alt="" style={{width:56,height:56,objectFit:"cover",borderRadius:8,float:"left",marginRight:14}}/>}<span className="adminStatus">{a.active?"active":"inactive"} · {a.placement}</span><h3>{a.name}</h3><p>{a.advertiser||"No advertiser name"}</p></div><div className="adminActions"><button type="button" disabled={busy} onClick={()=>edit(a)}>Edit</button><button type="button" disabled={busy} onClick={()=>void toggle(a)}>{a.active?"Deactivate":"Activate"}</button><button type="button" disabled={busy} onClick={()=>void remove(a)}>Delete</button></div></article>)}{!loading&&!ads.length&&<p className="adminNote">No advertisements added yet.</p>}</div>
+ </section>;
 }
