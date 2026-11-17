@@ -228,16 +228,6 @@ export function normalizePublicPath(value: string) {
   }
 }
 
-export async function getHomepageArticles(): Promise<PublishedStory[]> {
-  const stories = await getAllPublishedArticles();
-  // The homepage is the current newsroom front page: show CMS publications first.
-  // Keep the Blogger archive available as a fallback/older-content stream.
-  return [
-    ...stories.filter((story) => story.source === "newsroom"),
-    ...stories.filter((story) => story.source === "blogger"),
-  ];
-}
-
 export async function getAllPublishedArticles(): Promise<PublishedStory[]> {
   const newsroom = await getPublishedNewsroomArticles();
   const newsroomByPath = new Map<string, PublishedStory>();
