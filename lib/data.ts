@@ -229,6 +229,15 @@ export function normalizePublicPath(value: string) {
 }
 
 
+export async function getHomepageArticles(): Promise<PublishedStory[]> {
+  const stories = await getAllPublishedArticles();
+  // Keep current newsroom publications at the top; retain Blogger as the archive stream.
+  return [
+    ...stories.filter((story) => story.source === "newsroom"),
+    ...stories.filter((story) => story.source === "blogger"),
+  ];
+}
+
 export async function getAllPublishedArticles(): Promise<PublishedStory[]> {
   const newsroom = await getPublishedNewsroomArticles();
   const newsroomByPath = new Map<string, PublishedStory>();
