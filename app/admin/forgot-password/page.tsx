@@ -14,8 +14,7 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function requestCode(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function sendCode() {
     setBusy(true);
     setError("");
     setMessage("");
@@ -36,6 +35,11 @@ export default function ForgotPasswordPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function requestCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await sendCode();
   }
 
   async function resetPassword(event: FormEvent<HTMLFormElement>) {
@@ -114,7 +118,7 @@ export default function ForgotPasswordPage() {
             {error && <p className="adminError" role="alert">{error}</p>}
             {message && <p className="adminMessage" role="status">{message}</p>}
             <button disabled={busy || otp.length !== 6}>{busy ? "Updating…" : "Update password"}</button>
-            <button type="button" disabled={busy} onClick={requestCode as unknown as () => void}>Resend code</button>
+            <button type="button" disabled={busy} onClick={sendCode}>Resend code</button>
           </form>
         )}
         <Link href="/admin/login">Back to editorial login</Link>
