@@ -64,8 +64,8 @@ type DbArticle = {
   excerpt: string;
   body_html: string;
   featured_image: string | null;
-  published_at: string;
-  updated_at: string;
+  published_at: string | Date;
+  updated_at: string | Date;
   seo_title: string | null;
   meta_description: string | null;
   social_image: string | null;
@@ -104,6 +104,14 @@ export function canonicalCategory(labels: string[], title = "") {
   return "Andaman News";
 }
 
+function databaseDateToIso(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Invalid publication date returned by the content database.");
+  }
+  return date.toISOString();
+}
+
 function mapDbArticle(article: DbArticle): PublishedStory {
   const category = canonicalCategory([article.category], article.title);
   return {
@@ -116,8 +124,8 @@ function mapDbArticle(article: DbArticle): PublishedStory {
     excerpt: article.excerpt || "",
     bodyHtml: article.body_html || "",
     featuredImage: article.featured_image,
-    publishedAt: article.published_at,
-    updatedAt: article.updated_at,
+    publishedAt: databaseDateToIso(article.published_at),
+    updatedAt: databaseDateToIso(article.updated_at),
     url: newsroomUrl(article),
     labels: [category],
     seoTitle: article.seo_title,
