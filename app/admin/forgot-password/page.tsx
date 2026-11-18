@@ -19,7 +19,10 @@ export default function ForgotPasswordPage() {
     setError("");
     setMessage("");
     try {
-      const result = await authClient.emailOtp.requestPasswordReset({
+      // Neon Email OTP password-reset requests use forgetPassword.emailOtp.
+      // emailOtp.sendVerificationOtp is for sign-in/email-verification codes,
+      // not password recovery.
+      const result = await authClient.forgetPassword.emailOtp({
         email: email.trim(),
       });
       if (result.error) {
@@ -105,7 +108,7 @@ export default function ForgotPasswordPage() {
             </label>
             <label>
               Reset code
-              <input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={otp} onChange={(event) => setOtp(event.target.value.replace(/\\D/g, "").slice(0, 6))} />
+              <input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))} />
             </label>
             <label>
               New password
