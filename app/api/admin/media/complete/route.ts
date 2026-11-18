@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
   }
   const altText = typeof input.altText === "string" ? input.altText.trim().slice(0, 500) : "";
 
-  let config;
+  let config: ReturnType<typeof getR2Config>;
   try {
     config = getR2Config();
   } catch (error) {
