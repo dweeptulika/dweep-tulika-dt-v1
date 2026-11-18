@@ -1,15 +1,15 @@
 "use client";
-import { FormEvent,useEffect,useState } from "react";
+import { FormEvent,useEffect,useMemo,useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { authClient } from "@/lib/auth/client";
+import { createClient } from "@/lib/supabase/client";
 type Member={id:string;name:string;designation:string;department:string;biography:string;tagline:string|null;image_url:string|null;sort_order:number;is_active:boolean};
 const blank={name:"",designation:"",department:"Editorial",biography:"",tagline:"",image_url:"",sort_order:"100",is_active:true};
 export default function TeamManager(){
- const router=useRouter();const [ready,setReady]=useState(false),[busy,setBusy]=useState(false),[members,setMembers]=useState<Member[]>([]);
+ const router=useRouter();const supabase=useMemo(()=>createClient(),[]);const [ready,setReady]=useState(false),[busy,setBusy]=useState(false),[members,setMembers]=useState<Member[]>([]);
  const [form,setForm]=useState(blank),[editing,setEditing]=useState<string|null>(null),[message,setMessage]=useState(""),[error,setError]=useState("");
  async function load(){const r=await fetch("/api/admin/team-members",{cache:"no-store"}),j=await r.json();if(!r.ok)throw new Error(j.error||"Could not load team profiles.");setMembers(Array.isArray(j)?j:[]);}
- useEffect(()=>{authClient.getSession().then(async({data})=>{if(!data?.session){router.replace("/admin/login");return;}try{await load();setReady(true);}catch(e){setError(e instanceof Error?e.message:"Could not load team profiles.");setReady(true);}}).catch(()=>router.replace("/admin/login"));},[router]);
+ useEffect(()=>{supabase.auth.getSession().then(async({data})=>{if(!data?.session){router.replace("/admin/login");return;}try{await load();setReady(true);}catch(e){setError(e instanceof Error?e.message:"Could not load team profiles.");setReady(true);}}).catch(()=>router.replace("/admin/login"));},[router,supabase]);
  function reset(){setEditing(null);setForm(blank);setMessage("");setError("");}
  function edit(m:Member){setEditing(m.id);setForm({name:m.name,designation:m.designation,department:m.department,biography:m.biography,tagline:m.tagline||"",image_url:m.image_url||"",sort_order:String(m.sort_order),is_active:m.is_active});setMessage("Editing team profile.");window.scrollTo({top:0,behavior:"smooth"});}
  async function save(e:FormEvent){e.preventDefault();setBusy(true);setMessage("");setError("");try{const payload={...form,sort_order:Number(form.sort_order),tagline:form.tagline||null,image_url:form.image_url||null};const r=await fetch(editing?"/api/admin/team-members/"+editing:"/api/admin/team-members",{method:editing?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}),j=await r.json();if(!r.ok)throw new Error(j.error||"Could not save team profile.");setMessage(editing?"Team profile updated.":"Team member added.");reset();await load();}catch(e){setError(e instanceof Error?e.message:"Could not save team profile.");}finally{setBusy(false);}}
