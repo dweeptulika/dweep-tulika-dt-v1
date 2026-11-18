@@ -33,7 +33,8 @@ export async function POST(request: NextRequest) {
 
   const filePath = typeof input.filePath === "string" ? input.filePath : "";
   const expectedPrefix = getNewsroomUploadPrefix();
-  if (!filePath.startsWith(expectedPrefix) || filePath.includes("..") || filePath.includes("\\") || filePath.includes("?")) {
+  const relativePath = filePath.startsWith(expectedPrefix) ? filePath.slice(expectedPrefix.length) : "";
+  if (!/^\\d+-[0-9a-f-]{36}-[a-z0-9-]+\\.(jpg|png|webp)$/.test(relativePath)) {
     return NextResponse.json({ error: "Invalid newsroom image path." }, { status: 400 });
   }
   const altText = typeof input.altText === "string" ? input.altText.trim().slice(0, 500) : "";
@@ -80,6 +81,7 @@ export async function POST(request: NextRequest) {
     );
     return NextResponse.json(rows[0], { status: 201, headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
+    await client.send(new DeleteObjectCommand({ Bucket: config.bucketName, Key: filePath })).catch(() => undefined);
     if ((error as { code?: string }).code === "23505") {
       return NextResponse.json({ error: "This image has already been added to the newsroom media library." }, { status: 409 });
     }
