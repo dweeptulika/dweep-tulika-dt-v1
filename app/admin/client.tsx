@@ -177,18 +177,89 @@ export default function AdminPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function uploadImage(event: ChangeEvent<HTMLInputElement>, _kind: "featured" | "social") {
-    if (event.target.files?.[0]) {
-      setMessage("Image upload is temporarily disabled in this preview while the R2 upload endpoint is being connected.");
+  async function uploadFileToR2(file: File): Promise<string> {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      throw new Error("Only JPEG, PNG and WebP images are allowed.");
+    }
+    if (file.size < 1 || file.size > 10 * 1024 * 1024) {
+      throw new Error("Image must be between 1 byte and 10 MB.");
+    }
+
+    const signResponse = await fetch("/api/admin/media/upload-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type,
+        size: file.size,
+      }),
+    });
+    const signResult = await signResponse.json();
+    if (!signResponse.ok) throw new Error(signResult.error || "Could not prepare the image upload.");
+
+    const uploadResponse = await fetch(signResult.uploadUrl, {
+      method: "PUT",
+      headers: signResult.headers,
+      body: file,
+    });
+    if (!uploadResponse.ok) {
+      throw new Error("Cloudflare R2 rejected the image upload. Please check the bucket CORS configuration and try again.");
+    }
+
+    const completeResponse = await fetch("/api/admin/media/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filePath: signResult.filePath,
+        altText: title.trim() || file.name.replace(/\\.[^.]+$/, "").replace(/[_-]+/g, " "),
+      }),
+    });
+    const completeResult = await completeResponse.json();
+    if (!completeResponse.ok) throw new Error(completeResult.error || "The uploaded image could not be added to the media library.");
+    return completeResult.public_url as string;
+  }
+
+  async function uploadImage(event: ChangeEvent<HTMLInputElement>, kind: "featured" | "social") {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (uploading || busy) {
+      setMessage("Wait for the current newsroom operation to finish.");
+      event.target.value = "";
+      return;
+    }
+
+    setUploading(true);
+    setMessage("Uploading image to Cloudflare R2…");
+    try {
+      const url = await uploadFileToR2(file);
+      if (kind === "featured") setFeaturedImage(url);
+      else setSocialImage(url);
+      setMessage(kind === "featured" ? "Featured image uploaded successfully." : "Social image uploaded successfully.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Image upload failed. Please try again.");
+    } finally {
+      setUploading(false);
       event.target.value = "";
     }
   }
 
-
-
-  async function uploadInlineImage(_file: File): Promise<string | null> {
-    setMessage("Inline image upload is temporarily disabled in this preview while the R2 upload endpoint is being connected.");
-    return null;
+  async function uploadInlineImage(file: File): Promise<string | null> {
+    if (uploading || busy) {
+      setMessage("Wait for the current newsroom operation to finish.");
+      return null;
+    }
+    setUploading(true);
+    setMessage("Uploading inline image to Cloudflare R2…");
+    try {
+      const url = await uploadFileToR2(file);
+      setMessage("Inline image uploaded. Add alt text and an optional caption.");
+      return url;
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Inline image upload failed. Please try again.");
+      return null;
+    } finally {
+      setUploading(false);
+    }
   }
 
 
@@ -259,10 +330,22 @@ export default function AdminPage() {
             <label>Meta description<input value={metaDescription} onChange={e => setMetaDescription(e.target.value)} placeholder="Optional meta description" /></label>
           </div>
           <div className="adminFormGrid">
-            <label>Featured image URL<input type="url" value={featuredImage} onChange={e => setFeaturedImage(e.target.value)} placeholder="https://media.dweeptulika.in/..." /></label>
-            <label>Social image URL<input type="url" value={socialImage} onChange={e => setSocialImage(e.target.value)} placeholder="https://media.dweeptulika.in/..." /></label>
+            <label>Featured image
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => uploadImage(e, "featured")} disabled={uploading || busy} />
+            </label>
+            <label>Social image
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => uploadImage(e, "social")} disabled={uploading || busy} />
+            </label>
           </div>
-          <p className="adminNote">Direct image uploads are temporarily disabled in this preview until the R2 upload credentials are connected. Existing public image URLs can be used here.</p>
+          <div className="adminFormGrid">
+            <label>Or use an existing featured image URL
+              <input type="url" value={featuredImage} onChange={e => setFeaturedImage(e.target.value)} placeholder="https://media.dweeptulika.in/..." />
+            </label>
+            <label>Or use an existing social image URL
+              <input type="url" value={socialImage} onChange={e => setSocialImage(e.target.value)} placeholder="https://media.dweeptulika.in/..." />
+            </label>
+          </div>
+          <p className="adminNote">Upload JPEG, PNG or WebP images up to 10 MB. New uploads are stored in Cloudflare R2 and registered in the Neon media library. Existing image URLs remain supported.</p>
           {featuredImage && (body.includes(featuredImage)
             ? <div className="adminNote">The featured image is already embedded in the article body, so its duplicate preview is hidden. The featured-image metadata is preserved. <button type="button" onClick={() => setFeaturedImage("")}>Remove featured image</button></div>
             : <div className="adminImagePreview"><img src={featuredImage} alt="Selected featured image" /><button type="button" onClick={() => setFeaturedImage("")}>Remove featured image</button></div>)}
