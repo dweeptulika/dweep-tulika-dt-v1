@@ -206,7 +206,7 @@ export default function AdminLoginPage() {
           </label>
           {!otpLoginRequested && error && <p className="adminError" role="alert">{error}</p>}
           {!otpLoginRequested && notice && <p className="adminMessage" role="status">{notice}</p>}
-          <button disabled={busy}>{busy ? "Please wait…" : "Sign In"}</button>
+          <button type="submit" disabled={busy}>{busy ? "Please wait…" : "Sign In"}</button>
         </form>
 
         {!otpLoginRequested && (
@@ -231,7 +231,7 @@ export default function AdminLoginPage() {
               />
             </label>
             {error && <p className="adminError" role="alert">{error}</p>}
-            <button disabled={busy || otp.length !== 6}>{busy ? "Verifying…" : "Verify and sign in"}</button>
+            <button type="submit" disabled={busy || otp.length !== 6}>{busy ? "Verifying…" : "Verify and sign in"}</button>
             <button type="button" disabled={busy} onClick={sendSignInCode}>Resend code</button>
             <button type="button" disabled={busy} onClick={() => { setOtpLoginRequested(false); setOtp(""); setError(""); setNotice(""); }}>Back to password sign-in</button>
           </form>
@@ -252,7 +252,7 @@ export default function AdminLoginPage() {
                 onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
               />
             </label>
-            <button disabled={busy || otp.length !== 6}>{busy ? "Verifying…" : "Verify email"}</button>
+            <button type="submit" disabled={busy || otp.length !== 6}>{busy ? "Verifying…" : "Verify email"}</button>
             <button type="button" disabled={busy} onClick={sendVerificationCode}>Resend code</button>
           </form>
         )}
