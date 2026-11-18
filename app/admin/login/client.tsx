@@ -266,6 +266,6 @@ export default function AdminLoginPage() {
         <Link href="/admin/forgot-password">Forgot password?</Link>
         <Link href="/">Return to website</Link>
       </div>
-    </main>
+    </div>
   );
 }
