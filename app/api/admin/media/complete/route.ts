@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   const filePath = typeof input.filePath === "string" ? input.filePath : "";
   const expectedPrefix = getNewsroomUploadPrefix();
   const relativePath = filePath.startsWith(expectedPrefix) ? filePath.slice(expectedPrefix.length) : "";
-  if (!/^\\d+-[0-9a-f-]{36}-[a-z0-9-]+\\.(jpg|png|webp)$/.test(relativePath)) {
+  if (!/^\d+-[0-9a-f-]{36}-[a-z0-9-]+\.(jpg|png|webp)$/.test(relativePath)) {
     return NextResponse.json({ error: "Invalid newsroom image path." }, { status: 400 });
   }
   const altText = typeof input.altText === "string" ? input.altText.trim().slice(0, 500) : "";
