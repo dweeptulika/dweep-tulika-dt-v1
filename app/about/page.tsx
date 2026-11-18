@@ -59,10 +59,42 @@ export default async function AboutPage() {
           .eq("is_active", true).order("sort_order", { ascending: true }).order("created_at", { ascending: true });
         return data || [];
       })();
-  const profiles = teamRows.length ? teamRows.map(member => ({
+  const profiles = (teamRows.length ? teamRows.map(member => ({
     name: member.name, role: member.designation, text: member.biography,
     tagline: member.tagline, image: member.image_url,
-  })) : fallbackProfiles;
+  })) : fallbackProfiles).map(profile => ({
+    ...profile,
+    // Some legacy team records already include quotation marks in the tagline.
+    tagline: profile.tagline?.replace(/^[“”"']+|[“”"']+$/g, "").trim() || null,
+  }));
+  const leadership = profiles.filter(profile =>
+    !/independent journalist|student contributor/i.test(profile.role)
+  );
+  const independentContributors = profiles.filter(profile =>
+    /independent journalist/i.test(profile.role)
+  );
+  const studentContributors = profiles.filter(profile =>
+    /student contributor/i.test(profile.role)
+  );
+  const renderProfiles = (items: typeof profiles) => (
+    <div className="profileGrid">
+      {items.map((profile) => (
+        <section className="teamCard" key={profile.name}>
+          {profile.image ? <Image
+            src={profile.image}
+            alt={profile.name}
+            width={150}
+            height={150}
+            className="teamImage"
+          /> : <div className="teamImage" aria-hidden="true" />}
+          <h3>{profile.name}</h3>
+          <div className="teamRole">{profile.role}</div>
+          <p>{profile.text}</p>
+          {profile.tagline ? <p><em>“{profile.tagline}”</em></p> : null}
+        </section>
+      ))}
+    </div>
+  );
   return (
     <div className="container">
       <article className="article aboutPage">
@@ -83,24 +115,29 @@ export default async function AboutPage() {
           </p>
         </div>
 
-        <h2 className="sectionHeading">Editorial &amp; Publishing Team</h2>
-        <div className="profileGrid">
-          {profiles.map((profile) => (
-            <section className="teamCard" key={profile.name}>
-              {profile.image ? <Image
-                src={profile.image}
-                alt={profile.name}
-                width={150}
-                height={150}
-                className="teamImage"
-              /> : <div className="teamImage" aria-hidden="true" /> }
-              <h3>{profile.name}</h3>
-              <div className="teamRole">{profile.role}</div>
-              <p>{profile.text}</p>
-              {profile.tagline ? <p><em>“{profile.tagline}”</em></p> : null}
-            </section>
-          ))}
-        </div>
+        <section className="aboutTeamSection" aria-labelledby="editorial-leadership">
+          <h2 className="sectionHeading" id="editorial-leadership">Editorial &amp; Publishing Leadership</h2>
+          <p className="aboutSectionIntro">The publication’s editorial and publishing responsibilities.</p>
+          {renderProfiles(leadership)}
+        </section>
+
+        {independentContributors.length > 0 ? (
+          <section className="aboutTeamSection" aria-labelledby="independent-contributors">
+            <h2 className="sectionHeading" id="independent-contributors">Independent Contributors</h2>
+            <p className="aboutSectionIntro">Independent journalists and ground contributors whose work brings local perspectives and public-interest reporting to Dweep Tulika.</p>
+            {renderProfiles(independentContributors)}
+          </section>
+        ) : null}
+
+        {studentContributors.length > 0 ? (
+          <section className="aboutTeamSection" aria-labelledby="young-contributors">
+            <h2 className="sectionHeading" id="young-contributors">Young &amp; Student Contributors</h2>
+            <p className="aboutSectionIntro">Student contributors sharing literary, creative and youth perspectives in an independent capacity.</p>
+            {renderProfiles(studentContributors)}
+          </section>
+        ) : null}
+
+        <p className="aboutPolicyLink">For details about our editorial standards and accountability, read our <Link href="/p/publication-policies.html">Publication Policies</Link>.</p>
 
         <div className="contactBox">
           <h2>Connect with Dweep Tulika</h2>
