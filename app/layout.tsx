@@ -48,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           strategy="afterInteractive"
         />
         <SiteHeader />
-        <main>{children}</main>
+        <div id="site-content">{children}</div>
         <SiteFooter />
         <script
           type="application/ld+json"
