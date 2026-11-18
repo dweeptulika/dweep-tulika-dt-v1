@@ -173,3 +173,10 @@ table.dtArticleTable img{display:inline-block;max-width:100%;height:auto;vertica
 .adminTabButton.isActive{background:#111;color:#fff;border-color:#111;box-shadow:inset 0 -3px 0 #b51e2a}
 .adminTabButton[aria-selected="true"]{font-weight:900}
 @media(max-width:600px){.adminTabs{display:grid;grid-template-columns:1fr;gap:7px}.adminTabButton{text-align:left;width:100%;min-height:46px}}
+
+
+/* Editorial login: separate actions clearly and keep controls keyboard-visible. */
+.adminLoginCard form{margin:0 0 14px}
+.adminLoginCard form>button{margin-top:8px}
+.adminLoginCard>button{display:block;margin:14px 0 0}
+.adminLoginCard button:focus-visible{outline:3px solid #b51e2a;outline-offset:3px}
