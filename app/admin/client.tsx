@@ -3,7 +3,7 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { authClient } from "@/lib/auth/client";
+import { createClient } from "@/lib/supabase/client";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { AdvertisementPanel } from "@/components/AdvertisementPanel";
 
@@ -39,6 +39,7 @@ function toLocalDateTimeInput(value: string | null) {
 
 export default function AdminPage() {
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
 
   const [sessionReady, setSessionReady] = useState(false);
   const [activeTab, setActiveTab] = useState<"write" | "ads" | "stories">("write");
@@ -106,11 +107,11 @@ export default function AdminPage() {
 
 
   useEffect(() => {
-    authClient.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data }) => {
       if (!data?.session) router.replace("/admin/login");
       else { setSessionReady(true); void loadArticles(); }
     }).catch(() => router.replace("/admin/login"));
-  }, [router]);
+  }, [router, supabase]);
 
 
 
