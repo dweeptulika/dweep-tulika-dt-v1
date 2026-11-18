@@ -189,7 +189,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="adminLogin">
+    <div className="adminLogin">
       <div className="adminLoginCard">
         <div className="kicker">Dweep Tulika Newsroom</div>
         <h1>Editorial Login</h1>
@@ -206,11 +206,11 @@ export default function AdminLoginPage() {
           </label>
           {!otpLoginRequested && error && <p className="adminError" role="alert">{error}</p>}
           {!otpLoginRequested && notice && <p className="adminMessage" role="status">{notice}</p>}
-          <button disabled={busy}>{busy ? "Please wait…" : "Sign In"}</button>
+          <button type="submit" disabled={busy}>{busy ? "Please wait…" : "Sign In"}</button>
         </form>
 
         {!otpLoginRequested && (
-          <button type="button" disabled={busy} onClick={sendSignInCode}>
+          <button className="adminLoginOtpButton" type="button" disabled={busy} onClick={sendSignInCode}>
             Sign in with an email code instead
           </button>
         )}
