@@ -13,6 +13,7 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [verificationRequired, setVerificationRequired] = useState(false);
+  const [otpLoginRequested, setOtpLoginRequested] = useState(false);
   const [verified, setVerified] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -62,6 +63,37 @@ export default function AdminLoginPage() {
     }
   }
 
+  async function sendSignInCode() {
+    const address = email.trim();
+    if (!address) {
+      setError("Enter your newsroom email address first.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await authClient.emailOtp.sendVerificationOtp({
+        email: address,
+        type: "sign-in",
+      });
+      if (result.error) {
+        console.error("[Dweep Tulika auth] Passwordless sign-in OTP request failed", result.error);
+        setError(result.error.message || "A sign-in code could not be sent.");
+        return;
+      }
+      setOtpLoginRequested(true);
+      setVerificationRequired(false);
+      setOtp("");
+      setNotice("A one-time sign-in code has been sent. Check your newsroom inbox and spam folder.");
+    } catch (cause) {
+      console.error("[Dweep Tulika auth] Passwordless sign-in OTP request threw an exception", cause);
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -95,6 +127,31 @@ export default function AdminLoginPage() {
     }
   }
 
+  async function verifySignInCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await authClient.signIn.emailOtp({
+        email: email.trim(),
+        otp: otp.trim(),
+      });
+      if (result.error) {
+        console.error("[Dweep Tulika auth] Passwordless sign-in verification failed", result.error);
+        setError(result.error.message || "That sign-in code could not be verified. Request a new code and try again.");
+        return;
+      }
+      router.replace("/admin");
+      router.refresh();
+    } catch (cause) {
+      console.error("[Dweep Tulika auth] Passwordless sign-in verification threw an exception", cause);
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function verifyEmail(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -113,8 +170,6 @@ export default function AdminLoginPage() {
       setVerified(true);
       setVerificationRequired(false);
       setNotice("Email verified successfully. You can now sign in. If your password is not accepted, use the password-reset link below.");
-      // Verification may establish a session automatically. If it does not,
-      // retry the supplied credentials; never bypass password authentication.
       const signIn = await authClient.signIn.email({
         email: email.trim(),
         password,
@@ -139,6 +194,7 @@ export default function AdminLoginPage() {
         <div className="kicker">Dweep Tulika Newsroom</div>
         <h1>Editorial Login</h1>
         <p>Sign in to manage drafts and publish reports.</p>
+
         <form onSubmit={submit}>
           <label>
             Email
@@ -148,10 +204,38 @@ export default function AdminLoginPage() {
             Password
             <input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
           </label>
-          {error && <p className="adminError" role="alert">{error}</p>}
-          {notice && <p className="adminMessage" role="status">{notice}</p>}
+          {!otpLoginRequested && error && <p className="adminError" role="alert">{error}</p>}
+          {!otpLoginRequested && notice && <p className="adminMessage" role="status">{notice}</p>}
           <button disabled={busy}>{busy ? "Please wait…" : "Sign In"}</button>
         </form>
+
+        {!otpLoginRequested && (
+          <button type="button" disabled={busy} onClick={sendSignInCode}>
+            Sign in with an email code instead
+          </button>
+        )}
+
+        {otpLoginRequested && (
+          <form onSubmit={verifySignInCode}>
+            <p>{notice}</p>
+            <label>
+              Email sign-in code
+              <input
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                required
+                value={otp}
+                onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+              />
+            </label>
+            {error && <p className="adminError" role="alert">{error}</p>}
+            <button disabled={busy || otp.length !== 6}>{busy ? "Verifying…" : "Verify and sign in"}</button>
+            <button type="button" disabled={busy} onClick={sendSignInCode}>Resend code</button>
+            <button type="button" disabled={busy} onClick={() => { setOtpLoginRequested(false); setOtp(""); setError(""); setNotice(""); }}>Back to password sign-in</button>
+          </form>
+        )}
 
         {verificationRequired && (
           <form onSubmit={verifyEmail}>
@@ -165,7 +249,7 @@ export default function AdminLoginPage() {
                 maxLength={6}
                 required
                 value={otp}
-                onChange={(event) => setOtp(event.target.value.replace(/\\D/g, "").slice(0, 6))}
+                onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
               />
             </label>
             <button disabled={busy || otp.length !== 6}>{busy ? "Verifying…" : "Verify email"}</button>
