@@ -60,7 +60,7 @@ export function websiteJsonLd() {
         "@type": "WebSite",
         "@id": SITE_URL + "/#website",
         name: SITE_NAME,
-        alternateName: ["Dweep Tulika", "dweeptulika.in"],
+        alternateName: ["DweepTulika", "dweeptulika.in"],
         url: SITE_URL,
         inLanguage: "en-IN",
         publisher: { "@id": SITE_URL + "/#organization" },
