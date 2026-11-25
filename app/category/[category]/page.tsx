@@ -41,9 +41,10 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   const { category } = await params;
   const label = aliases[category] || category.replaceAll("-", " ");
   const categoryTitle = label === "Andaman News" ? "Andaman & Nicobar" : label;
-  const title = `${categoryTitle} News`;
+  const title = categoryTitle.toLowerCase().endsWith(" news") ? categoryTitle : `${categoryTitle} News`;
   const subject = label === "Andaman News" ? "Andaman & Nicobar" : label;
-  const description = `Latest ${subject.toLowerCase()} news, reports and updates from Dweep Tulika, covering the islands and beyond.`;
+  const subjectPhrase = subject.toLowerCase().endsWith(" news") ? subject.toLowerCase() : `${subject.toLowerCase()} news`;
+  const description = `Latest ${subjectPhrase}, reports and updates from Dweep Tulika, covering the islands and beyond.`;
   return {
     title,
     description,
