@@ -7,7 +7,10 @@ import { getAllPublishedArticles } from "@/lib/data";
 const aliases: Record<string, string> = {
   "andaman-nicobar": "Andaman News",
   national: "National",
+  "international-news": "International News",
   politics: "Politics",
+  crime: "Crime",
+  education: "Education",
   editorial: "Editorial",
   culture: "Culture",
   business: "Business",
@@ -19,7 +22,10 @@ export const revalidate = 0;
 const descriptions: Record<string, string> = {
   "andaman-nicobar": "Local reporting on public services, governance, transport, health, education, the environment and community issues across the Andaman & Nicobar Islands.",
   national: "Coverage of national developments, public policy and decisions that shape India and may affect island communities.",
+  "international-news": "Reporting on major international developments, diplomacy, conflicts, global affairs and events shaping the wider world.",
   politics: "Reporting on political parties, elected representatives, public accountability, governance and policy debates.",
+  crime: "Reports on crime, policing, public safety, investigations and developments in the justice system.",
+  education: "Coverage of schools, colleges, universities, education policy, examinations, student issues and learning initiatives.",
   editorial: "Commentary, opinion and analysis examining public issues, policy choices and developments affecting society.",
   culture: "Stories on arts, literature, heritage, festivals, cultural organisations and the traditions of island communities.",
   business: "Coverage of business, trade, industry, employment, livelihoods and economic developments in the islands and beyond.",
