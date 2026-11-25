@@ -7,7 +7,7 @@ import { authClient } from "@/lib/auth/client";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import { AdvertisementPanel } from "@/components/AdvertisementPanel";
 
-const categories = ["Andaman News", "National", "Politics", "Editorial", "Culture", "Business", "Sports"];
+const categories = ["Andaman News", "National", "International News", "Politics", "Crime", "Education", "Editorial", "Culture", "Business", "Sports"];
 type ArticleStatus = "draft" | "published" | "scheduled";
 type ArticleRow = {
   id: string; title: string; slug: string; category: string; source?: "blogger" | "newsroom"; public_path?: string | null; author: string; excerpt: string;
